@@ -1,0 +1,11 @@
+/Firmware/.vs/*
+/Firmware/.vscode/*
+/Firmware/build/*
+/Firmware/cmake/*
+/Firmware/genBackup/*
+/Firmware/.cproject
+/Firmware/.mxproject
+/Firmware/.project
+/Firmware/CMakeLists.txt
+/Firmware/CMakePresets.json
+/Firmware/vcpkg-configuration.json

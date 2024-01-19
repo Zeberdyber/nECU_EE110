@@ -1,0 +1,67 @@
+/**
+ ******************************************************************************
+ * @file    nECU_EGT.h
+ * @brief   This file contains all the function prototypes for
+ *          the nECU_EGT.c file
+ */
+
+#ifndef _NECU_EGT_H_
+#define _NECU_EGT_H_
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/* Includes */
+#include "main.h"
+#include "stdbool.h"
+#include "spi.h"
+#include "gpio.h"
+
+/* Definitions */
+#define EGT_DECIMAL_POINT 0         // Specifies how many numbers should be after decimal point
+#define EGT_NEGATIVE_OFFSET 100     // How much to subtract from the result
+#define EGT_MAXIMUM_PENDING_COUNT 5 // How often at least the data have to be converted
+
+    /* typedef */
+    typedef struct
+    {
+        SPI_HandleTypeDef *hspi;
+        GPIO_TypeDef *GPIOx;
+        uint16_t GPIO_Pin;
+
+        uint8_t buffer[4];
+        uint8_t data_Pending;
+
+        bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error;
+        float InternalTemp, TcTemp;
+        uint16_t EGT_Temperature;
+    } MAX31855;
+
+    typedef struct
+    {
+        MAX31855 TC1, TC2, TC3, TC4;
+        MAX31855 *EGT_CurrentObj;
+        bool EGT_FirstSensor, EGT_Initialized;
+        uint8_t EGT_CurrentSensor;
+    } nECU_EGT;
+
+    /* Function Prototypes */
+    uint16_t *EGT_GetTemperaturePointer(uint8_t sensorNumber);                                           // get function that returns pointer to output data of sensor, ready for can transmission
+    void EGT_Start(void);                                                                                // initialize all sensors and start communication
+    void EGT_GetSPIData(bool error);                                                                     // get data of all sensors
+    void EGT_ConvertAll(void);                                                                           // convert data if pending
+    void EGT_PeriodicEventHP(void);                                                                      // high priority periodic event, launched from timer interrupt
+    void EGT_PeriodicEventLP(void);                                                                      // low priority periodic event, launched from regular main loop
+    void EGT_TemperatureTo10bit(MAX31855 *inst);                                                         // function to convert temperature value to 10bit number for CAN transmission
+    void MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin); // First initialization
+    uint8_t MAX31855_getError(MAX31855 *inst);                                                           // get current error value
+    void MAX31855_UpdateSimple(MAX31855 *inst);                                                          // Recive data over SPI and convert it into struct, dont use while in DMA mode
+    void MAX31855_ConvertData(MAX31855 *inst);                                                           // For internal use bit decoding and data interpretation
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _NECU_EGT_H_ */
