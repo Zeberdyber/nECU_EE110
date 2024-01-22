@@ -95,7 +95,6 @@ extern "C"
         uint16_t watchdogCount;
     } VSS_Handle;
 
-    /* Function Prototypes */
     /* Analog sensors */
     void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst);                // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
     float nECU_getLinearSensor(uint16_t *ADC_Value, AnalogSensorCalibration *inst);     // function to get result of linear sensor

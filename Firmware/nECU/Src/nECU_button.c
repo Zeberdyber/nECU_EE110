@@ -371,7 +371,7 @@ void ButtonInput_Stop_Timer(ButtonInput *button) // stops timer base
 }
 /* BUTTON INPUT END */
 
-/* Menu specific functions */
+/* Animations */
 void ButtonLight_BreathAllOnce(void) // breath all button lights once
 {
   ButtonLight_Set_Breathe(&Red.light, 100, 2);

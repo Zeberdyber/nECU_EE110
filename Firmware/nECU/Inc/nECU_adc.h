@@ -30,30 +30,32 @@ extern "C"
 
   /* typedef */
 
-  /* Function Prototypes */
+  /* Interrupt functions */
+  void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
+  void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc);
 
-  uint16_t CorrectToCalibration(uint16_t ADCValue, uint16_t ADC_VREF);
-  uint16_t unCorrectToCalibration(uint16_t ADCValue, uint16_t ADC_VREF);
-  float ADCToVolts(uint16_t ADCValue);
-  uint16_t VoltsToADC(float Voltage);
-
-  float get_InternalTemperature(void);
+  /* Start functions */
   void ADC_START_ALL(void);
   void ADC1_START(void);
   void ADC2_START(void);
   void ADC3_START(void);
+  /* Stop functions */
   void ADC_STOP_ALL(void);
   void ADC1_STOP(void);
   void ADC2_STOP(void);
   void ADC3_STOP(void);
-  void ADC_LP_Update(void);
-  void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
-  void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc);
-
+  /* ADC Rutines */
   void nECU_ADC_All_Routine(void);
   void nECU_ADC1_Routine(void);
   void nECU_ADC2_Routine(void);
   void nECU_ADC3_Routine(void);
+
+  /* Conversion functions */
+  float ADCToVolts(uint16_t ADCValue);
+  uint16_t VoltsToADC(float Voltage);
+  /* Other ADC */
+  float get_InternalTemperature(void); // Calculate current temperature of the IC
+  void ADC_LP_Update(void);            // Update low priority variables
 
 #ifdef __cplusplus
 }

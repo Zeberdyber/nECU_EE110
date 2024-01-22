@@ -1,112 +1,20 @@
 /**
  ******************************************************************************
- * @file    HumanInterface.c
- * @brief   This file provides code for Interfacing with human. It specifies
- *          input and display methods.
+ * @file    nECU_menu.c
+ * @brief   This file provides code for operating button menu. It specifies
+ *          input and display actions.
  ******************************************************************************
  */
 
-#include "HumanInterface.h"
-
-OnBoardLED LED_L, LED_R;
-bool LED_Initialized = false; // flag to triger initialization
+#include "nECU_menu.h"
 
 ButtonMenu Menu;
-
-uint16_t BlankUint16_t = 0; // place holder
 
 TachoValue Tacho1, Tacho2, Tacho3;
 bool TachoInitialized = false; // flag indicating structures initialization
 
-/* TachoValue interface functions */
-uint8_t *TachoValue_Get_OutputPointer(uint8_t structNumber) // get pointer to correct structure value
-{
-  switch (structNumber)
-  {
-  case 1:
-    return &Tacho1.output_value;
-    break;
-  case 2:
-    return &Tacho2.output_value;
-    break;
-  case 3:
-    return &Tacho3.output_value;
-    break;
-  default:
-    break;
-  }
-}
-bool *TachoValue_Get_ShowPointer(uint8_t structNumber) // get pointer to correct structure value
-{
-  switch (structNumber)
-  {
-  case 1:
-    return &Tacho1.showPending;
-    break;
-  case 2:
-    return &Tacho2.showPending;
-    break;
-  case 3:
-    return &Tacho3.showPending;
-    break;
-  default:
-    break;
-  }
-}
-void TachoValue_Clear_ShowPending(uint8_t structNumber) // clear pending flag for selected struct
-{
-  switch (structNumber)
-  {
-  case 1:
-    Tacho1.showPending == false;
-    break;
-  case 2:
-    Tacho2.showPending == false;
-    break;
-  case 3:
-    Tacho3.showPending == false;
-    break;
-  default:
-    break;
-  }
-}
-void TachoValue_Update_All(void) // update all TachoValue structures
-{
-  if (TachoInitialized == false)
-  {
-    TachoValue_Init_All();
-  }
-  TachoValue_Update_Single(&Tacho1);
-  TachoValue_Update_Single(&Tacho2);
-  TachoValue_Update_Single(&Tacho3);
-}
-void TachoValue_Init_All(void) // initialize tachometer value structures
-{
-  TachoValue_Init_Single(&Tacho1, Button_Menu_getPointer_TuneSelector(), 10);
-  TachoValue_Init_Single(&Tacho2, Button_Menu_getPointer_LunchControlLevel(), 10);
-  TachoValue_Init_Single(&Tacho3, &Menu.MenuLevel, 10);
-  TachoInitialized = true;
-}
-/* TachoValue internal functions */
-void TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier) // initialize single structure
-{
-  inst->showPending = false;
-  inst->prev_input = *pinput_value;
-  inst->input_value = pinput_value;
-  inst->output_multiplier = multiplier;
-}
-void TachoValue_Update_Single(TachoValue *inst) // update variables when needed
-{
-  if (*inst->input_value != inst->prev_input)
-  {
-    inst->prev_input = *inst->input_value;
-    inst->output_value = *inst->input_value * inst->output_multiplier;
-    inst->showPending = true;
-  }
-}
-
 /* Button logic */
-void Button_Menu_Init(void) // initialize button menu structure
+void Button_Menu_Init(void) // initialize button menu
 {
   Menu.Antilag = false;
   Menu.ClearEngineCode = false;
@@ -118,7 +26,7 @@ void Button_Menu_Init(void) // initialize button menu structure
   ButtonLight_BreathAllOnce();
   nECU_readUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
 }
-void Button_Menu(void)
+void Button_Menu(void) // update function
 {
   Button_ClickType RedType = ButtonInput_GetType(RED_BUTTON_ID);
   Button_ClickType OrangeType = ButtonInput_GetType(ORANGE_BUTTON_ID);
@@ -231,50 +139,89 @@ uint16_t *Button_Menu_getPointer_TuneSelector(void)
   return &(Menu.TuneSelector);
 }
 
-/* On board LEDs */
-void OnBoard_LED_Init(void) // initialize structures for on board LEDs
+/* TachoValue interface functions */
+uint8_t *TachoValue_Get_OutputPointer(uint8_t structNumber) // get pointer to correct structure value
 {
-  /* Left LED */
-  LED_L.GPIO_Pin = LED1_Pin;
-  LED_L.GPIOx = LED1_GPIO_Port;
-  LED_L.LastTick = HAL_GetTick();
-
-  /* Right LED */
-  LED_R.GPIO_Pin = LED2_Pin;
-  LED_R.GPIOx = LED2_GPIO_Port;
-  LED_R.LastTick = HAL_GetTick();
-
-  LED_Initialized = true;
+  switch (structNumber)
+  {
+  case 1:
+    return &Tacho1.output_value;
+    break;
+  case 2:
+    return &Tacho2.output_value;
+    break;
+  case 3:
+    return &Tacho3.output_value;
+    break;
+  default:
+    break;
+  }
 }
-void OnBoard_LED_UpdateSingle(OnBoardLED *inst) // function to perform logic behind blinking times and update to GPIO
+bool *TachoValue_Get_ShowPointer(uint8_t structNumber) // get pointer to correct structure value
 {
-  if (inst->blinking == true)
+  switch (structNumber)
   {
-    if ((HAL_GetTick() - inst->LastTick) > ((float)(ONBOARD_LED_MS_PER_BLINK / 2) * HAL_GetTickFreq()))
-    {
-      inst->LastTick = HAL_GetTick();
-      inst->BlinkState = !inst->BlinkState;
-    }
-    inst->State = inst->BlinkState;
+  case 1:
+    return &Tacho1.showPending;
+    break;
+  case 2:
+    return &Tacho2.showPending;
+    break;
+  case 3:
+    return &Tacho3.showPending;
+    break;
+  default:
+    break;
   }
-  else
-  {
-    inst->LastTick = HAL_GetTick();
-  }
-  HAL_GPIO_WritePin(inst->GPIOx, inst->GPIO_Pin, inst->State);
 }
-void OnBoard_LED_Update(void) // update on board LEDs states
+void TachoValue_Clear_ShowPending(uint8_t structNumber) // clear pending flag for selected struct
 {
-  if (LED_Initialized == false)
+  switch (structNumber)
   {
-    OnBoard_LED_Init();
+  case 1:
+    Tacho1.showPending == false;
+    break;
+  case 2:
+    Tacho2.showPending == false;
+    break;
+  case 3:
+    Tacho3.showPending == false;
+    break;
+  default:
+    break;
   }
-
-  LED_L.State = nECU_CAN_GetError();
-  LED_L.blinking = nECU_CAN_GetState();
-  OnBoard_LED_UpdateSingle(&LED_L);
-
-  LED_R.State = nECU_SPI_getError();
-  LED_R.blinking = nECU_SPI_getBusy();
-  OnBoard_LED_UpdateSingle(&LED_R);
+}
+void TachoValue_Update_All(void) // update all TachoValue structures
+{
+  if (TachoInitialized == false)
+  {
+    TachoValue_Init_All();
+  }
+  TachoValue_Update_Single(&Tacho1);
+  TachoValue_Update_Single(&Tacho2);
+  TachoValue_Update_Single(&Tacho3);
+}
+void TachoValue_Init_All(void) // initialize tachometer value structures
+{
+  TachoValue_Init_Single(&Tacho1, Button_Menu_getPointer_TuneSelector(), 10);
+  TachoValue_Init_Single(&Tacho2, Button_Menu_getPointer_LunchControlLevel(), 10);
+  TachoValue_Init_Single(&Tacho3, &Menu.MenuLevel, 10);
+  TachoInitialized = true;
+}
+/* TachoValue internal functions */
+void TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier) // initialize single structure
+{
+  inst->showPending = false;
+  inst->prev_input = *pinput_value;
+  inst->input_value = pinput_value;
+  inst->output_multiplier = multiplier;
+}
+void TachoValue_Update_Single(TachoValue *inst) // update variables when needed
+{
+  if (*inst->input_value != inst->prev_input)
+  {
+    inst->prev_input = *inst->input_value;
+    inst->output_value = *inst->input_value * inst->output_multiplier;
+    inst->showPending = true;
+  }
 }

@@ -18,7 +18,7 @@ extern "C"
 #include "nECU_Speed.h"
 #include "nECU_EGT.h"
 #include "nECU_can.h"
-#include "HumanInterface.h"
+#include "nECU_menu.h"
 #include "nECU_stock.h"
     /* Definitions */
 

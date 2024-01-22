@@ -55,26 +55,32 @@ extern "C"
         bool averageReady[4];
     } CalibrateRoutine;
 
-    /* Function Prototypes */
+    /* Interface functions */
     uint16_t *Speed_GetSpeed(uint8_t sensorNumber);     // get current speed
     uint16_t *Speed_GetSpeedSlow(uint8_t sensorNumber); // get slower (average) speed
     void Speed_SetWheelSetup(uint8_t WheelSetup);       // set wheel setup for all sensors
-    void Speed_AverageCalc(Speed_Sensor *Sensor);       // routine to calculate averaged speed
-    void Speed_AverageInit(Speed_Sensor *Sensor);       // Initialize averaging structure
 
+    /* Averaging */
+    void Speed_AverageCalc(Speed_Sensor *Sensor); // routine to calculate averaged speed
+    void Speed_AverageInit(Speed_Sensor *Sensor); // Initialize averaging structure
+
+    /* General functions */
     void Speed_Start(void);                          // function to start Speed function set
     void Speed_Update(void);                         // perform update of all sensors
     void Speed_SensorUpdate(Speed_Sensor *Sensor);   // update one sensors data
     void Speed_CorrectToCalib(Speed_Sensor *Sensor); // correct data to calibration multiplier
     void Speed_ADCToSpeed(Speed_Sensor *Sensor);     // function to convert RAW ADC data to real speed in km/h
 
+    /* Calibration functions */
     void Speed_CalibrateSingle(Speed_Sensor *Sensor); // function to generate calibration multiplier
     void Speed_CalibrateAll(void);                    // function to calibrate speed sensors (periodic function)
     void Speed_CalibrateInit(void);                   // initialize calibration structure
     void Speed_CalibrateStart(void);                  // start calibration process
 
+    /* Periodic functions */
     void Speed_TimingEvent(void); // function to be called periodicaly with desired data update rate
 
+    /* Speed testing functions */
     uint8_t Test_Speed_SensorUpdate(void); // function to test Speed functions
 
 #ifdef __cplusplus

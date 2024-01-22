@@ -247,7 +247,7 @@ void Speed_CalibrateStart(void) // start calibration process
     calibrateRoutine.active = true;
 }
 
-/* periodic functions */
+/* Periodic functions */
 void Speed_TimingEvent(void) // function to be called periodicaly with desired data update rate
 {
     if (calibrateRoutine.active)

@@ -10,6 +10,8 @@
 nECU_Delay Flash_save_delay;
 nECU_Delay Knock_rotation_delay;
 
+IGF_Handle RPM;
+
 uint8_t nECU_Get_FrameTimer(void) // get current value of frame timer
 {
   /* timer 11 is set to work with 0,1ms count up time, and have 8bit period*/
@@ -63,6 +65,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
   }
 }
 
+/* Non-blocking delay */
 bool *nECU_Delay_DoneFlag(nECU_Delay *inst) // return done flag pointer of non-blocking delay
 {
   return &(inst->done);
@@ -105,6 +108,39 @@ void nECU_Delay_UpdateAll(void) // update all created non-blocking delays
 {
   nECU_Delay_Update(&Flash_save_delay);
   nECU_Delay_Update(&Knock_rotation_delay);
+}
+
+/* RPM calculation */
+void nECU_RPM_Init(void) // initialize and start
+{
+  RPM.IGF_prevCCR = 0;
+  RPM.tim.htim = &FREQ_INPUT_TIMER;
+  RPM.IGF_Channel = TIM_CHANNEL_1;
+  RPM.tim.refClock = TIM_CLOCK / (RPM.tim.htim->Init.Prescaler + 1);
+  HAL_TIM_Base_Start_IT(RPM.tim.htim);
+  HAL_TIM_IC_Start_IT(RPM.tim.htim, RPM.IGF_Channel);
+}
+void nECU_RPM_Calc(void) // calculate RPM based on IGF signal
+{
+  uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(RPM.tim.htim, RPM.IGF_Channel);
+  /* Calculate difference */
+  uint16_t Difference = 0; // in miliseconds
+  if (RPM.IGF_prevCCR > CurrentCCR)
+  {
+    Difference = ((RPM.tim.htim->Init.Period + 1 - RPM.IGF_prevCCR) + CurrentCCR);
+  }
+  else
+  {
+    Difference = (CurrentCCR - RPM.IGF_prevCCR);
+  }
+  RPM.IGF_prevCCR = CurrentCCR;
+  RPM.frequency = RPM.tim.refClock / Difference;
+  RPM.RPM = RPM.frequency * 120;
+}
+void nECU_RPM_DeInit(void) // stop
+{
+  HAL_TIM_Base_Stop_IT(RPM.tim.htim);
+  HAL_TIM_IC_Stop_IT(RPM.tim.htim, RPM.IGF_Channel);
 }
 
 /* Flash save user setting delay */

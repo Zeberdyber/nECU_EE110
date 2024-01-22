@@ -21,95 +21,6 @@ extern bool Knock_UART_Transmission;
 
 float InternalTemp = 0;
 
-extern UART_HandleTypeDef huart1;
-
-uint16_t CorrectToCalibration(uint16_t ADCValue, uint16_t ADC_VREF)
-{
-  return ((uint32_t)ADCValue * *VREFINT_CALIB) / ADC_VREF;
-}
-uint16_t unCorrectToCalibration(uint16_t ADCValue, uint16_t ADC_VREF)
-{
-  return ((uint32_t)ADCValue * ADC_VREF) / *VREFINT_CALIB;
-}
-float ADCToVolts(uint16_t ADCValue)
-{
-  return (VREF_CALIB * ADCValue) / ADC_MAX_VALUE_12BIT;
-}
-uint16_t VoltsToADC(float Voltage)
-{
-  Voltage *= ADC_MAX_VALUE_12BIT;
-  Voltage /= VREF_CALIB;
-  return (uint16_t)Voltage;
-}
-
-float get_InternalTemperature(void)
-{
-  // From reference manual
-  float Temperature = ADCToVolts(*ADC_InternalTemp);
-  Temperature -= INTERNAL_TEMP_V25;
-  Temperature /= (INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
-  Temperature += 25;
-  return Temperature;
-}
-
-void ADC_START_ALL(void)
-{
-  ADC1_START();
-  ADC2_START();
-  ADC3_START();
-}
-void ADC1_START(void)
-{
-  ADC_MAP = &ADC1_DMA_BUF[0];
-  ADC_BackPressure = &ADC1_DMA_BUF[1];
-  ADC_OX = &ADC1_DMA_BUF[2];
-  ADC_AI1 = &ADC1_DMA_BUF[3];
-  ADC_AI2 = &ADC1_DMA_BUF[4];
-  ADC_AI3 = &ADC1_DMA_BUF[5];
-  ADC_InternalTemp = &ADC1_DMA_BUF[6];
-  ADC_VREF = &ADC1_DMA_BUF[7];
-
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)ADC1_DMA_BUF, 8);
-}
-void ADC2_START(void)
-{
-  ADC_V1 = &ADC2_DMA_BUF[0];
-  ADC_V2 = &ADC2_DMA_BUF[1];
-  ADC_V3 = &ADC2_DMA_BUF[2];
-  ADC_V4 = &ADC2_DMA_BUF[3];
-
-  HAL_ADC_Start_DMA(&hadc2, (uint32_t *)ADC2_DMA_BUF, 4);
-}
-void ADC3_START(void)
-{
-  HAL_TIM_Base_Start(&ADC_SAMPLING_TIMER);
-  HAL_ADC_Start_DMA(&hadc3, (uint32_t *)ADC3_DMA_BUF, KNOCK_BUFFOR_SIZE);
-}
-
-void ADC_STOP_ALL(void)
-{
-  ADC1_STOP();
-  ADC2_STOP();
-  ADC3_STOP();
-}
-void ADC1_STOP(void)
-{
-  HAL_ADC_Stop_DMA(&hadc1);
-}
-void ADC2_STOP(void)
-{
-  HAL_ADC_Stop_DMA(&hadc2);
-}
-void ADC3_STOP(void)
-{
-  HAL_TIM_Base_Stop(&ADC_SAMPLING_TIMER);
-  HAL_ADC_Stop_DMA(&hadc3);
-}
-/* Update low priority variables*/
-void ADC_LP_Update(void)
-{
-  InternalTemp = get_InternalTemperature();
-}
 /* Interrupt functions */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
@@ -172,6 +83,61 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
   }
 }
 
+/* Start functions */
+void ADC_START_ALL(void)
+{
+  ADC1_START();
+  ADC2_START();
+  ADC3_START();
+}
+void ADC1_START(void)
+{
+  ADC_MAP = &ADC1_DMA_BUF[0];
+  ADC_BackPressure = &ADC1_DMA_BUF[1];
+  ADC_OX = &ADC1_DMA_BUF[2];
+  ADC_AI1 = &ADC1_DMA_BUF[3];
+  ADC_AI2 = &ADC1_DMA_BUF[4];
+  ADC_AI3 = &ADC1_DMA_BUF[5];
+  ADC_InternalTemp = &ADC1_DMA_BUF[6];
+  ADC_VREF = &ADC1_DMA_BUF[7];
+
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)ADC1_DMA_BUF, 8);
+}
+void ADC2_START(void)
+{
+  ADC_V1 = &ADC2_DMA_BUF[0];
+  ADC_V2 = &ADC2_DMA_BUF[1];
+  ADC_V3 = &ADC2_DMA_BUF[2];
+  ADC_V4 = &ADC2_DMA_BUF[3];
+
+  HAL_ADC_Start_DMA(&hadc2, (uint32_t *)ADC2_DMA_BUF, 4);
+}
+void ADC3_START(void)
+{
+  HAL_TIM_Base_Start(&ADC_SAMPLING_TIMER);
+  HAL_ADC_Start_DMA(&hadc3, (uint32_t *)ADC3_DMA_BUF, KNOCK_BUFFOR_SIZE);
+}
+/* Stop functions */
+void ADC_STOP_ALL(void)
+{
+  ADC1_STOP();
+  ADC2_STOP();
+  ADC3_STOP();
+}
+void ADC1_STOP(void)
+{
+  HAL_ADC_Stop_DMA(&hadc1);
+}
+void ADC2_STOP(void)
+{
+  HAL_ADC_Stop_DMA(&hadc2);
+}
+void ADC3_STOP(void)
+{
+  HAL_TIM_Base_Stop(&ADC_SAMPLING_TIMER);
+  HAL_ADC_Stop_DMA(&hadc3);
+}
+/* ADC Rutines */
 void nECU_ADC_All_Routine(void)
 {
   /* Remember that all ADC are working simoutainously, all callbacks will be at the same time */
@@ -232,4 +198,30 @@ void nECU_ADC3_Routine(void)
     }
     nECU_Knock_ADC_Callback(&ADC3_DMA_BUF[(KNOCK_BUFFOR_SIZE / 2) - 1]);
   }
+}
+
+/* Conversion functions */
+float ADCToVolts(uint16_t ADCValue)
+{
+  return (VREF_CALIB * ADCValue) / ADC_MAX_VALUE_12BIT;
+}
+uint16_t VoltsToADC(float Voltage)
+{
+  Voltage *= ADC_MAX_VALUE_12BIT;
+  Voltage /= VREF_CALIB;
+  return (uint16_t)Voltage;
+}
+/* Other ADC */
+float get_InternalTemperature(void) // Calculate current temperature of the IC
+{
+  // From reference manual
+  float Temperature = ADCToVolts(*ADC_InternalTemp);
+  Temperature -= INTERNAL_TEMP_V25;
+  Temperature /= (INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
+  Temperature += 25;
+  return Temperature;
+}
+void ADC_LP_Update(void) // Update low priority variables
+{
+  InternalTemp = get_InternalTemperature();
 }

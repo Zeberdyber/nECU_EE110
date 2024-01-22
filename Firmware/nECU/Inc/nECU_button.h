@@ -102,10 +102,11 @@ extern "C"
     ButtonInput input;
   } Button;
 
-  /* Function prototypes */
+  /* Start/Stop functions */
   void Button_Start(void);
   void Button_Stop(void);
 
+  /* Output functions */
   void ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonLight object with corresponding timer
   void ButtonLight_Update(ButtonLight *Light);                                         // periodic animation update function
   void ButtonLight_Set_Blink(ButtonLight *Light, uint8_t Speed, uint16_t Count);       // setup blinking animation
@@ -116,6 +117,7 @@ extern "C"
   void ButtonLight_Stop(ButtonLight *Light);                                           // stops button code
   void ButtonLight_Stop_Timer(ButtonLight *Light);                                     // stops timer base
 
+  /* Input functions */
   void ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonInput object with corresponding timer and GPIO
   void ButtonInput_TimingEvent(TIM_HandleTypeDef *htim);                                // funtion called after input capture interrupt from timer
   void ButtonInput_Identify(TIM_HandleTypeDef *htim);                                   // function to identify to which button is pressed
@@ -124,6 +126,7 @@ extern "C"
   void ButtonInput_Stop(ButtonInput *button);                                           // stop Input Capture for selected button
   void ButtonInput_Stop_Timer(ButtonInput *button);                                     // stops timer base
 
+  /* Animations */
   void ButtonLight_BreathAllOnce(void);                                 // breath all button lights once
   void ButtonLight_BlinkAllOnce(void);                                  // blink all button lights once
   void ButtonLight_BreathOneOnce(Button_ID id);                         // breath selected button once
