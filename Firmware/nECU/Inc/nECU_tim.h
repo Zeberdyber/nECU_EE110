@@ -27,7 +27,7 @@ extern "C"
 #define FREQ_INPUT_TIMER htim4
 #define CAN_LOW_PRIORITY_TIMER htim6
 #define CAN_HIGH_PRIORITY_TIMER htim7
-#define ADC_SAMPLING_TIMER htim8
+#define KNOCK_ADC_SAMPLING_TIMER htim8
 #define FRAME_TIMER htim10
 #define KNOCK_REGRES_TIMER htim11
 

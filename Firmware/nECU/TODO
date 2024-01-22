@@ -15,3 +15,4 @@
 [ ] ADC memory unions rather then manual pointer usage
 [ ] ADCs as structures (buffers, callbacks, overflow)
 [ ] Update file descriptions
+[ ] Automatic average of internal temperature adc1

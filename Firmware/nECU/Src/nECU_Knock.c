@@ -34,7 +34,7 @@ void nECU_Knock_Init(void) // initialize and start
     // initialize FFT module
     Knock.fft.Index = 0;
     Knock.fft.flag = false;
-    float SamplingFreq = TIM_CLOCK / ((ADC_SAMPLING_TIMER.Init.Prescaler + 1) * (ADC_SAMPLING_TIMER.Init.Period + 1));
+    float SamplingFreq = TIM_CLOCK / ((KNOCK_ADC_SAMPLING_TIMER.Init.Prescaler + 1) * (KNOCK_ADC_SAMPLING_TIMER.Init.Period + 1));
     Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * FFT_LENGTH) / (SamplingFreq)) * 2) - 1;
     arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH);
 }

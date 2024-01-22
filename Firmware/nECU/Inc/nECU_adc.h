@@ -20,6 +20,10 @@ extern "C"
 #include "nECU_Knock.h"
 
 /* Definitions */
+#define GENERAL_ADC hadc1 // ADC responsible for general analog inputs
+#define SPEED_ADC hadc2   // ADC responsible for speed sensor data collection
+#define KNOCK_ADC hadc3   // ADC responsible for knock sensor data collection
+
 #define INTERNAL_TEMP_SLOPE 2.5                            // slope defined in datasheet [mV/C]
 #define INTERNAL_TEMP_V25 0.76                             // Voltage at 25C from calibration (defined in datasheet)
 #define VREFINT_CALIB ((uint16_t *)((uint32_t)0x1FFF7A2A)) // Internal voltage reference raw value at 30 degrees C, VDDA=3.3V (defined in datasheet)
@@ -29,6 +33,18 @@ extern "C"
 #define KNOCK_BUFFOR_SIZE (KNOCK_SAMPLES_IN_BUFFOR)        // Size of DMA buffor for knock sensor input (smaller as it is of uint32_t type)
 
   /* typedef */
+  typedef struct
+  {
+    uint16_t buffer[8];
+    bool working;
+    bool callback_half, callback_full, overflow;
+  } nECU_ADC1;
+  typedef struct
+  {
+    uint16_t buffer[4];
+    bool working;
+    bool callback_half, callback_full, overflow;
+  } nECU_ADC2;
 
   /* Interrupt functions */
   void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
