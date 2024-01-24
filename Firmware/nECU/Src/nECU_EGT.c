@@ -34,14 +34,22 @@ uint16_t *EGT_GetTemperaturePointer(uint8_t sensorNumber) // get function that r
     }
     return 0;
 }
+bool *EGT_GetInitialized(void) // get function to check if code was EGT_Initialized
+{
+    return &EGT_variables.EGT_Initialized;
+}
+bool *EGT_GetUpdateOngoing(void) // get function to check if current comunication is ongoing
+{
+    return &EGT_variables.EGT_CommunicationOngoing;
+}
 
 /* EGT functions */
 void EGT_Start(void) // initialize all sensors and start communication
 {
-    MAX31855_Init(&EGT_variables.TC1, &hspi1, T1_CS_GPIO_Port, T1_CS_Pin);
-    MAX31855_Init(&EGT_variables.TC2, &hspi1, T2_CS_GPIO_Port, T2_CS_Pin);
-    MAX31855_Init(&EGT_variables.TC3, &hspi1, T3_CS_GPIO_Port, T3_CS_Pin);
-    MAX31855_Init(&EGT_variables.TC4, &hspi1, T4_CS_GPIO_Port, T4_CS_Pin);
+    MAX31855_Init(&EGT_variables.TC1, &SPI_PERIPHERAL_EGT, T1_CS_GPIO_Port, T1_CS_Pin);
+    MAX31855_Init(&EGT_variables.TC2, &SPI_PERIPHERAL_EGT, T2_CS_GPIO_Port, T2_CS_Pin);
+    MAX31855_Init(&EGT_variables.TC3, &SPI_PERIPHERAL_EGT, T3_CS_GPIO_Port, T3_CS_Pin);
+    MAX31855_Init(&EGT_variables.TC4, &SPI_PERIPHERAL_EGT, T4_CS_GPIO_Port, T4_CS_Pin);
     EGT_variables.EGT_CurrentSensor = 0;
     EGT_variables.EGT_FirstSensor = true;
     EGT_variables.EGT_Initialized = true;
@@ -49,7 +57,7 @@ void EGT_Start(void) // initialize all sensors and start communication
 void EGT_GetSPIData(bool error) // get data of all sensors
 {
     HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->GPIOx, EGT_variables.EGT_CurrentObj->GPIO_Pin, SET); // turn off comunication for current MAX31855
-    HAL_SPI_DMAStop(&hspi1);                                                                             // solves weird DMA bug
+    HAL_SPI_DMAStop(EGT_variables.EGT_CurrentObj->hspi);                                                 // solves weird DMA bug
     EGT_variables.EGT_CurrentObj->data_Pending++;
     if (EGT_variables.EGT_FirstSensor == true || error == false)
     {
@@ -63,6 +71,7 @@ void EGT_GetSPIData(bool error) // get data of all sensors
     if (EGT_variables.EGT_CurrentSensor > 4) // cycle break if all sensors done
     {
         EGT_variables.EGT_CurrentSensor = 0;
+        EGT_variables.EGT_CommunicationOngoing = false;
         return;
     }
 
@@ -86,8 +95,8 @@ void EGT_GetSPIData(bool error) // get data of all sensors
         break;
     }
 
-    HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->GPIOx, EGT_variables.EGT_CurrentObj->GPIO_Pin, RESET); // turn on comunication for current MAX31855
-    HAL_SPI_Receive_DMA(&hspi1, (uint8_t *)EGT_variables.EGT_CurrentObj->buffer, 4);                       // start DMA recive
+    HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->GPIOx, EGT_variables.EGT_CurrentObj->GPIO_Pin, RESET);       // turn on comunication for current MAX31855
+    HAL_SPI_Receive_DMA(EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->buffer, 4); // start DMA recive
 }
 void EGT_ConvertAll(void) // convert data if pending
 {
@@ -136,6 +145,7 @@ void EGT_PeriodicEventHP(void) // high priority periodic event, launched from ti
     if (EGT_variables.EGT_CurrentSensor == 0)
     {
         EGT_variables.EGT_FirstSensor = true;
+        EGT_variables.EGT_CommunicationOngoing = true;
         EGT_GetSPIData(false);
     }
     if (EGT_variables.TC1.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC2.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC3.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC4.data_Pending > EGT_MAXIMUM_PENDING_COUNT)

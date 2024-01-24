@@ -1,8 +1,7 @@
 /**
  ******************************************************************************
  * @file    nECU_flash.c
- * @brief   This file provides code for user defined flash functions and data
- *          frame forming.
+ * @brief   This file provides code for user defined flash access functions.
  ******************************************************************************
  */
 

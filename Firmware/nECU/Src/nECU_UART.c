@@ -202,7 +202,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) // Called while UART erro
         if (error != HAL_UART_ERROR_NONE)
         {
             /* Implement error handling here */
-            UNUSED(huart);
+            UNUSED(huart); // do nothing
         }
     }
 }

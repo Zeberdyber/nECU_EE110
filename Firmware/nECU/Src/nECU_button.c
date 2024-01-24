@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  * @file    nECU_button.c
- * @brief   This file provides code for backlight buttons.
+ * @brief   This file provides code for button inputs and their backlight.
  ******************************************************************************
  */
 

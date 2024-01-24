@@ -9,10 +9,12 @@
 [ ] update files to match repo description
 [ ] code refactor
 [ ] Tacho display bug (occasionnaly value is displayed twice)
-[ ] Rename files to match their use, organize functions in files
-[ ] Internal temperature back to work - knock sampling rearange; pointer getter
+[X] Rename files to match their use, organize functions in files
+[X] Internal temperature back to work - knock sampling rearange; pointer getter
 [ ] Add automatic routine choosing for ADCs
 [ ] ADC memory unions rather then manual pointer usage
 [ ] ADCs as structures (buffers, callbacks, overflow)
-[ ] Update file descriptions
+[X] Update file descriptions
 [ ] Automatic average of internal temperature adc1
+[ ] EGT SPI functions to nECU_spi file with proper communication buffering
+[ ] UART knock raw data functions labeled

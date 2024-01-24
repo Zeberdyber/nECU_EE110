@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
- * @file    ProcessData.h
+ * @file    nECU_spi.h
  * @brief   This file contains all the function prototypes for
- *          the ProcessData.c file
+ *          the nECU_spi.c file
  */
 
 #ifndef _NECU_SPI_H_
@@ -19,8 +19,8 @@ extern "C"
 #include "nECU_EGT.h"
 #include "spi.h"
 
-  /* Definitions */
-
+/* Definitions */
+#define SPI_PERIPHERAL_EGT hspi1 // peripheral to which egt ICs are connected
   /* typedef */
 
   /* Function Prototypes */

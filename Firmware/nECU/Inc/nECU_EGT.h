@@ -17,6 +17,7 @@ extern "C"
 #include "main.h"
 #include "stdbool.h"
 #include "spi.h"
+#include "nECU_spi.h"
 #include "gpio.h"
 
 /* Definitions */
@@ -43,12 +44,14 @@ extern "C"
     {
         MAX31855 TC1, TC2, TC3, TC4;
         MAX31855 *EGT_CurrentObj;
-        bool EGT_FirstSensor, EGT_Initialized;
+        bool EGT_FirstSensor, EGT_Initialized, EGT_CommunicationOngoing;
         uint8_t EGT_CurrentSensor;
     } nECU_EGT;
 
     /* Function Prototypes */
     uint16_t *EGT_GetTemperaturePointer(uint8_t sensorNumber);                                           // get function that returns pointer to output data of sensor, ready for can transmission
+    bool *EGT_GetInitialized(void);                                                                      // get function to check if code was EGT_Initialized
+    bool *EGT_GetUpdateOngoing(void);                                                                    // get function to check if current comunication is ongoing
     void EGT_Start(void);                                                                                // initialize all sensors and start communication
     void EGT_GetSPIData(bool error);                                                                     // get data of all sensors
     void EGT_ConvertAll(void);                                                                           // convert data if pending

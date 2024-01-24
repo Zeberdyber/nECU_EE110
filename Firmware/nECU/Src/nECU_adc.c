@@ -123,7 +123,7 @@ void ADC2_START(void)
 }
 void ADC3_START(void)
 {
-  HAL_TIM_Base_Start(&KNOCK_KNOCK_KNOCK_ADC_SAMPLING_TIMER);
+  HAL_TIM_Base_Start(&KNOCK_ADC_SAMPLING_TIMER);
   HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)ADC3_DMA_BUF, KNOCK_BUFFOR_SIZE);
 }
 /* Stop functions */

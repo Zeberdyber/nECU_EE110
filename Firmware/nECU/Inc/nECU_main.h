@@ -1,11 +1,11 @@
 /**
  ******************************************************************************
- * @file    ProcessData.h
+ * @file    nECU_main.h
  * @brief   This file contains all the function prototypes for
- *          the ProcessData.c file
+ *          the nECU_main.c file
  */
-#ifndef PROCESSDATA_H_
-#define PROCESSDATA_H_
+#ifndef _NECU_MAIN_H_
+#define _NECU_MAIN_H_
 
 #ifdef __cplusplus
 extern "C"

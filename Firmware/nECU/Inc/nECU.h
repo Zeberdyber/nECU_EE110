@@ -13,6 +13,7 @@
 #include "nECU_flash.h"
 #include "nECU_frames.h"
 #include "nECU_Knock.h"
+#include "nECU_main.h"
 #include "nECU_menu.h"
 #include "nECU_PC.h"
 #include "nECU_Speed.h"
@@ -21,4 +22,3 @@
 #include "nECU_table.h"
 #include "nECU_tim.h"
 #include "nECU_UART.h"
-#include "ProcessData.h"

@@ -1,7 +1,8 @@
 /**
  ******************************************************************************
  * @file    nECU_table.c
- * @brief   This file provides code for Knock signal processing.
+ * @brief   This file provides code for interpolated tables.
+ *          Those tables work the same as regular tuning tables.
  ******************************************************************************
  */
 

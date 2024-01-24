@@ -1,13 +1,13 @@
 /**
  ******************************************************************************
- * @file    ProcessData.c
+ * @file    nECU_main.c
  * @brief   This file provides code for preparation and processing of RAW input
  *          data to make it usable for CAN transmission. It consists of
  *          calibration data and corresponding methods.
  ******************************************************************************
  */
 
-#include "ProcessData.h"
+#include "nECU_main.h"
 
 uint16_t blank16bit = 0;
 uint8_t blank8bit = 0;
@@ -61,7 +61,6 @@ void nECU_main(void) // main rutine of the program
     }
     loopCounter++;
 }
-
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {
     ADC_STOP_ALL();

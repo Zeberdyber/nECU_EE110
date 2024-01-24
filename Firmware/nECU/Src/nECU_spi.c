@@ -1,35 +1,50 @@
 /**
  ******************************************************************************
  * @file    nECU_can.c
- * @brief   This file provides code for user defined can functions and data
- *          frame forming.
+ * @brief   This file provides code for spi function handling.
  ******************************************************************************
  */
 #include "nECU_spi.h"
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) // called when successfully recived data
 {
-  EGT_GetSPIData(false); // update EGT sensors
+  if (hspi == &SPI_PERIPHERAL_EGT)
+  {
+    bool *egt_communication_active = EGT_GetUpdateOngoing();
+    if (*egt_communication_active == true)
+    {
+      EGT_GetSPIData(false); // update EGT sensors
+    }
+  }
 }
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) // called when error ocured
 {
-  EGT_GetSPIData(true); // update EGT sensors
+  if (hspi == &SPI_PERIPHERAL_EGT)
+  {
+    bool *egt_communication_active = EGT_GetUpdateOngoing();
+    if (*egt_communication_active == true)
+    {
+      EGT_GetSPIData(true); // update EGT sensors
+    }
+  }
 }
 bool nECU_SPI_getBusy(void) // get state (if busy) of the SPI communication
 {
-  HAL_SPI_StateTypeDef CurrentState = HAL_SPI_GetState(&hspi1);
-  if (CurrentState >= HAL_SPI_STATE_BUSY && CurrentState <= HAL_SPI_STATE_BUSY_TX_RX)
+  HAL_SPI_StateTypeDef EGT_CurrentState = HAL_SPI_GetState(&SPI_PERIPHERAL_EGT);
+  bool output = false;
+  if (EGT_CurrentState >= HAL_SPI_STATE_BUSY && EGT_CurrentState <= HAL_SPI_STATE_BUSY_TX_RX)
   {
-    return true;
+    output = true;
   }
-  return false;
+  return output;
 }
 bool nECU_SPI_getError(void) // get state (if not ready and not busy)
 {
-  HAL_SPI_StateTypeDef CurrentState = HAL_SPI_GetState(&hspi1);
-  if (CurrentState == HAL_SPI_STATE_RESET && CurrentState > HAL_SPI_STATE_BUSY_TX_RX)
+  HAL_SPI_StateTypeDef EGT_CurrentState = HAL_SPI_GetState(&SPI_PERIPHERAL_EGT);
+  bool output = false;
+  if (EGT_CurrentState == HAL_SPI_STATE_RESET && EGT_CurrentState > HAL_SPI_STATE_BUSY_TX_RX)
   {
-    return true;
+    output = true;
   }
-  return false;
+  return output;
 }

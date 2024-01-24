@@ -19,7 +19,7 @@ extern "C"
 #include "nECU_adc.h"
 #include "string.h"
 #include "nECU_tim.h"
-#include "ProcessData.h"
+#include "nECU_main.h"
 
 /* Definitions */
 #define END_BYTE 0xFF // what will be reciving software looking for to determine end of frame
