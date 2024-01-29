@@ -7,18 +7,15 @@
 
 #include "nECU_adc.h"
 
+// local variables
 nECU_ADC1 adc1_data;
 nECU_ADC2 adc2_data;
+nECU_ADC3 adc3_data;
+nECU_InternalTemp MCU_temperature;
 
-uint16_t ADC3_DMA_BUF[KNOCK_BUFFOR_SIZE];
-
+// output variables
 uint16_t *ADC_MAP, *ADC_BackPressure, *ADC_OX, *ADC_AI1, *ADC_AI2, *ADC_AI3, *ADC_InternalTemp, *ADC_VREF;
 uint16_t *ADC_V1, *ADC_V2, *ADC_V3, *ADC_V4;
-
-bool Callback_ADC3_Half = false, Callback_ADC3_Full = false, Callback_ADC3_Overflow = false;
-extern bool Knock_UART_Transmission;
-
-float InternalTemp = 0;
 
 /* Interrupt functions */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
@@ -43,12 +40,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
   }
   else if (hadc == &KNOCK_ADC) // if ADC3 perform its routine
   {
-    if (Callback_ADC3_Full == true) // check if routine was not called
+    if (adc3_data.callback_full == true) // check if routine was not called
     {
-      Callback_ADC3_Overflow = true;
+      adc3_data.overflow = true;
     }
-    Callback_ADC3_Half = false; // clear flag to prevent memory access while DMA working
-    Callback_ADC3_Full = true;
+    adc3_data.callback_half = false; // clear flag to prevent memory access while DMA working
+    adc3_data.callback_full = true;
   }
 }
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
@@ -73,12 +70,12 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
   }
   else if (hadc == &KNOCK_ADC) // if ADC3 perform its routine
   {
-    if (Callback_ADC3_Half == true) // check if routine was not called
+    if (adc3_data.callback_half == true) // check if routine was not called
     {
-      Callback_ADC3_Overflow = true;
+      adc3_data.overflow = true;
     }
-    Callback_ADC3_Half = true;
-    Callback_ADC3_Full = false; // clear flag to prevent memory access while DMA working
+    adc3_data.callback_half = true;
+    adc3_data.callback_full = false; // clear flag to prevent memory access while DMA working
   }
 }
 
@@ -100,12 +97,14 @@ void ADC1_START(void)
   ADC_InternalTemp = &adc1_data.buffer[6];
   ADC_VREF = &adc1_data.buffer[7];
 
-  HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.buffer, 8);
+  HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.buffer, sizeof(adc1_data.buffer) / 2);
 
   adc1_data.callback_half = false;
   adc1_data.callback_full = false;
   adc1_data.overflow = false;
   adc1_data.working = true;
+
+  nECU_InternalTemp_Init();
 }
 void ADC2_START(void)
 {
@@ -114,7 +113,7 @@ void ADC2_START(void)
   ADC_V3 = &adc2_data.buffer[2];
   ADC_V4 = &adc2_data.buffer[3];
 
-  HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.buffer, 4);
+  HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.buffer, sizeof(adc2_data.buffer) / 2);
 
   adc2_data.callback_half = false;
   adc2_data.callback_full = false;
@@ -123,8 +122,14 @@ void ADC2_START(void)
 }
 void ADC3_START(void)
 {
-  HAL_TIM_Base_Start(&KNOCK_ADC_SAMPLING_TIMER);
-  HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)ADC3_DMA_BUF, KNOCK_BUFFOR_SIZE);
+  adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
+  HAL_TIM_Base_Start(adc3_data.samplingTimer);
+  HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.buffer, sizeof(adc3_data.buffer) / 2);
+
+  adc3_data.callback_half = false;
+  adc3_data.callback_full = false;
+  adc3_data.overflow = false;
+  adc3_data.working = true;
 }
 /* Stop functions */
 void ADC_STOP_ALL(void)
@@ -137,11 +142,14 @@ void ADC_STOP_ALL(void)
   {
     ADC2_STOP();
   }
-
-  ADC3_STOP();
+  if (adc3_data.working == true)
+  {
+    ADC3_STOP();
+  }
 }
 void ADC1_STOP(void)
 {
+  adc3_data.UART_transmission = nECU_UART_KnockTx();
   HAL_ADC_Stop_DMA(&GENERAL_ADC);
   nECU_ADC1_Routine(); // finish routine if flags pending
   adc1_data.working = false;
@@ -154,8 +162,9 @@ void ADC2_STOP(void)
 }
 void ADC3_STOP(void)
 {
-  HAL_TIM_Base_Stop(&KNOCK_ADC_SAMPLING_TIMER);
+  HAL_TIM_Base_Stop(adc3_data.samplingTimer);
   HAL_ADC_Stop_DMA(&KNOCK_ADC);
+  adc2_data.working = false;
 }
 /* ADC Rutines */
 void nECU_ADC_All_Routine(void)
@@ -169,7 +178,10 @@ void nECU_ADC_All_Routine(void)
   {
     nECU_ADC2_Routine();
   }
-  nECU_ADC3_Routine();
+  if (adc2_data.working == true)
+  {
+    nECU_ADC3_Routine();
+  }
 }
 void nECU_ADC1_Routine(void)
 {
@@ -180,6 +192,7 @@ void nECU_ADC1_Routine(void)
   }
   else if (adc1_data.callback_full == true)
   {
+    nECU_InternalTemp_Callback();
     adc1_data.callback_full = false; // clear flag
   }
 }
@@ -198,31 +211,31 @@ void nECU_ADC2_Routine(void)
 void nECU_ADC3_Routine(void)
 {
   /* Conversion Completed callbacks */
-  if (Callback_ADC3_Half == true)
+  if (adc3_data.callback_half == true)
   {
-    Callback_ADC3_Half = false; // clear flag
-    if (Knock_UART_Transmission == true)
+    adc3_data.callback_half = false; // clear flag
+    if (*adc3_data.UART_transmission == true)
     {
 #if TEST_UART == 1
       Send_Triangle_UART();
       return;
 #endif
-      nECU_UART_SendKnock(&ADC3_DMA_BUF[0]);
+      nECU_UART_SendKnock(&adc3_data.buffer[0]);
     }
-    nECU_Knock_ADC_Callback(&ADC3_DMA_BUF[0]);
+    nECU_Knock_ADC_Callback(&adc3_data.buffer[0]);
   }
-  else if (Callback_ADC3_Full == true)
+  else if (adc3_data.callback_full == true)
   {
-    Callback_ADC3_Full = false; // clear flag
-    if (Knock_UART_Transmission == true)
+    adc3_data.callback_full = false; // clear flag
+    if (*adc3_data.UART_transmission == true)
     {
 #if TEST_UART == 1
       Send_Triangle_UART();
       return;
 #endif
-      nECU_UART_SendKnock(&ADC3_DMA_BUF[(KNOCK_BUFFOR_SIZE / 2) - 1]);
+      nECU_UART_SendKnock(&adc3_data.buffer[(KNOCK_BUFFOR_SIZE / 2) - 1]);
     }
-    nECU_Knock_ADC_Callback(&ADC3_DMA_BUF[(KNOCK_BUFFOR_SIZE / 2) - 1]);
+    nECU_Knock_ADC_Callback(&adc3_data.buffer[(KNOCK_BUFFOR_SIZE / 2) - 1]);
   }
 }
 
@@ -237,17 +250,48 @@ uint16_t VoltsToADC(float Voltage)
   Voltage /= VREF_CALIB;
   return (uint16_t)Voltage;
 }
-/* Other ADC */
-float get_InternalTemperature(void) // Calculate current temperature of the IC
+
+/* Internal Temperatre (MCU) */
+void nECU_InternalTemp_Init(void) // initialize structure
 {
-  // From reference manual
-  float Temperature = ADCToVolts(*ADC_InternalTemp);
+  MCU_temperature.conv_count = 0;
+  MCU_temperature.avg_count = 0;
+  MCU_temperature.avg_sum = 0;
+  MCU_temperature.ADC_data = ADC_InternalTemp;
+  MCU_temperature.temperature = 0;
+}
+void nECU_InternalTemp_Callback(void) // run when conversion ended
+{
+  MCU_temperature.conv_count++;
+  if (MCU_temperature.conv_count > INTERNAL_TEMP_CONV_DIV)
+  {
+    MCU_temperature.conv_count = 0;
+    MCU_temperature.avg_sum += *MCU_temperature.ADC_data;
+    MCU_temperature.avg_count++;
+    if (MCU_temperature.avg_count > INTERNAL_TEMP_AVG_STRENGTH)
+    {
+      nECU_InternalTemp_Average();
+      MCU_temperature.upToDate = true;
+    }
+  }
+}
+void nECU_InternalTemp_Average(void) // perform averaging and update variables accordingly
+{
+  uint16_t averageADC = ((float)MCU_temperature.avg_sum) / MCU_temperature.avg_count; // average
+
+  // convert to temperature
+  float Temperature = ADCToVolts(averageADC);
   Temperature -= INTERNAL_TEMP_V25;
   Temperature /= (INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
   Temperature += 25;
-  return Temperature;
+  MCU_temperature.temperature = Temperature * 100;
+
+  // clear variables
+  MCU_temperature.avg_count = 0;
+  MCU_temperature.avg_sum = 0;
 }
-void ADC_LP_Update(void) // Update low priority variables
+uint16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)
 {
-  InternalTemp = get_InternalTemperature();
+  /* returned value is multipled 100 times, which means that it carries two digits after dot */
+  return &MCU_temperature.temperature;
 }

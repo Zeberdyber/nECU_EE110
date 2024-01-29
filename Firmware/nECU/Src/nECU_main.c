@@ -51,11 +51,10 @@ void nECU_main(void) // main rutine of the program
         /* Low priority [non-critical] */
         nECU_Stock_Update();
         OnBoard_LED_Update();
-        ADC_LP_Update();
         EGT_PeriodicEventLP();
         nECU_Delay_UpdateAll();
     }
-    if (Knock_UART_Transmission == true)
+    if (*nECU_UART_KnockTx() == true)
     {
         nECU_ADC_All_Routine();
     }

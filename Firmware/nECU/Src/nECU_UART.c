@@ -191,6 +191,10 @@ void nECU_UART_Tx_Stop_Routine(void) // return back to regular execution
     nECU_Start();
     Knock_UART_Transmission = false;
 }
+bool *nECU_UART_KnockTx(void) // return pointer to knock tx flag
+{
+    return &Knock_UART_Transmission;
+}
 
 /* Error detection */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) // Called while UART error

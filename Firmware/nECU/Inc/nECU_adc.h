@@ -26,6 +26,8 @@ extern "C"
 
 #define INTERNAL_TEMP_SLOPE 2.5                            // slope defined in datasheet [mV/C]
 #define INTERNAL_TEMP_V25 0.76                             // Voltage at 25C from calibration (defined in datasheet)
+#define INTERNAL_TEMP_AVG_STRENGTH 200                     // number of measurements to be averaged (8bit)
+#define INTERNAL_TEMP_CONV_DIV 100                         // division of conversions taken into account (8bit)
 #define VREFINT_CALIB ((uint16_t *)((uint32_t)0x1FFF7A2A)) // Internal voltage reference raw value at 30 degrees C, VDDA=3.3V (defined in datasheet)
 #define VREF_CALIB 3.3                                     // VDDA voltage at which all other values were created (defined in datasheet)
 #define ADC_MAX_VALUE_12BIT 4095                           // Maximum value a 12bit ADC can produce
@@ -45,6 +47,25 @@ extern "C"
     bool working;
     bool callback_half, callback_full, overflow;
   } nECU_ADC2;
+  typedef struct
+  {
+    uint16_t buffer[KNOCK_BUFFOR_SIZE];
+    bool working;
+    bool callback_half, callback_full, overflow;
+    bool *UART_transmission;
+    TIM_HandleTypeDef *samplingTimer;
+
+  } nECU_ADC3;
+
+  typedef struct
+  {
+    uint8_t conv_count;
+    uint32_t avg_sum;
+    uint8_t avg_count;
+    uint16_t *ADC_data;
+    uint16_t temperature;
+    bool upToDate;
+  } nECU_InternalTemp;
 
   /* Interrupt functions */
   void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
@@ -69,9 +90,12 @@ extern "C"
   /* Conversion functions */
   float ADCToVolts(uint16_t ADCValue);
   uint16_t VoltsToADC(float Voltage);
-  /* Other ADC */
-  float get_InternalTemperature(void); // Calculate current temperature of the IC
-  void ADC_LP_Update(void);            // Update low priority variables
+
+  /* Internal Temperatre (MCU) */
+  void nECU_InternalTemp_Init(void);                // initialize structure
+  void nECU_InternalTemp_Callback(void);            // run when conversion ended
+  void nECU_InternalTemp_Average(void);             // perform averaging and update variables accordingly
+  uint16_t *nECU_InternalTemp_getTemperature(void); // return current temperature pointer (multiplied 100x)
 
 #ifdef __cplusplus
 }

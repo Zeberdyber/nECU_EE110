@@ -51,6 +51,7 @@ extern "C"
     void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);                   // Rx completed
     void nECU_UART_Tx_Start_Routine(void);                                     // prepare nECU to be able to transmit
     void nECU_UART_Tx_Stop_Routine(void);                                      // return back to regular execution
+    bool *nECU_UART_KnockTx(void);                                             // return pointer to knock tx flag
     void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);                    // Called while UART error
 
 #ifdef __cplusplus
