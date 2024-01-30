@@ -1,21 +1,63 @@
-[ ] filtering of VSS
-[ ] test flash code
-[ ] UART sending data live
-[ ] frequency readout (RPM) fix and test functions
-[ ] timer interrupt automatic tests functions
-[ ] Flash saving and reading tests with debugging
-[ ] missfire detection
-[ ] IGF functionality
-[ ] update files to match repo description
+[ ] missing code
+    [ ] missfire detection
+    [ ] IGF functionality
+
 [ ] code refactor
-[ ] Tacho display bug (occasionnaly value is displayed twice)
-[X] Add automatic routine choosing for ADCs
-[*] ADC memory unions rather then manual pointer usage
-[X] ADCs as structures (buffers, callbacks, overflow)
-[X] Automatic average of internal temperature adc1
-[ ] EGT SPI functions to nECU_spi file with proper communication buffering
-[ ] UART knock raw data functions labeled
-[X] internal temp functionality (add startup)
-[ ] warning when temp high (+ MCU_temperature.upToDate monitoring)
-[ ] calculate ADC full conversion times, write them to ADC file as a note
-[ ] UART variables as a struct
+    [ ] calculate ADC full conversion times, write them to ADC file as a note
+    [ ] update files to match repo description
+    [X] EGT SPI functions to nECU_spi file with proper communication buffering
+
+[ ] fault detection (as a seperate file)
+    [ ] add flags
+        - over temp
+        - can:
+            > timeout
+            > error
+            > other?
+        - spi:
+            > timeout
+            > error
+            > other?
+        - flash:
+            > save error
+            > erase error
+            > read error
+            > other?
+        - igf:
+            > missfire
+            > no signal
+            > other?
+        - buttons:
+            > other?
+        - egt:
+            > data frame error
+            > ic over temp
+            > sensor error
+        - uart:
+            > other?
+        - VSS:
+            > input ripple
+            > over speed
+            > other?
+        - SpeedSens:
+            > abnormal sensor
+            > data error
+    [ ] function skeletons
+    [ ] warning when temp high (+ MCU_temperature.upToDate monitoring)
+
+[ ] UART
+    [ ] UART variables as a struct
+    [ ] UART knock raw data functions labeled
+    [ ] UART sending data live
+
+[ ] Known bugs
+    [ ] Tacho display bug (occasionnaly value is displayed twice)
+    [ ] filtering of VSS (low speed correction)
+    [ ] frequency readout (RPM) fix and test functions
+    [ ] flash saving not working at all
+        *fixed memory allocation, check if issue fixed
+
+[ ] Tests for each file functions
+    [ ] test flash code
+    [ ] timer interrupt automatic tests functions
+    [ ] Flash saving and reading tests with debugging

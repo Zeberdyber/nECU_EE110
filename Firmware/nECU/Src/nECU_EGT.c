@@ -56,8 +56,8 @@ void EGT_Start(void) // initialize all sensors and start communication
 }
 void EGT_GetSPIData(bool error) // get data of all sensors
 {
-    HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->GPIOx, EGT_variables.EGT_CurrentObj->GPIO_Pin, SET); // turn off comunication for current MAX31855
-    HAL_SPI_DMAStop(EGT_variables.EGT_CurrentObj->hspi);                                                 // solves weird DMA bug
+    nECU_SPI_Rx_DMA_Stop(EGT_variables.EGT_CurrentObj->GPIOx, &EGT_variables.EGT_CurrentObj->GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi); // turn off comunication for current MAX31855
+
     EGT_variables.EGT_CurrentObj->data_Pending++;
     if (EGT_variables.EGT_FirstSensor == true || error == false)
     {
@@ -95,8 +95,7 @@ void EGT_GetSPIData(bool error) // get data of all sensors
         break;
     }
 
-    HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->GPIOx, EGT_variables.EGT_CurrentObj->GPIO_Pin, RESET);       // turn on comunication for current MAX31855
-    HAL_SPI_Receive_DMA(EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->buffer, 4); // start DMA recive
+    nECU_SPI_Rx_DMA_Start(EGT_variables.EGT_CurrentObj->GPIOx, EGT_variables.EGT_CurrentObj->GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->buffer, 4); // start reciving data
 }
 void EGT_ConvertAll(void) // convert data if pending
 {

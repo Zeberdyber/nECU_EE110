@@ -56,7 +56,6 @@ extern "C"
     TIM_HandleTypeDef *samplingTimer;
 
   } nECU_ADC3;
-
   typedef struct
   {
     uint8_t conv_count;

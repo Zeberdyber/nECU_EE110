@@ -54,7 +54,7 @@ void OnBoard_LED_Update(void) // update on board LEDs states
     LED_L.blinking = nECU_CAN_GetState();
     OnBoard_LED_UpdateSingle(&LED_L);
 
-    LED_R.State = nECU_SPI_getError();
-    LED_R.blinking = nECU_SPI_getBusy();
+    LED_R.State = nECU_SPI_getError(&SPI_PERIPHERAL_EGT);
+    LED_R.blinking = nECU_SPI_getBusy(&SPI_PERIPHERAL_EGT);
     OnBoard_LED_UpdateSingle(&LED_R);
 }

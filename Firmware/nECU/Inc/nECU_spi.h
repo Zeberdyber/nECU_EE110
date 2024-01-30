@@ -24,10 +24,12 @@ extern "C"
   /* typedef */
 
   /* Function Prototypes */
-  void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi); // called when successfully recived data
-  void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);  // called when error ocured
-  bool nECU_SPI_getBusy(void);                          // get state (if busy) of the SPI communication
-  bool nECU_SPI_getError(void);                         // get state (if not ready and not busy)
+  void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);                                                                         // called when successfully recived data
+  void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi);                                                                          // called when error ocured
+  bool nECU_SPI_getBusy(SPI_HandleTypeDef *hspi);                                                                               // get state (if busy) of the SPI communication
+  bool nECU_SPI_getError(SPI_HandleTypeDef *hspi);                                                                              // get error type (if not ready and not busy)
+  void nECU_SPI_Rx_DMA_Start(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t *Size); // start communication with selected device
+  void nECU_SPI_Rx_DMA_Stop(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTypeDef *hspi);                                  // end communication with selected device
 
 #ifdef __cplusplus
 }
