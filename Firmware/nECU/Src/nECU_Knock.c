@@ -40,7 +40,7 @@ void nECU_Knock_Init(void) // initialize and start
 }
 void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 {
-    for (uint16_t i = 0; i < (KNOCK_SAMPLES_IN_BUFFOR / 2); i++)
+    for (uint16_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
     {
         Knock.fft.BufIn[Knock.fft.Index] = (float)input_buffer[i];
         Knock.fft.Index++;

@@ -26,19 +26,19 @@ uint8_t delta_counter;
 #if TEST_UART == 1
 bool Triangle_Buffer_ready = false;
 bool Triangle_Buffer_firstPart = true;
-uint16_t Triangle_Buffer[KNOCK_BUFFOR_SIZE];
+uint16_t Triangle_Buffer[KNOCK_DMA_LEN];
 void Send_Triangle_UART(void) // function to send triangle wave over UART
 {
     if (Triangle_Buffer_ready == false) // create test data (triangle wave)
     {
-        for (uint32_t i = 0; i < (KNOCK_BUFFOR_SIZE / 2); i++)
+        for (uint32_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
         {
             Triangle_Buffer[i] = i;
         }
-        for (uint32_t i = 0; i < (KNOCK_BUFFOR_SIZE / 2); i++)
+        for (uint32_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
         {
-            uint8_t current = (KNOCK_BUFFOR_SIZE / 2) - i;
-            Triangle_Buffer[(KNOCK_BUFFOR_SIZE / 2) + i] = current;
+            uint8_t current = (KNOCK_DMA_LEN / 2) - i;
+            Triangle_Buffer[(KNOCK_DMA_LEN / 2) + i] = current;
         }
         Triangle_Buffer_ready = true;
     }
@@ -51,7 +51,7 @@ void Send_Triangle_UART(void) // function to send triangle wave over UART
         }
         else
         {
-            nECU_UART_SendKnock(&Triangle_Buffer[(KNOCK_BUFFOR_SIZE / 2) - 1]);
+            nECU_UART_SendKnock(&Triangle_Buffer[(KNOCK_DMA_LEN / 2) - 1]);
             Triangle_Buffer_firstPart = true;
         }
     }

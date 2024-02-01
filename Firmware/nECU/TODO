@@ -2,8 +2,12 @@
     [ ] missfire detection
     [ ] IGF functionality
 
+[X] ADC1 longer buffer (limit callbacks)
+[X] automatic ADC DMA buffer averaging
+
 [ ] code refactor
-    [ ] calculate ADC full conversion times, write them to ADC file as a note
+    [-] calculate ADC full conversion times, write them to ADC file as a note
+        - Macro done to adjust dma buffer length to needs
     [ ] update files to match repo description
     [X] EGT SPI functions to nECU_spi file with proper communication buffering
 
