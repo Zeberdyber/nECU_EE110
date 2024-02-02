@@ -81,7 +81,7 @@ extern "C"
     void Speed_TimingEvent(void); // function to be called periodicaly with desired data update rate
 
     /* Speed testing functions */
-    uint8_t Test_Speed_SensorUpdate(void); // function to test Speed functions
+    bool Test_Speed_SensorUpdate(void); // function to test Speed functions
 
 #ifdef __cplusplus
 }

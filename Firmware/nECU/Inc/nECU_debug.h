@@ -37,6 +37,9 @@ extern "C"
     void OnBoard_LED_UpdateSingle(OnBoardLED *inst); // function to perform logic behind blinking times and update to GPIO
     void OnBoard_LED_Update(void);                   // update on board LEDs states
 
+    /* Fault detection */
+    void nECU_Fault_Missfire(void); // routine after missfire was detected
+
 #ifdef __cplusplus
 }
 #endif

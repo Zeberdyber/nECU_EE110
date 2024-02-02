@@ -43,6 +43,8 @@ extern "C"
 
 #define VSS_PULSES_PER_KM 4500 // number of pulses that will be recived for a kilometer traveled
 
+#define IGF_MAX_RPM_RATE 300 // rpm/s rate; used for missfire detection
+
     /* typedef */
     typedef struct
     {
@@ -59,8 +61,7 @@ extern "C"
         float outputFloat;
         uint16_t output16bit;
         uint8_t output8bit;
-        bool initialized;
-    } AnalogSensor;
+    } AnalogSensor_Handle;
 
     typedef struct
     {
@@ -72,11 +73,11 @@ extern "C"
     typedef struct
     {
         PWM_Out Heater;
-        AnalogSensor sensor;
+        AnalogSensor_Handle sensor;
         uint8_t *Coolant;
         float Infill_max, Infill_min;
         float Coolant_max, Coolant_min;
-    } Oxygen;
+    } Oxygen_Handle;
 
     typedef struct
     {
@@ -95,6 +96,15 @@ extern "C"
         uint16_t watchdogCount;
     } VSS_Handle;
 
+    typedef struct
+    {
+        TimerStock tim;
+        uint32_t IGF_Channel;
+        uint32_t IGF_prevCCR;
+        float frequency;
+        uint16_t RPM, prevRPM;
+    } IGF_Handle;
+
     /* Analog sensors */
     void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst);                // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
     float nECU_getLinearSensor(uint16_t *ADC_Value, AnalogSensorCalibration *inst);     // function to get result of linear sensor
@@ -108,7 +118,7 @@ extern "C"
     uint8_t *nECU_BackPressure_GetPointer(void); // returns pointer to resulting data
     void nECU_BackPressure_Init(void);           // initialize BackPressure structure
     void nECU_BackPressure_Update(void);         // update BackPressure structure
-    /* Oxygen */
+    /* Oxygen Sensor */
     uint8_t *nECU_OX_GetPointer(void); // returns pointer to resulting data
     void nECU_OX_Init(void);           // initialize narrowband lambda structure
     void nECU_OX_Update(void);         // update narrowband lambda structure
@@ -119,6 +129,10 @@ extern "C"
     void nECU_VSS_Update(void);                        // update VSS structure
     void nECU_VSS_DeInit(void);                        // deinitialize VSS structure
     void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim); // detect if zero km/h
+    /* IGF - Ignition feedback */
+    void nECU_IGF_Init(void);   // initialize and start
+    void nECU_IGF_Calc(void);   // calculate RPM based on IGF signal, detect missfire
+    void nECU_IGF_DeInit(void); // stop
     /* General */
     void nECU_Stock_Start(void);  // function to initialize all stock stuff
     void nECU_Stock_Stop(void);   // function to deinitialize all stock stuff

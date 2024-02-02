@@ -1,15 +1,11 @@
-[ ] missing code
-    [ ] missfire detection
-    [ ] IGF functionality
+[X] missing code
+    [X] missfire detection
+    [X] IGF functionality
 
-[X] ADC1 longer buffer (limit callbacks)
-[X] automatic ADC DMA buffer averaging
+[ ] RPM signal clear mess
 
 [ ] code refactor
-    [-] calculate ADC full conversion times, write them to ADC file as a note
-        - Macro done to adjust dma buffer length to needs
     [ ] update files to match repo description
-    [X] EGT SPI functions to nECU_spi file with proper communication buffering
 
 [ ] fault detection (as a seperate file)
     [ ] add flags
@@ -65,3 +61,8 @@
     [ ] test flash code
     [ ] timer interrupt automatic tests functions
     [ ] Flash saving and reading tests with debugging
+    [X] ADC average and smooth
+
+[ ] static flags of initialized
+    [X] stock.h
+    [X] speed.h

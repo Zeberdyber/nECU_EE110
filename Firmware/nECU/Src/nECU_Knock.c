@@ -17,7 +17,7 @@ void nECU_Knock_Init(void) // initialize and start
     Knock.CycleDoneFlag = nECU_Knock_Delay_DoneFlag();
 
     // RPM reference
-    nECU_RPM_Init();
+    nECU_IGF_Init();
 
     // start regression timer
     Knock.regres.htim = &KNOCK_REGRES_TIMER;
@@ -118,7 +118,6 @@ void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of knock ran
 }
 void nECU_Knock_DeInit(void) // stop
 {
-    nECU_RPM_DeInit();
     HAL_TIM_Base_Stop_IT(Knock.regres.htim);
 }
 uint8_t *nECU_Knock_GetPointer(void) // returns pointer to knock retard percentage

@@ -49,15 +49,6 @@ extern "C"
     float period; // in ms
   } Timer;
 
-  typedef struct
-  {
-    Timer tim;
-    uint32_t IGF_Channel;
-    uint32_t IGF_prevCCR;
-    float frequency;
-    uint16_t RPM;
-  } IGF_Handle;
-
   /* Function Prototypes */
   uint8_t nECU_Get_FrameTimer(void); // get current value of frame timer
 
@@ -72,11 +63,6 @@ extern "C"
   void nECU_Delay_Set(nECU_Delay *inst, uint32_t *delay); // preset the non-blocking delay
   void nECU_Delay_Update(nECU_Delay *inst);               // update current state of non-blocking delay
   void nECU_Delay_UpdateAll(void);                        // update all created non-blocking delays
-
-  /* RPM calculation */
-  void nECU_RPM_Init(void);   // initialize and start
-  void nECU_RPM_Calc(void);   // calculate RPM based on IGF signal
-  void nECU_RPM_DeInit(void); // stop
 
   /* Flash save user setting delay */
   bool *nECU_Save_Delay_DoneFlag(void); // return flag if save is due

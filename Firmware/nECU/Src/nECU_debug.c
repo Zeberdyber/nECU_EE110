@@ -58,3 +58,7 @@ void OnBoard_LED_Update(void) // update on board LEDs states
     LED_R.blinking = nECU_SPI_getBusy(&SPI_PERIPHERAL_EGT);
     OnBoard_LED_UpdateSingle(&LED_R);
 }
+
+void nECU_Fault_Missfire(void) // routine after missfire was detected
+{
+}
