@@ -239,8 +239,6 @@ void ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *h
   button->refClock = TIM_CLOCK / (button->Timer->Init.Prescaler + 1);
   button->GPIOx = GPIOC;
 
-  HAL_TIM_Base_Start_IT(button->Timer);
-
   switch (Channel)
   {
   case 1:
@@ -257,7 +255,6 @@ void ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *h
     button->Channel_IC = HAL_TIM_ACTIVE_CHANNEL_3;
     button->Channel = TIM_CHANNEL_3;
     button->GPIO_Pin = B3_S_Pin;
-
     break;
 
   default:
@@ -293,7 +290,7 @@ void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called a
   uint32_t Difference = 0;
   if (button->RisingCCR > CurrentCCR)
   {
-    Difference = ((0xffff - button->RisingCCR) + CurrentCCR) * 1000 / button->refClock;
+    Difference = ((button->Timer->Init.Period - button->RisingCCR) + CurrentCCR) * 1000 / button->refClock;
   }
   else
   {

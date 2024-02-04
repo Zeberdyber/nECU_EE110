@@ -1,7 +1,3 @@
-[X] missing code
-    [X] missfire detection
-    [X] IGF functionality
-
 [ ] RPM signal clear mess
 
 [ ] code refactor
@@ -61,8 +57,30 @@
     [ ] test flash code
     [ ] timer interrupt automatic tests functions
     [ ] Flash saving and reading tests with debugging
-    [X] ADC average and smooth
 
 [ ] static flags of initialized
     [X] stock.h
     [X] speed.h
+
+[ ] remove numbers from files "magic numbers"
+[ ] maybe dont calculate difference for each watchdog (waste of time),
+    calculate once and update all
+
+[ ] timer watchdogs
+    [ ] PWM (ox heater, button output)
+    [ ] IC (button inputs, ...)
+
+[ ] timer rewrite to reuse functions
+    [X] PWM functions
+    [ ] IC functions
+
+[ ] use new timer in files
+    [ ] stock
+    [ ] button
+
+[ ] figure out how to import typedefs
+[ ] in watchdogs use pointers to timers from starting files
+
+
+[ ] flash saving
+    [ ] test functions

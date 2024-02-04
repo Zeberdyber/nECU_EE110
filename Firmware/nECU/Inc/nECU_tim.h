@@ -33,7 +33,17 @@ extern "C"
 
 #define FLASH_SAVE_DELAY_TIME 5000 // time to wait for before save happens in ms
 
+#define WATCHDOG_PERIOD_MULTIPLIER 2 // after how many missed callbacks an error will be called
+
   /* typedef */
+  typedef enum
+  {
+    TIM_OK = 0,
+    TIM_NONE = 1,
+    TIM_ERROR = 2,
+    TIM_NULL
+  } nECU_TIM_State;
+
   typedef struct
   {
     uint32_t timeSet;
@@ -45,9 +55,20 @@ extern "C"
   typedef struct
   {
     TIM_HandleTypeDef *htim;
-    float refClock;
-    float period; // in ms
-  } Timer;
+    float refClock;           // in Hz (pre calculated on initialization)
+    float period;             // in ms (pre calculated on initialization)
+    uint32_t Channel_List[4]; // list of configured channels
+    uint8_t Channel_Count;    // number of actively used channels
+  } nECU_Timer;
+
+  typedef struct
+  {
+    nECU_Timer tim;
+    bool error, warning;   // flags
+    uint32_t counter_ms;   // watchdog counter
+    uint64_t counter_max;  // value which determines error state
+    uint32_t previousTick; // helper variable for counter_ms calculation
+  } nECU_tim_Watchdog;
 
   /* Function Prototypes */
   uint8_t nECU_Get_FrameTimer(void); // get current value of frame timer
@@ -71,6 +92,23 @@ extern "C"
   /* Delay knock update to next cycle */
   bool *nECU_Knock_Delay_DoneFlag(void);   // return flag if knock is due
   void nECU_Knock_Delay_Start(float *rpm); // start non-blocking delay for knock
+
+  /* general nECU timer functions */
+  nECU_TIM_State nECU_tim_PWM_start(nECU_Timer *tim); // function to start PWM on selected timer
+  nECU_TIM_State nECU_tim_PWM_stop(nECU_Timer *tim);  // function to stop PWM on selected timer
+  nECU_TIM_State nECU_tim_IC_start(nECU_Timer *tim);  // function to start IC on selected timer
+  nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim);   // function to stop IC on selected timer
+  void nECU_tim_Init_struct(nECU_Timer *tim);         // initialize structure and precalculate variables
+
+  /* Watchdog for timers detection */
+  void nECU_tim_Watchdog_Init(void);                                 // initialize structure
+  void nECU_tim_Watchdog_Init_struct(nECU_tim_Watchdog *watchdog);   // set default values to variables
+  void nECU_tim_Watchdog_Periodic(void);                             // watchdog function for active timers
+  void nECU_tim_Watchdog_updateCounter(nECU_tim_Watchdog *watchdog); // update counter value based on systick
+  void nECU_tim_Watchdog_Callback(TIM_HandleTypeDef *htim);          // function to be called on timer interrupt
+  bool nECU_tim_Watchdog_CheckStates(nECU_tim_Watchdog *watchdog);   // check state of peripheral
+  bool nECU_tim_Watchdog_CheckCounter(nECU_tim_Watchdog *watchdog);  // check counter, determine timer error
+  bool nECU_tim_Watchdog_CheckChannels(nECU_Timer *tim);             // check channels of timer
 
 #ifdef __cplusplus
 }
