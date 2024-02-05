@@ -1,7 +1,29 @@
 [ ] RPM signal clear mess
 
 [ ] code refactor
-    [ ] update files to match repo description
+    [X] update files to match repo description
+
+[ ] Development
+    [ ] OX sensor heater
+    [ ] OX sensor analog signal
+    [ ] IGF missfire
+    [ ] IGF RPM calculation
+
+[ ] Bugs
+    [ ] Tacho display bug (occasionnaly value is displayed twice)
+    [ ] filtering of VSS (low speed correction)
+    [ ] frequency readout (RPM) fix and test functions
+    [ ] flash saving not working at all
+        *fixed memory allocation, check if issue fixed
+    [ ] Buttons sporadic not working, double click faulty
+
+[ ] Optimization
+    [ ] Knock sensing (after UART added)
+
+[ ] Scheduled
+    [ ] Onboard UART
+    [ ] External AI in code integration with proper scaling settings
+    [ ] Immobilizer communication
 
 [ ] fault detection (as a seperate file)
     [ ] add flags
@@ -46,12 +68,6 @@
     [ ] UART knock raw data functions labeled
     [ ] UART sending data live
 
-[ ] Known bugs
-    [ ] Tacho display bug (occasionnaly value is displayed twice)
-    [ ] filtering of VSS (low speed correction)
-    [ ] frequency readout (RPM) fix and test functions
-    [ ] flash saving not working at all
-        *fixed memory allocation, check if issue fixed
 
 [ ] Tests for each file functions
     [ ] test flash code
@@ -85,7 +101,7 @@
     -> systests => test components of IC
     -> selftest => startup test procedure
     -> codetest => test pure code functions
-[ ] test.c file
+[X] test.c file
 
 [ ] flash saving
-    [ ] test functions
+    [X] test functions
