@@ -20,5 +20,6 @@
 #include "nECU_spi.h"
 #include "nECU_stock.h"
 #include "nECU_table.h"
+#include "nECU_tests.h"
 #include "nECU_tim.h"
 #include "nECU_UART.h"

@@ -81,6 +81,11 @@
 [ ] figure out how to import typedefs
 [ ] in watchdogs use pointers to timers from starting files
 
+## tests
+    -> systests => test components of IC
+    -> selftest => startup test procedure
+    -> codetest => test pure code functions
+[ ] test.c file
 
 [ ] flash saving
     [ ] test functions

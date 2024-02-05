@@ -51,12 +51,12 @@ bool nECU_SPI_getError(SPI_HandleTypeDef *hspi) // get error type (if not ready 
   return output;
 }
 
-void nECU_SPI_Rx_DMA_Start(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t *Size) // start communication with selected device
+void nECU_SPI_Rx_DMA_Start(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size) // start communication with selected device
 {
   if (nECU_SPI_getBusy(hspi) == false) // check if available
   {
     HAL_GPIO_WritePin(GPIOx, *GPIO_Pin, RESET);
-    HAL_SPI_Receive_DMA(hspi, pData, *Size);
+    HAL_SPI_Receive_DMA(hspi, pData, Size);
   }
 }
 void nECU_SPI_Rx_DMA_Stop(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTypeDef *hspi) // end communication with selected device
