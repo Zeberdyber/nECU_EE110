@@ -24,6 +24,7 @@ extern "C"
 #define FLASH_DATA_SIZE 16                                                           // Size of memory sector in bytes
 #define SPEED_DATA_OFFSET 0                                                          // offset where to start the speed calibration data in flash
 #define USER_SETTINGS_OFFSET (sizeof(nECU_SpeedCalibrationData) + SPEED_DATA_OFFSET) // offset where to start the user settings data in flash
+#define FLASH_MINIMUM_RUN_TIME 1000                                                  // to allow debugger to work
 
     /* typedef */
     typedef struct

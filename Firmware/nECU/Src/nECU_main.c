@@ -19,6 +19,10 @@ extern bool Knock_UART_Transmission;
 /* General code */
 void nECU_Start(void) // start executing program (mostly in main loop, some in background with interrupts)
 {
+    // nECU_FLASH_cleanFlashSector();
+    // nECU_codetest_run();
+    // nECU_systest_run();
+
     nECU_FLASH_getAllMemory();
     ADC_START_ALL();
     nECU_Stock_Start();

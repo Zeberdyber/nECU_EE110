@@ -36,6 +36,7 @@ extern "C"
     void OnBoard_LED_Init(void);                     // initialize structures for on board LEDs
     void OnBoard_LED_UpdateSingle(OnBoardLED *inst); // function to perform logic behind blinking times and update to GPIO
     void OnBoard_LED_Update(void);                   // update on board LEDs states
+    void nECU_LED_FlipState(OnBoardLED *inst);       // simple function for debugging code
 
     /* Fault detection */
     void nECU_Fault_Missfire(void); // routine after missfire was detected

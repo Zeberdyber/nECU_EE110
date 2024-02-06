@@ -19,21 +19,21 @@ void nECU_saveSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, f
         nECU_FLASH_getAllMemory();
     }
     // copy config if needed to buffer
-    if (Flash.speedData.SpeedSensor1 == *Sensor1)
+    if (Flash.speedData.SpeedSensor1 != *Sensor1)
     {
         Flash.speedData.SpeedSensor1 = *Sensor1;
     }
-    if (Flash.speedData.SpeedSensor2 == *Sensor1)
+    if (Flash.speedData.SpeedSensor2 != *Sensor2)
     {
-        Flash.speedData.SpeedSensor2 = *Sensor1;
+        Flash.speedData.SpeedSensor2 = *Sensor2;
     }
-    if (Flash.speedData.SpeedSensor3 == *Sensor1)
+    if (Flash.speedData.SpeedSensor3 != *Sensor3)
     {
-        Flash.speedData.SpeedSensor3 = *Sensor1;
+        Flash.speedData.SpeedSensor3 = *Sensor3;
     }
-    if (Flash.speedData.SpeedSensor4 == *Sensor1)
+    if (Flash.speedData.SpeedSensor4 != *Sensor4)
     {
-        Flash.speedData.SpeedSensor4 = *Sensor1;
+        Flash.speedData.SpeedSensor4 = *Sensor4;
     }
 
     nECU_FLASH_saveFlashSector(); // save and validate
@@ -103,19 +103,16 @@ void nECU_FLASH_saveFlashSector(void) // save everything, then read to RAM
 }
 void nECU_FLASH_writeSpeedCalibrationData(const nECU_SpeedCalibrationData *data) // function to write calibration data to flash memory
 {
-    if (memcmp(&(Flash.speedData), data, sizeof(nECU_SpeedCalibrationData))) // check if memory needs to be updated
-    {
-        Flash.speedData = *data; // copy new data to buffer
-        HAL_FLASH_Unlock();
-        FLASH_FlushCaches();
+    Flash.speedData = *data; // copy new data to buffer
+    HAL_FLASH_Unlock();
+    FLASH_FlushCaches();
 
-        // Write the data to flash memory
-        for (int i = 0; i < sizeof(nECU_SpeedCalibrationData); i += 4)
-        {
-            HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + SPEED_DATA_OFFSET + i, *(uint32_t *)((uint8_t *)data + i));
-        }
-        HAL_FLASH_Lock();
+    // Write the data to flash memory
+    for (int i = 0; i < sizeof(nECU_SpeedCalibrationData); i += 4)
+    {
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + SPEED_DATA_OFFSET + i, *(uint32_t *)((uint8_t *)data + i));
     }
+    HAL_FLASH_Lock();
 }
 void nECU_FLASH_readSpeedCalibrationData(nECU_SpeedCalibrationData *data) // function to read calibration data from flash memory
 {
@@ -142,20 +139,17 @@ void nECU_FLASH_readSpeedCalibrationData(nECU_SpeedCalibrationData *data) // fun
 }
 void nECU_FLASH_writeUserSettings(const nECU_UserSettings *data) // function to write settings data to flash memory
 {
-    if (memcmp(&(Flash.userData), data, sizeof(nECU_UserSettings))) // check if memory needs to be updated
+    Flash.userData = *data; // copy new data to buffer
+    HAL_FLASH_Unlock();
+    FLASH_FlushCaches();
+
+    // Write the data to flash memory
+    for (int i = 0; i < sizeof(nECU_UserSettings); i += 1)
     {
-        Flash.userData = *data; // copy new data to buffer
-        HAL_FLASH_Unlock();
-        FLASH_FlushCaches();
-
-        // Write the data to flash memory
-        for (int i = 0; i < sizeof(nECU_UserSettings); i += 1)
-        {
-            HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + USER_SETTINGS_OFFSET + i, *(uint8_t *)((uint8_t *)data + i));
-        }
-
-        HAL_FLASH_Lock();
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + USER_SETTINGS_OFFSET + i, *(uint8_t *)((uint8_t *)data + i));
     }
+
+    HAL_FLASH_Lock();
 }
 void nECU_FLASH_readUserSettings(nECU_UserSettings *data) // function to read settings data to flash memory
 {

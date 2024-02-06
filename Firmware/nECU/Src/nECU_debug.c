@@ -58,6 +58,15 @@ void OnBoard_LED_Update(void) // update on board LEDs states
     LED_R.blinking = nECU_SPI_getBusy(&SPI_PERIPHERAL_EGT);
     OnBoard_LED_UpdateSingle(&LED_R);
 }
+void nECU_LED_FlipState(OnBoardLED *inst) // simple function for debugging code
+{
+    if (LED_Initialized == false)
+    {
+        OnBoard_LED_Init();
+    }
+
+    HAL_GPIO_TogglePin(inst->GPIOx, inst->GPIO_Pin);
+}
 
 void nECU_Fault_Missfire(void) // routine after missfire was detected
 {

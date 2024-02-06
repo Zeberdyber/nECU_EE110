@@ -1,7 +1,6 @@
 [ ] RPM signal clear mess
 
 [ ] code refactor
-    [X] update files to match repo description
 
 [ ] Development
     [ ] OX sensor heater
@@ -13,7 +12,7 @@
     [ ] Tacho display bug (occasionnaly value is displayed twice)
     [ ] filtering of VSS (low speed correction)
     [ ] frequency readout (RPM) fix and test functions
-    [ ] flash saving not working at all
+    [X] flash saving not working at all
         *fixed memory allocation, check if issue fixed
     [ ] Buttons sporadic not working, double click faulty
 
@@ -72,7 +71,7 @@
 [ ] Tests for each file functions
     [ ] test flash code
     [ ] timer interrupt automatic tests functions
-    [ ] Flash saving and reading tests with debugging
+    [X] Flash saving and reading tests with debugging
 
 [ ] static flags of initialized
     [X] stock.h
@@ -98,10 +97,10 @@
 [ ] in watchdogs use pointers to timers from starting files
 
 ## tests
-    -> systests => test components of IC
-    -> selftest => startup test procedure
-    -> codetest => test pure code functions
 [X] test.c file
 
-[ ] flash saving
+[X] flash saving
     [X] test functions
+
+[ ] Onboard LEDs to use non-blocking delay functions
+[ ] typedefs to nECU.h file

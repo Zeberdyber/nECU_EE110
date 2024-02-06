@@ -95,7 +95,7 @@ void EGT_GetSPIData(bool error) // get data of all sensors
         break;
     }
 
-    nECU_SPI_Rx_DMA_Start(EGT_variables.EGT_CurrentObj->GPIOx, EGT_variables.EGT_CurrentObj->GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->buffer, 4); // start reciving data
+    nECU_SPI_Rx_DMA_Start(EGT_variables.EGT_CurrentObj->GPIOx, &EGT_variables.EGT_CurrentObj->GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->buffer, 4); // start reciving data
 }
 void EGT_ConvertAll(void) // convert data if pending
 {
