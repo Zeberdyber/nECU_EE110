@@ -17,10 +17,11 @@
 
 [ ] Scheduled
     [ ] Onboard UART
-    [ ] External AI in code integration with proper scaling settings
+    [ ] External AI (analog input) in code integration with proper scaling settings
     [ ] Immobilizer communication
 
-[ ] fault detection (as a seperate file)
+[ ] fault detection (as a seperate file) 
+# set flags for repeted fault
     [ ] add flags
         - over temp
         - can:
@@ -93,6 +94,10 @@
 [ ] upToDate internal temperature
 [ ] Clean typedefs
 
-[ ] DMA averaging debug
+[X] DMA averaging debug
 
 [ ] PWM_Out swap for timer
+
+[ ] IC freq function
+[ ] remove exp_smoothing from Speed_ADCToSpeed
+[ ] check igf with 16-1 filtering

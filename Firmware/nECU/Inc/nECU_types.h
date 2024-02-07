@@ -358,7 +358,7 @@ typedef struct
     nECU_Timer tim;
     uint32_t IGF_prevCCR;
     float frequency;
-    uint16_t RPM, prevRPM;
+    uint16_t RPM;
 } IGF_Handle;
 typedef enum
 {

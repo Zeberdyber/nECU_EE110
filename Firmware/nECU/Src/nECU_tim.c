@@ -212,10 +212,10 @@ nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim) // function to stop IC on selec
 
 void nECU_tim_Init_struct(nECU_Timer *tim) // initialize structure and precalculate variables
 {
-  tim->refClock = TIM_CLOCK / ((tim->htim->Init.Prescaler + 1) * (tim->htim->Init.ClockDivision >> 2)); // add 1 for prescaler nature, move by 2 to decode clock division
-  tim->period = 1 / tim->refClock;                                                                      // calculate period of a single increment in timer
-  tim->Channel_Count = 0;                                                                               // clear count
-  for (uint8_t channel = 0; channel < sizeof(tim->Channel_List) / sizeof(uint32_t); channel++)          // zero out every position of the list
+  tim->refClock = TIM_CLOCK / (tim->htim->Init.Prescaler + 1);                                 // add 1 for prescaler nature
+  tim->period = 1 / tim->refClock;                                                             // calculate period of a single increment in timer
+  tim->Channel_Count = 0;                                                                      // clear count
+  for (uint8_t channel = 0; channel < sizeof(tim->Channel_List) / sizeof(uint32_t); channel++) // zero out every position of the list
   {
     tim->Channel_List[channel] = 0;
   }

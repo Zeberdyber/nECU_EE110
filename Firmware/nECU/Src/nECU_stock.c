@@ -180,7 +180,7 @@ void nECU_VSS_Init(void) // initialize VSS structure
     VSS.VSS_prevCCR = 0;
     VSS.tim.htim = &FREQ_INPUT_TIMER;
     nECU_tim_Init_struct(&VSS.tim);
-    VSS.tim.Channel_Count = 0;
+    VSS.tim.Channel_Count = 1;
     VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
     nECU_tim_IC_start(&VSS.tim);
     VSS_Initialized = true;
@@ -222,15 +222,15 @@ void nECU_VSS_Update(void) // update VSS structure
 }
 void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim) // detect if zero km/h -- !!! to be fixed
 {
-    float time = (TIM_CLOCK / (htim->Init.Prescaler + 1)) / (htim->Init.Period + 1);
-    if (VSS.Speed != 0)
-    {
-        VSS.watchdogCount++;
-        if ((VSS.watchdogCount / time) > (VSS.tim.htim->Init.Period / VSS.tim.refClock))
-        {
-            VSS.Speed = 0;
-        }
-    }
+    // float time = (TIM_CLOCK / (htim->Init.Prescaler + 1)) / (htim->Init.Period + 1);
+    // if (VSS.Speed != 0)
+    // {
+    //     VSS.watchdogCount++;
+    //     if ((VSS.watchdogCount / time) > (VSS.tim.htim->Init.Period / VSS.tim.refClock))
+    //     {
+    //         VSS.Speed = 0;
+    //     }
+    // }
 }
 void nECU_VSS_DeInit(void) // deinitialize VSS structure
 {
@@ -246,7 +246,7 @@ void nECU_IGF_Init(void) // initialize and start
     IGF.IGF_prevCCR = 0;
     IGF.tim.htim = &FREQ_INPUT_TIMER;
     nECU_tim_Init_struct(&IGF.tim);
-    IGF.tim.Channel_Count = 0;
+    IGF.tim.Channel_Count = 1;
     IGF.tim.Channel_List[0] = TIM_CHANNEL_1;
     nECU_tim_IC_start(&IGF.tim);
     IGF_Initialized = true;
@@ -261,17 +261,21 @@ void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
 
     uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(IGF.tim.htim, IGF.tim.Channel_List[0]);
     /* Calculate difference */
-    uint16_t Difference = 0; // in miliseconds
+    uint16_t Difference = 0; // in CCR value
     if (IGF.IGF_prevCCR > CurrentCCR)
     {
         Difference = ((IGF.tim.htim->Init.Period + 1 - IGF.IGF_prevCCR) + CurrentCCR);
+    }
+    else if (IGF.IGF_prevCCR == CurrentCCR)
+    {
+        return;
     }
     else
     {
         Difference = (CurrentCCR - IGF.IGF_prevCCR);
     }
     IGF.IGF_prevCCR = CurrentCCR;
-    IGF.frequency = IGF.tim.refClock / Difference;
+    IGF.frequency = IGF.tim.refClock / Difference; // CCR difference to frequency
     uint16_t RPM = IGF.frequency * 120;
 
     float rpm_rate = RPM - IGF.RPM;

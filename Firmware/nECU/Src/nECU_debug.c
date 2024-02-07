@@ -80,10 +80,15 @@ void nECU_LED_FlipState(OnBoardLED *inst) // simple function for debugging code
 }
 void nECU_LED_SetState(OnBoardLED *inst, GPIO_PinState state) // set state to selected LED
 {
+    if (LED_Initialized == false)
+    {
+        OnBoard_LED_Init();
+    }
     inst->LEDPin.State = state;
     HAL_GPIO_WritePin(inst->LEDPin.GPIOx, inst->LEDPin.GPIO_Pin, inst->LEDPin.State);
 }
 
 void nECU_Fault_Missfire(void) // routine after missfire was detected
 {
+    nECU_LED_FlipState(&LED_L);
 }
