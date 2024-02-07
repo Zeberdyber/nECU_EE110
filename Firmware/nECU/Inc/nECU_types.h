@@ -228,14 +228,12 @@ typedef struct
     uint16_t *LunchControlLevel;
     uint16_t *Speed1, *Speed2, *Speed3, *Speed4;
 } Frame0_struct;
-
 typedef struct
 {
     uint16_t *EGT1, *EGT2, *EGT3, *EGT4;
     uint8_t *TachoVal1, *TachoVal2, *TachoVal3;
     uint16_t *TuneSelector;
 } Frame1_struct;
-
 typedef struct
 {
     uint8_t *Backpressure, *OX_Val;
@@ -256,26 +254,19 @@ typedef struct
 } Knock_FFT;
 typedef struct
 {
-    TIM_HandleTypeDef *htim;
-    float refClock;
-    float period; // in ms
-} TimerKnock;
-typedef struct
-{
     bool LevelWaiting;
     bool *CycleDoneFlag;
 
     uint8_t Level;
     uint8_t RetardOut;
     float RetardPerc;
-    uint8_t StepTime; // in miliseconds
 
     Knock_Interpol_Table thresholdMap;
 
     Knock_FFT fft;
 
     // regression
-    TimerKnock regres;
+    nECU_Timer regres;
 } nECU_Knock;
 
 /* Menu */
@@ -344,7 +335,6 @@ typedef struct
     uint32_t Channel;         // Timers channel used
     float Infill;             // infill of PWM signal
 } PWM_Out;
-
 typedef struct
 {
     PWM_Out Heater;
@@ -356,15 +346,7 @@ typedef struct
 
 typedef struct
 {
-    TIM_HandleTypeDef *htim;
-    float refClock;
-    float period; // in ms
-} TimerStock;
-
-typedef struct
-{
-    TimerStock tim;
-    uint32_t VSS_Channel;
+    nECU_Timer tim;
     uint32_t VSS_prevCCR;
     float frequency;
     uint8_t Speed;
@@ -373,8 +355,7 @@ typedef struct
 
 typedef struct
 {
-    TimerStock tim;
-    uint32_t IGF_Channel;
+    nECU_Timer tim;
     uint32_t IGF_prevCCR;
     float frequency;
     uint16_t RPM, prevRPM;

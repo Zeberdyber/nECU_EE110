@@ -25,6 +25,7 @@ void nECU_tests_error_display(OnBoardLED *inst) // on board LEDs display
 /* system tests */
 bool nECU_systest_Flash_SpeedCalibration(void) // test both read and write to flash memory
 {
+    nECU_FLASH_cleanFlashSector();
     float T1 = 1.0, T2 = 9.99, T3 = -0.0015, T4 = 181516.2;
     nECU_saveSpeedCalibration(&T1, &T2, &T3, &T4);
     float R1, R2, R3, R4;
@@ -33,6 +34,8 @@ bool nECU_systest_Flash_SpeedCalibration(void) // test both read and write to fl
     {
         return true;
     }
+    T1 = 1.0;
+    nECU_saveSpeedCalibration(&T1, &T1, &T1, &T1);
     return false;
 }
 bool nECU_systest_Flash_UserSettings(void) // test both read and write to flash memory
@@ -106,29 +109,29 @@ bool nECU_codetest_ADC_AvgSmooth(void) // test script for general functions
     ADC_HandleTypeDef testADC;
     testADC.Init.NbrOfConversion = 2;
 
-    uint16_t inputBuf[] = {10, 0, 20, 1, 30, 3, 40, 32768};
+    uint16_t inputBuf[] = {10, 0, 20, 1, 30, 3, 40, 32768, 10, 0, 20, 1, 30, 3, 40, 32768};
     uint16_t outputBuf[] = {0, 0, 0, 0}; // tool large buffer to test data spilage
 
-    nECU_ADC_AverageDMA(&testADC, inputBuf, 8, &outputBuf[1], 1); // no smoothing
+    nECU_ADC_AverageDMA(&testADC, inputBuf, 16, &outputBuf[1], 1); // no smoothing
 
     // check limits for spilage
     if (outputBuf[0] != 0)
     {
-        return false;
+        return true;
     }
     if (outputBuf[3] != 0)
     {
-        return false;
+        return true;
     }
 
     // check for correct answers
     if (outputBuf[1] != 25)
     {
-        return false;
+        return true;
     }
     if (outputBuf[2] != 8193)
     {
-        return false;
+        return true;
     }
 
     uint16_t avgInputNew[] = {100, 4000};                    // new data for smoothing
@@ -137,24 +140,24 @@ bool nECU_codetest_ADC_AvgSmooth(void) // test script for general functions
     // check limits for spilage
     if (outputBuf[0] != 0)
     {
-        return false;
+        return true;
     }
     if (outputBuf[3] != 0)
     {
-        return false;
+        return true;
     }
 
     // check for correct answers
     if (outputBuf[1] != 81)
     {
-        return false;
+        return true;
     }
     if (outputBuf[2] != 5048)
     {
-        return false;
+        return true;
     }
 
-    return true;
+    return false;
 }
 void nECU_codetest_run(void) // run tests of type codetest
 {

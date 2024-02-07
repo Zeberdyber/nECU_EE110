@@ -179,11 +179,10 @@ void nECU_VSS_Init(void) // initialize VSS structure
 {
     VSS.VSS_prevCCR = 0;
     VSS.tim.htim = &FREQ_INPUT_TIMER;
-    VSS.VSS_Channel = TIM_CHANNEL_2;
-    VSS.tim.refClock = TIM_CLOCK / (VSS.tim.htim->Init.Prescaler + 1);
-    VSS.watchdogCount = 0;
-    HAL_TIM_Base_Start_IT(VSS.tim.htim);
-    HAL_TIM_IC_Start_IT(VSS.tim.htim, VSS.VSS_Channel);
+    nECU_tim_Init_struct(&VSS.tim);
+    VSS.tim.Channel_Count = 0;
+    VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
+    nECU_tim_IC_start(&VSS.tim);
     VSS_Initialized = true;
 }
 void nECU_VSS_Update(void) // update VSS structure
@@ -194,7 +193,7 @@ void nECU_VSS_Update(void) // update VSS structure
         return;
     }
 
-    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(VSS.tim.htim, VSS.VSS_Channel);
+    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(VSS.tim.htim, VSS.tim.Channel_List[0]);
 
     /* Calculate difference */
     uint16_t Difference = 0; // in miliseconds
@@ -238,7 +237,7 @@ void nECU_VSS_DeInit(void) // deinitialize VSS structure
     if (VSS_Initialized == true)
     {
         HAL_TIM_Base_Stop_IT(VSS.tim.htim);
-        HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.VSS_Channel);
+        HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.tim.Channel_List[0]);
     }
 }
 /* IGF - Ignition feedback */
@@ -246,10 +245,10 @@ void nECU_IGF_Init(void) // initialize and start
 {
     IGF.IGF_prevCCR = 0;
     IGF.tim.htim = &FREQ_INPUT_TIMER;
-    IGF.IGF_Channel = TIM_CHANNEL_1;
-    IGF.tim.refClock = TIM_CLOCK / (IGF.tim.htim->Init.Prescaler + 1);
-    HAL_TIM_Base_Start_IT(IGF.tim.htim);
-    HAL_TIM_IC_Start_IT(IGF.tim.htim, IGF.IGF_Channel);
+    nECU_tim_Init_struct(&IGF.tim);
+    IGF.tim.Channel_Count = 0;
+    IGF.tim.Channel_List[0] = TIM_CHANNEL_1;
+    nECU_tim_IC_start(&IGF.tim);
     IGF_Initialized = true;
 }
 void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
@@ -260,7 +259,7 @@ void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
         return;
     }
 
-    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(IGF.tim.htim, IGF.IGF_Channel);
+    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(IGF.tim.htim, IGF.tim.Channel_List[0]);
     /* Calculate difference */
     uint16_t Difference = 0; // in miliseconds
     if (IGF.IGF_prevCCR > CurrentCCR)
@@ -292,7 +291,7 @@ void nECU_IGF_DeInit(void) // stop
     if (IGF_Initialized == true)
     {
         HAL_TIM_Base_Stop_IT(IGF.tim.htim);
-        HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.IGF_Channel);
+        HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]);
     }
 }
 /* GPIO inputs */

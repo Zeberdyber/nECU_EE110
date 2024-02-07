@@ -18,10 +18,10 @@ extern uint16_t loopCounter;
 /* Frame 0 */
 void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *pAntilag, bool *pTractionOFF, bool *pClearEngineCode, uint16_t *pLunchControlLevel) // initialization of data structure
 {
-    F0_var.Speed1 = Speed_GetSpeedSlow(1);
-    F0_var.Speed2 = Speed_GetSpeedSlow(2);
-    F0_var.Speed3 = Speed_GetSpeedSlow(3);
-    F0_var.Speed4 = Speed_GetSpeedSlow(4);
+    F0_var.Speed1 = Speed_GetSpeed(1);
+    F0_var.Speed2 = Speed_GetSpeed(2);
+    F0_var.Speed3 = Speed_GetSpeed(3);
+    F0_var.Speed4 = Speed_GetSpeed(4);
     F0_var.TachoShow1 = pTachoShow1;
     F0_var.TachoShow2 = pTachoShow2;
     F0_var.TachoShow3 = pTachoShow3;

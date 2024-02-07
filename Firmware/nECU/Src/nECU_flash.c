@@ -19,22 +19,10 @@ void nECU_saveSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, f
         nECU_FLASH_getAllMemory();
     }
     // copy config if needed to buffer
-    if (Flash.speedData.SpeedSensor1 != *Sensor1)
-    {
-        Flash.speedData.SpeedSensor1 = *Sensor1;
-    }
-    if (Flash.speedData.SpeedSensor2 != *Sensor2)
-    {
-        Flash.speedData.SpeedSensor2 = *Sensor2;
-    }
-    if (Flash.speedData.SpeedSensor3 != *Sensor3)
-    {
-        Flash.speedData.SpeedSensor3 = *Sensor3;
-    }
-    if (Flash.speedData.SpeedSensor4 != *Sensor4)
-    {
-        Flash.speedData.SpeedSensor4 = *Sensor4;
-    }
+    Flash.speedData.SpeedSensor1 = *Sensor1;
+    Flash.speedData.SpeedSensor2 = *Sensor2;
+    Flash.speedData.SpeedSensor3 = *Sensor3;
+    Flash.speedData.SpeedSensor4 = *Sensor4;
 
     nECU_FLASH_saveFlashSector(); // save and validate
 }

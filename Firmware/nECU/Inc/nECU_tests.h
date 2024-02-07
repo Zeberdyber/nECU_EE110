@@ -30,7 +30,7 @@ extern "C"
 
 /* Definitions */
 #define SYSTEST_INDICATOR LED_L  // indicator for systests
-#define SYSTEST_DO_FLASH true    // choose to do flas tests !they will delete any saved data!
+#define SYSTEST_DO_FLASH false   // choose to do flas tests !they will delete any saved data!
 #define CODETEST_INDICATOR LED_R // indicator for systests
 
 #define ERROR_HALT true       // should program stop on error

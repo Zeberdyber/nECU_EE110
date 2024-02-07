@@ -208,7 +208,7 @@ void nECU_ADC2_Routine(void)
   }
   else if (adc2_data.status.callback_full == true)
   {
-    nECU_ADC_AverageDMA(&GENERAL_ADC, &adc2_data.in_buffer[(SPEED_DMA_LEN / 2) - 1], SPEED_DMA_LEN / 2, adc2_data.out_buffer, SPEED_SMOOTH_ALPHA);
+    nECU_ADC_AverageDMA(&SPEED_ADC, &adc2_data.in_buffer[(SPEED_DMA_LEN / 2) - 1], SPEED_DMA_LEN / 2, adc2_data.out_buffer, SPEED_SMOOTH_ALPHA);
     adc2_data.status.callback_full = false; // clear flag
   }
 }

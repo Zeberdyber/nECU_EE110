@@ -117,12 +117,6 @@ void Speed_Start(void) // function to start Speed function set
     Speed_Sens_3.WheelSetup = nECU_CAN_getWheelSetupPointer();
     Speed_Sens_4.WheelSetup = nECU_CAN_getWheelSetupPointer();
 
-    // averaging initialization
-    Speed_AverageInit(&Speed_Sens_1);
-    Speed_AverageInit(&Speed_Sens_2);
-    Speed_AverageInit(&Speed_Sens_3);
-    Speed_AverageInit(&Speed_Sens_4);
-
     // other init
     Speed_Sens_1.SpeedData = 0;
     Speed_Sens_2.SpeedData = 0;
@@ -172,7 +166,10 @@ void Speed_SensorUpdate(Speed_Sensor *Sensor) // update one sensors data
 
     Speed_ADCToSpeed(Sensor);
     Speed_CorrectToCalib(Sensor);
-    Speed_AverageCalc(Sensor);
+    if (calibrateRoutine.initialized == true) // do only when calibrating
+    {
+        Speed_AverageCalc(Sensor);
+    }
 }
 void Speed_CorrectToCalib(Speed_Sensor *Sensor) // correct data to calibration multiplier
 {
@@ -246,7 +243,7 @@ void Speed_CalibrateAll(void) // function to calibrate speed sensors (periodic f
             Speed_CalibrateSingle(&Speed_Sens_3);
             Speed_CalibrateSingle(&Speed_Sens_4);
             nECU_saveSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
-            Speed_CalibrateInit();
+            Speed_CalibrateInit(); // clear calibration data
         }
     }
 }

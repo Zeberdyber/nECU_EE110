@@ -19,8 +19,8 @@ extern bool Knock_UART_Transmission;
 /* General code */
 void nECU_Start(void) // start executing program (mostly in main loop, some in background with interrupts)
 {
-    nECU_codetest_run();
     nECU_systest_run();
+    nECU_codetest_run();
 
     nECU_FLASH_getAllMemory();
     ADC_START_ALL();
@@ -56,7 +56,7 @@ void nECU_main(void) // main rutine of the program
         // /* Low priority [non-critical] */
         nECU_Stock_Update();
         EGT_PeriodicEventLP();
-        OnBoard_LED_Update();
+        // OnBoard_LED_Update();
         nECU_Delay_UpdateAll();
     }
     if (*nECU_UART_KnockTx() == true)

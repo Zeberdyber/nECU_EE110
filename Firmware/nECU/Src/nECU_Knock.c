@@ -21,8 +21,7 @@ void nECU_Knock_Init(void) // initialize and start
 
     // start regression timer
     Knock.regres.htim = &KNOCK_REGRES_TIMER;
-    Knock.regres.refClock = TIM_CLOCK / (Knock.regres.htim->Init.Prescaler + 1);
-    Knock.StepTime = ((Knock.regres.htim->Init.Period + 1) * 1000.0f) / Knock.regres.refClock;
+    nECU_tim_Init_struct(&Knock.regres);
     HAL_TIM_Base_Start_IT(Knock.regres.htim);
 
     // initialize threshold table
@@ -76,7 +75,7 @@ void nECU_Knock_UpdatePeriodic(void) // function to perform time critical knock 
     }
     else if (Knock.RetardPerc > 0)
     {
-        Knock.RetardPerc -= (Knock.StepTime * KNOCK_BETA) / 1000.0f;
+        Knock.RetardPerc -= (Knock.regres.period * KNOCK_BETA) / 1000.0f;
 
         if (Knock.RetardPerc < 0)
         {
