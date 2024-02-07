@@ -49,6 +49,7 @@ extern "C"
   void nECU_Delay_Start(nECU_Delay *inst);                // start non-blocking delay
   void nECU_Delay_Set(nECU_Delay *inst, uint32_t *delay); // preset the non-blocking delay
   void nECU_Delay_Update(nECU_Delay *inst);               // update current state of non-blocking delay
+  void nECU_Delay_Stop(nECU_Delay *inst);                 // stop non-blocking delay
   void nECU_Delay_UpdateAll(void);                        // update all created non-blocking delays
 
   /* Flash save user setting delay */

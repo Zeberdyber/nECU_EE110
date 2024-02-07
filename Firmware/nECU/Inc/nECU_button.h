@@ -48,7 +48,6 @@ extern "C"
   void ButtonLight_UpdateAll(void);                                                    // function to launch updates for all buttons
   void ButtonLight_TimingEvent(void);                                                  // funtion called after pulse finished interrupt from PWM timer
   void ButtonLight_Stop(ButtonLight *Light);                                           // stops button code
-  void ButtonLight_Stop_Timer(ButtonLight *Light);                                     // stops timer base
 
   /* Input functions */
   void ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonInput object with corresponding timer and GPIO
@@ -57,7 +56,6 @@ extern "C"
   void ButtonInput_InterruptRoutine(ButtonInput *button);                               // routine to be called after input capture callback (updates button structure)
   Button_ClickType ButtonInput_GetType(Button_ID id);                                   // get click type if avaliable
   void ButtonInput_Stop(ButtonInput *button);                                           // stop Input Capture for selected button
-  void ButtonInput_Stop_Timer(ButtonInput *button);                                     // stops timer base
 
   /* Animations */
   void ButtonLight_BreathAllOnce(void);                                 // breath all button lights once

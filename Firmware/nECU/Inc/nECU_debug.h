@@ -19,9 +19,9 @@ extern "C"
 #include "nECU_spi.h"
 
 /* Definitions */
-#define ONBOARD_LED_MS_PER_BLINK 200 // number of miliseconds for full blink
+#define ONBOARD_LED_MS_PER_BLINK 1000 // number of miliseconds for full blink
 
-        /* On board LED */
+    /* On board LED */
     void OnBoard_LED_Init(void);                     // initialize structures for on board LEDs
     void OnBoard_LED_UpdateSingle(OnBoardLED *inst); // function to perform logic behind blinking times and update to GPIO
     void OnBoard_LED_Update(void);                   // update on board LEDs states

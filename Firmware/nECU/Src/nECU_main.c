@@ -44,6 +44,8 @@ void nECU_main(void) // main rutine of the program
 {
     if (Initialized == true)
     {
+        // Speed_Update();
+
         /* High prioryty [time critical] */
         nECU_ADC_All_Routine();
         Button_Menu();
@@ -52,10 +54,10 @@ void nECU_main(void) // main rutine of the program
         Frame2_PrepareBuffer();
         TachoValue_Update_All();
         ButtonLight_UpdateAll();
-        /* Low priority [non-critical] */
+        // /* Low priority [non-critical] */
         nECU_Stock_Update();
-        OnBoard_LED_Update();
         EGT_PeriodicEventLP();
+        OnBoard_LED_Update();
         nECU_Delay_UpdateAll();
     }
     if (*nECU_UART_KnockTx() == true)

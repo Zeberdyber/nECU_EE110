@@ -118,8 +118,9 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    nECU_main();
+
     /* USER CODE BEGIN 3 */
+    nECU_main();
   }
   /* USER CODE END 3 */
 }

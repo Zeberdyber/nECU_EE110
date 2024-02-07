@@ -156,7 +156,8 @@ void nECU_OX_Update(void) // update narrowband lambda structure
 
     /* Output update */
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
-    OX.Heater.Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, (float *)OX.Coolant);
+    float coolant = (float)*OX.Coolant;
+    OX.Heater.Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
     OX.Heater.Timer->Instance->CCR1 = (OX.Heater.Infill * OX.Heater.Timer->Init.Period) / 100;
 }
 void nECU_OX_DeInit(void) // deinitialize narrowband lambda structure

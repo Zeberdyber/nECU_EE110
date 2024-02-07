@@ -54,37 +54,65 @@ typedef struct
     uint32_t size;
 } Knock_Interpol_Table;
 
+typedef struct
+{
+    uint32_t value;
+    uint32_t preset;
+} Counter;
+
+typedef struct
+{
+    TIM_HandleTypeDef *htim;
+    float refClock;           // in Hz (pre calculated on initialization)
+    float period;             // in ms (pre calculated on initialization)
+    uint32_t Channel_List[4]; // list of configured channels
+    uint8_t Channel_Count;    // number of actively used channels
+} nECU_Timer;
+typedef struct
+{
+    GPIO_PinState State; // Current pin state
+    GPIO_TypeDef *GPIOx; // GPIO pin port
+    uint16_t GPIO_Pin;   // Pin of GPIO
+} GPIO_struct;
+typedef struct
+{
+    uint32_t timeSet;
+    uint32_t timeStart;
+    bool done;
+    bool active;
+} nECU_Delay;
+
 /* ADCs */
 typedef struct
 {
-    bool working;
-    bool callback_half, callback_full, overflow;
+    bool working;                                // flag to indicate ADC status
+    bool callback_half, callback_full, overflow; // callback flags to indicate DMA buffer states
 } nECU_ADC_Status;
-typedef struct nECU_ADC1
+typedef struct
 {
-    uint16_t buffer[GENERAL_DMA_LEN];
-    uint16_t out[GENERAL_CHANNEL_COUNT];
-    nECU_ADC_Status status;
+    uint16_t in_buffer[GENERAL_DMA_LEN];        // input buffer (from DMA)
+    uint16_t out_buffer[GENERAL_CHANNEL_COUNT]; // output buffer (after processing, like average)
+    nECU_ADC_Status status;                     // statuses
 } nECU_ADC1;
-typedef struct nECU_ADC2
+typedef struct
 {
-    uint16_t buffer[SPEED_DMA_LEN];
-    uint16_t out[SPEED_CHANNEL_COUNT];
-    nECU_ADC_Status status;
+    uint16_t in_buffer[SPEED_DMA_LEN];        // input buffer (from DMA)
+    uint16_t out_buffer[SPEED_CHANNEL_COUNT]; // output buffer (after processing, like average)
+    nECU_ADC_Status status;                   // statuses
 } nECU_ADC2;
-typedef struct nECU_ADC3
+typedef struct
 {
-    uint16_t buffer[KNOCK_DMA_LEN];
-    nECU_ADC_Status status;
-    bool *UART_transmission;
-    TIM_HandleTypeDef *samplingTimer;
+    uint16_t in_buffer[KNOCK_DMA_LEN]; // input buffer (from DMA)
+    nECU_ADC_Status status;            // statuses
+    bool *UART_transmission;           // flag, UART transmission ongoing
+    TIM_HandleTypeDef *samplingTimer;  // timer used for sampling
 } nECU_ADC3;
 typedef struct
 {
-    uint8_t conv_count;
-    uint16_t *ADC_data;
-    uint16_t temperature;
-    bool upToDate;
+    Counter conv_divider; // callback divider
+    uint16_t *ADC_data;   // pointer to ADC data
+    uint16_t temperature; // output data (real_tem*100)
+    bool upToDate;        // flag that indicates that data is up to date
 } nECU_InternalTemp;
 
 /* Buttons */
@@ -113,35 +141,28 @@ typedef enum
 } ButtonLight_Mode;
 typedef struct
 {
-    TIM_HandleTypeDef *Timer;         // Timer used for Input Capture
+    nECU_Timer Timer;                 // Timer used for Input Capture
     HAL_TIM_ActiveChannel Channel_IC; // Timers channel used for Input Capture
-    uint32_t Channel;                 // Timers channel used for Timer general functions
-    GPIO_PinState State;              // Current pin state
-    GPIO_TypeDef *GPIOx;              // GPIO pin port
-    uint16_t GPIO_Pin;                // Pin on which button is
+    GPIO_struct buttonPin;            // GPIO structure
     uint32_t RisingCCR;               // CCR captured at rising edge
     Button_ClickType Type;            // current detected type of click
-    float refClock;                   // clock reference for real time calculations
     bool newType;                     // flag to indicate new type detected
 } ButtonInput;
 typedef struct
 {
-    TIM_HandleTypeDef *Timer;   // Timer used for light PWM
-    uint32_t Channel;           // Timers channel used
+    uint8_t speed;             // animation speed 0-100%
+    uint16_t count;            // number of animation cycles to do
+    uint16_t state, prevState; // current and previous state of animation
+} Button_Animation;
+typedef struct
+{
+    nECU_Timer Timer;           // Timer used for light PWM
     uint16_t CCR;               // value of current bightness [timer value]
-    float UpdateInterval;       // Period of how often lights will be updated in ms
     float Brightness;           // value of set brightness [in %]
-    uint8_t BreathingSpeed;     // value determines speed of animation
-    uint8_t BlinkingSpeed;      // value determines speed of animation
-    uint16_t BreathingCount;    // how many Breaths to do
-    uint16_t BlinkingCount;     // how many Blinks to do
-    int16_t BreathingState;     // internal control value: 0 -OFF, 255 -ON
-    int16_t BreathingStatePrev; // Previous state of BreathingState
-    uint8_t BlinkingState;      // internal control value: 0 -OFF, 1 -ON
-    uint8_t BlinkingStatePrev;  // Previous state of BlinkingState
+    Button_Animation Breathing; // variables for breathing animation
+    Button_Animation Blinking;  // variables for blinking animation
     ButtonLight_Mode Mode;      // Modes according to typedef
-    uint8_t ModePrev;           // Previous state of Mode
-    uint8_t WaitingFlag;        // Indicates that light is waiting to go resting
+    ButtonLight_Mode ModePrev;  // Previous state of Mode
     float Time;                 // internal time for resting animation in ms
 } ButtonLight;
 typedef struct
@@ -153,12 +174,9 @@ typedef struct
 /* Debug */
 typedef struct
 {
-    GPIO_TypeDef *GPIOx;      // GPIO group of the LED
-    uint16_t GPIO_Pin;        // pin of the LED
-    GPIO_PinState State;      // actual state of the output
-    GPIO_PinState BlinkState; // state of the output (for blinking)
-    bool blinking;            // flag when blinking
-    uint32_t LastTick;        // tick at which last blink update performed
+    GPIO_struct LEDPin;       // pin of the LED structure
+    nECU_Delay delay;         // delay structure for non-blocking blinking
+    bool blinking, blinkPrev; // ON/OFF for blinking animation
 } OnBoardLED;
 
 /* EGT */
@@ -378,23 +396,6 @@ typedef enum
     TIM_ERROR = 2,
     TIM_NULL
 } nECU_TIM_State;
-
-typedef struct
-{
-    uint32_t timeSet;
-    uint32_t timeStart;
-    bool done;
-    bool active;
-} nECU_Delay;
-
-typedef struct
-{
-    TIM_HandleTypeDef *htim;
-    float refClock;           // in Hz (pre calculated on initialization)
-    float period;             // in ms (pre calculated on initialization)
-    uint32_t Channel_List[4]; // list of configured channels
-    uint8_t Channel_Count;    // number of actively used channels
-} nECU_Timer;
 
 typedef struct
 {

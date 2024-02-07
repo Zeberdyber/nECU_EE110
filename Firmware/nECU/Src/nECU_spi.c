@@ -32,7 +32,7 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) // called when error ocured
 }
 bool nECU_SPI_getBusy(SPI_HandleTypeDef *hspi) // get state (if busy) of the SPI communication
 {
-  HAL_SPI_StateTypeDef EGT_CurrentState = HAL_SPI_GetState(hspi);
+  HAL_SPI_StateTypeDef EGT_CurrentState = HAL_SPI_GetState(&hspi1);
   bool output = false;
   if (EGT_CurrentState >= HAL_SPI_STATE_BUSY && EGT_CurrentState <= HAL_SPI_STATE_BUSY_TX_RX)
   {
@@ -61,6 +61,8 @@ void nECU_SPI_Rx_DMA_Start(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTy
 }
 void nECU_SPI_Rx_DMA_Stop(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTypeDef *hspi) // end communication with selected device
 {
+  bool ans = nECU_SPI_getBusy(hspi);
+  ans = ans;
   if (nECU_SPI_getBusy(hspi) == false) // check if done
   {
     HAL_GPIO_WritePin(GPIOx, *GPIO_Pin, SET);

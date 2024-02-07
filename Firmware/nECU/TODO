@@ -86,8 +86,11 @@
     [ ] stock
     [ ] button
 
-[X] figure out how to import typedefs
 [ ] in watchdogs use pointers to timers from starting files
 
-[ ] Onboard LEDs to use non-blocking delay functions
-[X] typedefs to nECU.h file
+[X] Onboard LEDs to use non-blocking delay functions
+
+[ ] upToDate internal temperature
+[ ] Clean typedefs
+
+[ ] DMA averaging debug

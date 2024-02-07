@@ -105,6 +105,11 @@ void nECU_Delay_Update(nECU_Delay *inst) // update current state of non-blocking
     }
   }
 }
+void nECU_Delay_Stop(nECU_Delay *inst) // stop non-blocking delay
+{
+  inst->done = false;
+  inst->active = false;
+}
 void nECU_Delay_UpdateAll(void) // update all created non-blocking delays
 {
   nECU_Delay_Update(&Flash_save_delay);
@@ -139,15 +144,13 @@ void nECU_Knock_Delay_Start(float *rpm) // start non-blocking delay for knock
 nECU_TIM_State nECU_tim_PWM_start(nECU_Timer *tim) // function to start PWM on selected timer
 {
   nECU_TIM_State result = TIM_OK;
-  if (HAL_TIM_PWM_GetState(tim->htim) == HAL_TIM_STATE_RESET) // check if pwm is not working
+
+  for (uint8_t Channel = 0; Channel < tim->Channel_Count; Channel++)
   {
-    for (uint8_t Channel = 0; Channel < tim->Channel_Count; Channel++)
+    if (HAL_TIM_PWM_Start_IT(tim->htim, tim->Channel_List[Channel]) != HAL_OK) // start pwm, check result
     {
-      if (HAL_TIM_PWM_Start_IT(tim->htim, tim->Channel_List[Channel]) != HAL_OK) // start pwm, check result
-      {
-        result = TIM_ERROR; // indicate if not successful
-        break;
-      }
+      result = TIM_ERROR; // indicate if not successful
+      break;
     }
   }
   return result;
@@ -155,57 +158,53 @@ nECU_TIM_State nECU_tim_PWM_start(nECU_Timer *tim) // function to start PWM on s
 nECU_TIM_State nECU_tim_PWM_stop(nECU_Timer *tim) // function to stop PWM on selected timer
 {
   nECU_TIM_State result = TIM_OK;
-  if (HAL_TIM_PWM_GetState(tim->htim) != HAL_TIM_STATE_RESET) // check if pwm is working
+
+  for (uint8_t Channel = 0; Channel < tim->Channel_Count; Channel++) // do for every channel
   {
-    for (uint8_t Channel = 0; Channel < tim->Channel_Count; Channel++) // do for every channel
+    if (HAL_TIM_PWM_Stop_IT(tim->htim, tim->Channel_List[Channel]) != HAL_OK) // stop pwm, check result
     {
-      if (HAL_TIM_PWM_Stop_IT(tim->htim, tim->Channel_List[Channel]) != HAL_OK) // stop pwm, check result
-      {
-        result = TIM_ERROR; // indicate if not successful
-        break;
-      }
-      if (HAL_TIM_GetChannelState(tim->htim, tim->Channel_List[Channel]) != HAL_TIM_CHANNEL_STATE_RESET) // confirm status of channel
-      {
-        result = TIM_ERROR; // indicate if not successful
-        break;
-      }
+      result = TIM_ERROR; // indicate if not successful
+      break;
+    }
+    if (HAL_TIM_GetChannelState(tim->htim, tim->Channel_List[Channel]) != HAL_TIM_CHANNEL_STATE_RESET) // confirm status of channel
+    {
+      result = TIM_ERROR; // indicate if not successful
+      break;
     }
   }
+
   return result;
 }
 nECU_TIM_State nECU_tim_IC_start(nECU_Timer *tim) // function to start IC on selected timer
 {
   nECU_TIM_State result = TIM_OK;
-  if (HAL_TIM_IC_GetState(tim->htim) == HAL_TIM_STATE_RESET) // check if IC is not working
+
+  for (uint8_t Channel = 0; Channel < tim->Channel_Count; Channel++)
   {
-    for (uint8_t Channel = 0; Channel < tim->Channel_Count; Channel++)
+    if (HAL_TIM_IC_Start_IT(tim->htim, tim->Channel_List[Channel]) != HAL_OK) // start IC, check result
     {
-      if (HAL_TIM_IC_Start_IT(tim->htim, tim->Channel_List[Channel]) != HAL_OK) // start IC, check result
-      {
-        result = TIM_ERROR; // indicate if not successful
-        break;
-      }
+      result = TIM_ERROR; // indicate if not successful
+      break;
     }
   }
+
   return result;
 }
 nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim) // function to stop IC on selected timer
 {
   nECU_TIM_State result = TIM_OK;
-  if (HAL_TIM_IC_GetState(tim->htim) != HAL_TIM_STATE_RESET) // check if IC is working
+
+  for (uint8_t Channel = 0; Channel < tim->Channel_Count; Channel++) // do for every channel
   {
-    for (uint8_t Channel = 0; Channel < tim->Channel_Count; Channel++) // do for every channel
+    if (HAL_TIM_IC_Stop_IT(tim->htim, tim->Channel_List[Channel]) != HAL_OK) // stop IC, check result
     {
-      if (HAL_TIM_IC_Stop_IT(tim->htim, tim->Channel_List[Channel]) != HAL_OK) // stop IC, check result
-      {
-        result = TIM_ERROR; // indicate if not successful
-        break;
-      }
-      if (HAL_TIM_GetChannelState(tim->htim, tim->Channel_List[Channel]) != HAL_TIM_CHANNEL_STATE_RESET) // confirm status of channel
-      {
-        result = TIM_ERROR; // indicate if not successful
-        break;
-      }
+      result = TIM_ERROR; // indicate if not successful
+      break;
+    }
+    if (HAL_TIM_GetChannelState(tim->htim, tim->Channel_List[Channel]) != HAL_TIM_CHANNEL_STATE_RESET) // confirm status of channel
+    {
+      result = TIM_ERROR; // indicate if not successful
+      break;
     }
   }
   return result;

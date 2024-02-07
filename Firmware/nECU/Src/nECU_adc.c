@@ -88,16 +88,16 @@ void ADC_START_ALL(void)
 }
 void ADC1_START(void)
 {
-  ADC_MAP = &adc1_data.out[0];
-  ADC_BackPressure = &adc1_data.out[1];
-  ADC_OX = &adc1_data.out[2];
-  ADC_AI1 = &adc1_data.out[3];
-  ADC_AI2 = &adc1_data.out[4];
-  ADC_AI3 = &adc1_data.out[5];
-  ADC_InternalTemp = &adc1_data.out[6];
-  ADC_VREF = &adc1_data.out[7];
+  ADC_MAP = &adc1_data.out_buffer[0];
+  ADC_BackPressure = &adc1_data.out_buffer[1];
+  ADC_OX = &adc1_data.out_buffer[2];
+  ADC_AI1 = &adc1_data.out_buffer[3];
+  ADC_AI2 = &adc1_data.out_buffer[4];
+  ADC_AI3 = &adc1_data.out_buffer[5];
+  ADC_InternalTemp = &adc1_data.out_buffer[6];
+  ADC_VREF = &adc1_data.out_buffer[7];
 
-  HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.buffer, sizeof(adc1_data.buffer) / sizeof(uint16_t));
+  HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.in_buffer, sizeof(adc1_data.in_buffer) / sizeof(uint16_t));
 
   adc1_data.status.callback_half = false;
   adc1_data.status.callback_full = false;
@@ -108,12 +108,12 @@ void ADC1_START(void)
 }
 void ADC2_START(void)
 {
-  ADC_V1 = &adc2_data.out[0];
-  ADC_V2 = &adc2_data.out[1];
-  ADC_V3 = &adc2_data.out[2];
-  ADC_V4 = &adc2_data.out[3];
+  ADC_V1 = &adc2_data.out_buffer[0];
+  ADC_V2 = &adc2_data.out_buffer[1];
+  ADC_V3 = &adc2_data.out_buffer[2];
+  ADC_V4 = &adc2_data.out_buffer[3];
 
-  HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.buffer, sizeof(adc2_data.buffer) / sizeof(uint16_t));
+  HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.in_buffer, sizeof(adc2_data.in_buffer) / sizeof(uint16_t));
 
   adc2_data.status.callback_half = false;
   adc2_data.status.callback_full = false;
@@ -124,7 +124,7 @@ void ADC3_START(void)
 {
   adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
   HAL_TIM_Base_Start(adc3_data.samplingTimer);
-  HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.buffer, sizeof(adc3_data.buffer) / sizeof(uint16_t));
+  HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t));
 
   adc3_data.status.callback_half = false;
   adc3_data.status.callback_full = false;
@@ -188,12 +188,12 @@ void nECU_ADC1_Routine(void)
   /* Conversion Completed callbacks */
   if (adc1_data.status.callback_half == true)
   {
-    nECU_ADC_AverageDMA(&GENERAL_ADC, adc1_data.buffer, GENERAL_DMA_LEN / 2, adc1_data.out, GENERAL_SMOOTH_ALPHA);
+    nECU_ADC_AverageDMA(&GENERAL_ADC, adc1_data.in_buffer, GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
     adc1_data.status.callback_half = false; // clear flag
   }
   else if (adc1_data.status.callback_full == true)
   {
-    nECU_ADC_AverageDMA(&GENERAL_ADC, &adc1_data.buffer[(GENERAL_DMA_LEN / 2) - 1], GENERAL_DMA_LEN / 2, adc1_data.out, GENERAL_SMOOTH_ALPHA);
+    nECU_ADC_AverageDMA(&GENERAL_ADC, &adc1_data.in_buffer[(GENERAL_DMA_LEN / 2) - 1], GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
     nECU_InternalTemp_Callback();
     adc1_data.status.callback_full = false; // clear flag
   }
@@ -203,12 +203,12 @@ void nECU_ADC2_Routine(void)
   /* Conversion Completed callbacks */
   if (adc2_data.status.callback_half == true)
   {
-    nECU_ADC_AverageDMA(&SPEED_ADC, adc2_data.buffer, SPEED_DMA_LEN / 2, adc2_data.out, SPEED_SMOOTH_ALPHA);
+    nECU_ADC_AverageDMA(&SPEED_ADC, adc2_data.in_buffer, SPEED_DMA_LEN / 2, adc2_data.out_buffer, SPEED_SMOOTH_ALPHA);
     adc2_data.status.callback_half = false; // clear flag
   }
   else if (adc2_data.status.callback_full == true)
   {
-    nECU_ADC_AverageDMA(&GENERAL_ADC, &adc2_data.buffer[(SPEED_DMA_LEN / 2) - 1], SPEED_DMA_LEN / 2, adc2_data.out, SPEED_SMOOTH_ALPHA);
+    nECU_ADC_AverageDMA(&GENERAL_ADC, &adc2_data.in_buffer[(SPEED_DMA_LEN / 2) - 1], SPEED_DMA_LEN / 2, adc2_data.out_buffer, SPEED_SMOOTH_ALPHA);
     adc2_data.status.callback_full = false; // clear flag
   }
 }
@@ -224,9 +224,9 @@ void nECU_ADC3_Routine(void)
       Send_Triangle_UART();
       return;
 #endif
-      nECU_UART_SendKnock(&adc3_data.buffer[0]);
+      nECU_UART_SendKnock(&adc3_data.in_buffer[0]);
     }
-    nECU_Knock_ADC_Callback(&adc3_data.buffer[0]);
+    nECU_Knock_ADC_Callback(&adc3_data.in_buffer[0]);
   }
   else if (adc3_data.status.callback_full == true)
   {
@@ -237,9 +237,9 @@ void nECU_ADC3_Routine(void)
       Send_Triangle_UART();
       return;
 #endif
-      nECU_UART_SendKnock(&adc3_data.buffer[(KNOCK_DMA_LEN / 2) - 1]);
+      nECU_UART_SendKnock(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
     }
-    nECU_Knock_ADC_Callback(&adc3_data.buffer[(KNOCK_DMA_LEN / 2) - 1]);
+    nECU_Knock_ADC_Callback(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
   }
 }
 
@@ -258,16 +258,17 @@ uint16_t VoltsToADC(float Voltage)
 /* Internal Temperatre (MCU) */
 void nECU_InternalTemp_Init(void) // initialize structure
 {
-  MCU_temperature.conv_count = 0;
+  MCU_temperature.conv_divider.value = 0;
+  MCU_temperature.conv_divider.preset = INTERNAL_TEMP_CONV_DIV;
   MCU_temperature.ADC_data = ADC_InternalTemp;
   MCU_temperature.temperature = 0;
 }
 void nECU_InternalTemp_Callback(void) // run when conversion ended
 {
-  MCU_temperature.conv_count++;
-  if (MCU_temperature.conv_count > INTERNAL_TEMP_CONV_DIV)
+  MCU_temperature.conv_divider.value++;
+  if (MCU_temperature.conv_divider.value > INTERNAL_TEMP_CONV_DIV)
   {
-    MCU_temperature.conv_count = 0;
+    MCU_temperature.conv_divider.value = 0;
     nECU_InternalTemp_Update();
     MCU_temperature.upToDate = true;
   }
