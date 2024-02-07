@@ -15,7 +15,7 @@ extern "C"
 
 /* Includes */
 #include "main.h"
-#include "stdbool.h"
+#include "nECU_types.h"
 #include "stm32f4xx_hal.h"
 #include "nECU_tim.h"
 #include "tim.h"
@@ -34,73 +34,6 @@ extern "C"
 #define BUTTON_INPUT_HOLD_TIME 1500         // minimal pulse lenght to be consider holding [ms]
 #define BUTTON_INPUT_SINGLE_CLICK_TIME 500  // minimal pulse lenght for beeing single click [ms]
 #define BUTTON_INPUT_DOUBLE_CLICK_TIME 1400 // maximum time double click must be [ms]
-
-  typedef enum
-  {
-    CLICK_TYPE_SINGLE_CLICK = 1,
-    CLICK_TYPE_DOUBLE_CLICK = 2,
-    CLICK_TYPE_HOLD = 3,
-    CLICK_TYPE_NONE
-  } Button_ClickType;
-
-  typedef enum
-  {
-    RED_BUTTON_ID = 1,
-    ORANGE_BUTTON_ID = 2,
-    GREEN_BUTTON_ID = 3,
-    NONE_BUTTON_ID
-  } Button_ID;
-
-  typedef enum
-  {
-    BUTTON_MODE_OFF = 0,
-    BUTTON_MODE_RESTING = 1,
-    BUTTON_MODE_GO_TO_REST = 2,
-    BUTTON_MODE_ANIMATED = 3, // breathing or blinking
-    BUTTON_MODE_ON = 5,
-    BUTTON_MODE_NONE
-  } ButtonLight_Mode;
-
-  typedef struct
-  {
-    TIM_HandleTypeDef *Timer;   // Timer used for light PWM
-    uint32_t Channel;           // Timers channel used
-    uint16_t CCR;               // value of current bightness [timer value]
-    float UpdateInterval;       // Period of how often lights will be updated in ms
-    float Brightness;           // value of set brightness [in %]
-    uint8_t BreathingSpeed;     // value determines speed of animation
-    uint8_t BlinkingSpeed;      // value determines speed of animation
-    uint16_t BreathingCount;    // how many Breaths to do
-    uint16_t BlinkingCount;     // how many Blinks to do
-    int16_t BreathingState;     // internal control value: 0 -OFF, 255 -ON
-    int16_t BreathingStatePrev; // Previous state of BreathingState
-    uint8_t BlinkingState;      // internal control value: 0 -OFF, 1 -ON
-    uint8_t BlinkingStatePrev;  // Previous state of BlinkingState
-    ButtonLight_Mode Mode;      // Modes according to typedef
-    uint8_t ModePrev;           // Previous state of Mode
-    uint8_t WaitingFlag;        // Indicates that light is waiting to go resting
-    float Time;                 // internal time for resting animation in ms
-  } ButtonLight;
-
-  typedef struct
-  {
-    TIM_HandleTypeDef *Timer;         // Timer used for Input Capture
-    HAL_TIM_ActiveChannel Channel_IC; // Timers channel used for Input Capture
-    uint32_t Channel;                 // Timers channel used for Timer general functions
-    GPIO_PinState State;              // Current pin state
-    GPIO_TypeDef *GPIOx;              // GPIO pin port
-    uint16_t GPIO_Pin;                // Pin on which button is
-    uint32_t RisingCCR;               // CCR captured at rising edge
-    Button_ClickType Type;            // current detected type of click
-    float refClock;                   // clock reference for real time calculations
-    bool newType;                     // flag to indicate new type detected
-  } ButtonInput;
-
-  typedef struct
-  {
-    ButtonLight light;
-    ButtonInput input;
-  } Button;
 
   /* Start/Stop functions */
   void Button_Start(void);

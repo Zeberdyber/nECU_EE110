@@ -1,7 +1,5 @@
 [ ] RPM signal clear mess
 
-[ ] code refactor
-
 [ ] Development
     [ ] OX sensor heater
     [ ] OX sensor analog signal
@@ -12,8 +10,6 @@
     [ ] Tacho display bug (occasionnaly value is displayed twice)
     [ ] filtering of VSS (low speed correction)
     [ ] frequency readout (RPM) fix and test functions
-    [X] flash saving not working at all
-        *fixed memory allocation, check if issue fixed
     [ ] Buttons sporadic not working, double click faulty
 
 [ ] Optimization
@@ -71,11 +67,8 @@
 [ ] Tests for each file functions
     [ ] test flash code
     [ ] timer interrupt automatic tests functions
-    [X] Flash saving and reading tests with debugging
 
 [ ] static flags of initialized
-    [X] stock.h
-    [X] speed.h
 
 [ ] remove numbers from files "magic numbers"
 [ ] maybe dont calculate difference for each watchdog (waste of time),
@@ -93,14 +86,8 @@
     [ ] stock
     [ ] button
 
-[ ] figure out how to import typedefs
+[X] figure out how to import typedefs
 [ ] in watchdogs use pointers to timers from starting files
 
-## tests
-[X] test.c file
-
-[X] flash saving
-    [X] test functions
-
 [ ] Onboard LEDs to use non-blocking delay functions
-[ ] typedefs to nECU.h file
+[X] typedefs to nECU.h file

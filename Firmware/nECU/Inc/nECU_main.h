@@ -13,7 +13,6 @@ extern "C"
 #endif
 
 /* Includes */
-#include "main.h"
 #include "stdbool.h"
 #include "nECU.h"
 

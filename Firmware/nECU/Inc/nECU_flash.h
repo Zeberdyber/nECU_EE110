@@ -15,7 +15,7 @@ extern "C"
 
 /* Includes */
 #include "main.h"
-#include "stdbool.h"
+#include "nECU_types.h"
 #include "stm32f4xx.h"
 #include "string.h"
 
@@ -25,28 +25,6 @@ extern "C"
 #define SPEED_DATA_OFFSET 0                                                          // offset where to start the speed calibration data in flash
 #define USER_SETTINGS_OFFSET (sizeof(nECU_SpeedCalibrationData) + SPEED_DATA_OFFSET) // offset where to start the user settings data in flash
 #define FLASH_MINIMUM_RUN_TIME 1000                                                  // to allow debugger to work
-
-    /* typedef */
-    typedef struct
-    {
-        float SpeedSensor1;
-        float SpeedSensor2;
-        float SpeedSensor3;
-        float SpeedSensor4;
-
-    } nECU_SpeedCalibrationData;
-
-    typedef struct
-    {
-        uint8_t boolByte1;
-    } nECU_UserSettings;
-
-    typedef struct
-    {
-        nECU_SpeedCalibrationData speedData;
-        nECU_UserSettings userData;
-        bool dataInitialized;
-    } nECU_FlashContent;
 
     /* Function Prototypes */
     /* Speed calibration data functions (flash function interface) */

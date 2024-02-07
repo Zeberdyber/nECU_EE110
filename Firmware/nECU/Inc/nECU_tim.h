@@ -14,6 +14,7 @@ extern "C"
 
 /* Includes */
 #include "main.h"
+#include "nECU_types.h"
 #include "tim.h"
 #include "nECU_can.h"
 #include "nECU_button.h"
@@ -34,41 +35,6 @@ extern "C"
 #define FLASH_SAVE_DELAY_TIME 5000 // time to wait for before save happens in ms
 
 #define WATCHDOG_PERIOD_MULTIPLIER 2 // after how many missed callbacks an error will be called
-
-  /* typedef */
-  typedef enum
-  {
-    TIM_OK = 0,
-    TIM_NONE = 1,
-    TIM_ERROR = 2,
-    TIM_NULL
-  } nECU_TIM_State;
-
-  typedef struct
-  {
-    uint32_t timeSet;
-    uint32_t timeStart;
-    bool done;
-    bool active;
-  } nECU_Delay;
-
-  typedef struct
-  {
-    TIM_HandleTypeDef *htim;
-    float refClock;           // in Hz (pre calculated on initialization)
-    float period;             // in ms (pre calculated on initialization)
-    uint32_t Channel_List[4]; // list of configured channels
-    uint8_t Channel_Count;    // number of actively used channels
-  } nECU_Timer;
-
-  typedef struct
-  {
-    nECU_Timer tim;
-    bool error, warning;   // flags
-    uint32_t counter_ms;   // watchdog counter
-    uint64_t counter_max;  // value which determines error state
-    uint32_t previousTick; // helper variable for counter_ms calculation
-  } nECU_tim_Watchdog;
 
   /* Function Prototypes */
   uint8_t nECU_Get_FrameTimer(void); // get current value of frame timer

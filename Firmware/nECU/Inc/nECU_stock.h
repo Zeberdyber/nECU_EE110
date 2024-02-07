@@ -14,7 +14,7 @@ extern "C"
 
 /* Includes */
 #include "main.h"
-#include "stdbool.h"
+#include "nECU_types.h"
 #include "nECU_tim.h"
 #include "nECU_Knock.h"
 
@@ -44,66 +44,6 @@ extern "C"
 #define VSS_PULSES_PER_KM 4500 // number of pulses that will be recived for a kilometer traveled
 
 #define IGF_MAX_RPM_RATE 300 // rpm/s rate; used for missfire detection
-
-    /* typedef */
-    typedef struct
-    {
-        uint16_t ADC_MeasuredMax, ADC_MeasuredMin;
-        float OUT_MeasuredMax, OUT_MeasuredMin;
-        float offset, factor;
-    } AnalogSensorCalibration;
-
-    typedef struct
-    {
-        AnalogSensorCalibration calibrationData;
-        uint16_t *ADC_input;
-        uint16_t decimalPoint;
-        float outputFloat;
-        uint16_t output16bit;
-        uint8_t output8bit;
-    } AnalogSensor_Handle;
-
-    typedef struct
-    {
-        TIM_HandleTypeDef *Timer; // Timer used for PWM
-        uint32_t Channel;         // Timers channel used
-        float Infill;             // infill of PWM signal
-    } PWM_Out;
-
-    typedef struct
-    {
-        PWM_Out Heater;
-        AnalogSensor_Handle sensor;
-        uint8_t *Coolant;
-        float Infill_max, Infill_min;
-        float Coolant_max, Coolant_min;
-    } Oxygen_Handle;
-
-    typedef struct
-    {
-        TIM_HandleTypeDef *htim;
-        float refClock;
-        float period; // in ms
-    } TimerStock;
-
-    typedef struct
-    {
-        TimerStock tim;
-        uint32_t VSS_Channel;
-        uint32_t VSS_prevCCR;
-        float frequency;
-        uint8_t Speed;
-        uint16_t watchdogCount;
-    } VSS_Handle;
-
-    typedef struct
-    {
-        TimerStock tim;
-        uint32_t IGF_Channel;
-        uint32_t IGF_prevCCR;
-        float frequency;
-        uint16_t RPM, prevRPM;
-    } IGF_Handle;
 
     /* Analog sensors */
     void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst);                // function to calculate factor (a) and offset (b) for linear formula: y=ax+b

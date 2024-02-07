@@ -27,9 +27,7 @@ extern "C"
 
     /* Definitions */
 
-    /* typedef */
-
-    /* Function Prototypes */
+        /* Function Prototypes */
     /* nECU_flash */
     bool nECU_systest_Flash_SpeedCalibration(void); // test both read and write to flash memory
     bool nECU_systest_Flash_UserSettings(void);     // test both read and write to flash memory

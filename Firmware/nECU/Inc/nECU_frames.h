@@ -14,53 +14,13 @@ extern "C"
 
 /* Includes */
 #include "main.h"
-#include "stdbool.h"
+#include "nECU_types.h"
 #include "nECU_Speed.h"
 #include "nECU_EGT.h"
 #include "nECU_can.h"
 #include "nECU_menu.h"
 #include "nECU_stock.h"
     /* Definitions */
-
-    /* typedef */
-    union FloatToBytes
-    {
-        float floatValue;
-        uint8_t byteArray[4];
-    };
-    union Int16ToBytes
-    {
-        uint16_t UintValue;
-        int16_t IntValue;
-        uint8_t byteArray[2];
-    };
-
-    typedef struct
-    {
-        bool Cranking, Fan_ON, Lights_ON, IgnitionKey;
-        bool LunchControl1, LunchControl2, LunchControl3, RollingLunch;
-
-        // outside variables
-        bool *Antilag, *TractionOFF, *ClearEngineCode;
-        bool *TachoShow1, *TachoShow2, *TachoShow3;
-        uint16_t *LunchControlLevel;
-        uint16_t *Speed1, *Speed2, *Speed3, *Speed4;
-    } Frame0_struct;
-
-    typedef struct
-    {
-        uint16_t *EGT1, *EGT2, *EGT3, *EGT4;
-        uint8_t *TachoVal1, *TachoVal2, *TachoVal3;
-        uint16_t *TuneSelector;
-    } Frame1_struct;
-
-    typedef struct
-    {
-        uint8_t *Backpressure, *OX_Val;
-        uint16_t *MAP_Stock_10bit;
-        uint8_t *Knock;
-        uint8_t *VSS;
-    } Frame2_struct;
 
     /* Function Prototypes */
     void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *pAntilag, bool *pTractionOFF, bool *pClearEngineCode, uint16_t *pLunchControlLevel); // initialization of data structure

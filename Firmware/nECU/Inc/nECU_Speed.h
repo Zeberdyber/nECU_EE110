@@ -15,45 +15,20 @@ extern "C"
 
 /* Includes */
 #include "main.h"
-#include "stdbool.h"
+#include "nECU_types.h"
 #include "nECU_adc.h"
 #include "nECU_flash.h"
 #include "nECU_can.h"
 
 /* Definitions */
-#define Wheel_Circ_Set_1 1888         // Circumference of wheel for setup 1 in mm
-#define Wheel_Circ_Set_2 1870         // Circumference of wheel for setup 2 in mm
-#define Speed_DecimalPoint 1          // Specifies how many numbers should be after decimal point
-#define Speed_HzTomVolts 0.63         // Specifies electrical parameter of LM2907 used components
-#define Speed_ToothCount 43           // Impulses per revolution of a wheel
-#define Speed_SampleNumber 10         // Number of samples to average from
-#define SPEED_AVERAGE_BUFFER_SIZE 100 // number of conversions to average
-#define SPEED_OFFSET 4                // negative offset for noise compensation
-#define SPEED_EXP_ALPHA 0.04          // alpha of exponential filter
-
-    /* typedef */
-    typedef struct
-    {
-        uint16_t Buffer[SPEED_AVERAGE_BUFFER_SIZE];
-        uint8_t BufferIndex;
-    } SpeedAverage;
-    typedef struct
-    {
-        uint16_t *InputData;
-        uint8_t *WheelSetup;
-        float SensorCorrection;
-        uint16_t SpeedData;
-        uint16_t SpeedDataPrev;
-        uint16_t SpeedDataSlow;
-        uint16_t WheelCirc;
-        SpeedAverage Average;
-    } Speed_Sensor;
-    typedef struct
-    {
-        bool active;
-        bool initialized;
-        bool averageReady[4];
-    } CalibrateRoutine;
+#define Wheel_Circ_Set_1 1888 // Circumference of wheel for setup 1 in mm
+#define Wheel_Circ_Set_2 1870 // Circumference of wheel for setup 2 in mm
+#define Speed_DecimalPoint 1  // Specifies how many numbers should be after decimal point
+#define Speed_HzTomVolts 0.63 // Specifies electrical parameter of LM2907 used components
+#define Speed_ToothCount 43   // Impulses per revolution of a wheel
+#define Speed_SampleNumber 10 // Number of samples to average from
+#define SPEED_OFFSET 4        // negative offset for noise compensation
+#define SPEED_EXP_ALPHA 0.04  // alpha of exponential filter
 
     /* Interface functions */
     uint16_t *Speed_GetSpeed(uint8_t sensorNumber);     // get current speed

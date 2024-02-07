@@ -5,6 +5,10 @@
  *          nECU files.
  */
 
+/* includes */
+
+#include "nECU_types.h"
+
 #include "nECU_adc.h"
 #include "nECU_button.h"
 #include "nECU_can.h"

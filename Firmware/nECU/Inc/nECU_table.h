@@ -14,23 +14,15 @@ extern "C"
 
 /* Includes */
 #include "main.h"
-#include "stdbool.h"
+#include "nECU_types.h"
 
     /* Definitions */
-#define FFT_THRESH_TABLE_LEN 5 // length of table
-
-    /* typedef */
-    typedef struct
-    {
-        float Table[FFT_THRESH_TABLE_LEN + 2][3];
-        uint32_t size;
-    } Interpol_Table;
 
     /* Interpolated reference table */
-    void nECU_Table_Set(Interpol_Table *Table, const float *Axis, const float *Values1, const float *Values2, uint32_t length); // fill table with constants
-    void nECU_Table_Get(float *input, Interpol_Table *Table, float *Out1, float *Out2);                                         // find value corresponding to table
-    float nECU_Table_Interpolate(float *Ax, float *Ay, float *Bx, float *By, float *X);                                         // function to interpolate linearly between two points A&B where
-    bool nECU_Table_Interpolate_Test(void);                                                                                     // test interpolation method
+    void nECU_Table_Set(Knock_Interpol_Table *Table, const float *Axis, const float *Values1, const float *Values2, uint32_t length); // fill table with constants
+    void nECU_Table_Get(float *input, Knock_Interpol_Table *Table, float *Out1, float *Out2);                                         // find value corresponding to table
+    float nECU_Table_Interpolate(float *Ax, float *Ay, float *Bx, float *By, float *X);                                               // function to interpolate linearly between two points A&B where
+    bool nECU_Table_Interpolate_Test(void);                                                                                           // test interpolation method
 
 #ifdef __cplusplus
 }

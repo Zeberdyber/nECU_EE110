@@ -9,7 +9,7 @@
 #include "nECU_table.h"
 
 /* Interpolated reference table */
-void nECU_Table_Set(Interpol_Table *Table, const float *Axis, const float *Values1, const float *Values2, uint32_t length) // fill table with constants
+void nECU_Table_Set(Knock_Interpol_Table *Table, const float *Axis, const float *Values1, const float *Values2, uint32_t length) // fill table with constants
 {
     Table->size = length;
     for (uint8_t i = 1; i < length + 1; i++)
@@ -26,7 +26,7 @@ void nECU_Table_Set(Interpol_Table *Table, const float *Axis, const float *Value
     Table->Table[length + 1][2] = Values1[length - 1];
     Table->Table[length + 1][3] = Values2[length - 1];
 }
-void nECU_Table_Get(float *input, Interpol_Table *Table, float *Out1, float *Out2) // find value corresponding to table
+void nECU_Table_Get(float *input, Knock_Interpol_Table *Table, float *Out1, float *Out2) // find value corresponding to table
 {
     /* find index */
     uint8_t index = 1;

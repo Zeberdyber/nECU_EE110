@@ -39,9 +39,7 @@ extern "C"
     void Send_Triangle_UART(void); // function to send triangle wave over UART
 #endif
 
-    /* typedef */
-
-    /* Function Prototypes */
+        /* Function Prototypes */
     void nECU_UART_SuperFrame(uint16_t *input_buffer, uint8_t *output_buffer); // compose Super frame (diferential frame)
     void nECU_UART_SendKnock(uint16_t *input_buffer);                          // send knock data over
     void nECU_UART_DMA_Tx_Knock(void);                                         // send knock data in DMA mode

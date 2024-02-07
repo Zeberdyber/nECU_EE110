@@ -14,31 +14,12 @@ extern "C"
 
 /* Includes */
 #include "nECU_menu.h"
-#include "stdbool.h"
+#include "nECU_types.h"
 #include "nECU_button.h"
 
 /* Definitions */
 #define TUNE_NUMBER 3           // number of programmed tunes
 #define LAUNCH_CONTROL_NUMBER 4 // number of avaliable launch control levels
-
-  /* typedef */
-  typedef struct
-  {
-    bool showPending;
-    uint16_t *input_value;
-    uint16_t prev_input;
-    uint8_t output_value;
-    uint8_t output_multiplier;
-  } TachoValue;
-  typedef struct
-  {
-    // output variables
-    bool Antilag, TractionOFF, ClearEngineCode;
-    uint16_t LunchControlLevel, TuneSelector;
-    // internal variables
-    uint16_t MenuLevel;
-    bool initialized;
-  } ButtonMenu;
 
   /* Button logic */
   void Button_Menu_Init(void); // initialize button menu

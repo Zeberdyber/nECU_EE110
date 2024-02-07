@@ -22,60 +22,60 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
   if (hadc == &GENERAL_ADC) // if ADC1 perform its routine
   {
-    if (adc1_data.callback_full == true) // check if routine was not called
+    if (adc1_data.status.callback_full == true) // check if routine was not called
     {
-      adc1_data.overflow = true;
+      adc1_data.status.overflow = true;
     }
-    adc1_data.callback_half = false; // clear flag to prevent memory access while DMA working
-    adc1_data.callback_full = true;
+    adc1_data.status.callback_half = false; // clear flag to prevent memory access while DMA working
+    adc1_data.status.callback_full = true;
   }
   else if (hadc == &SPEED_ADC) // if ADC2 perform its routine
   {
-    if (adc2_data.callback_full == true) // check if routine was not called
+    if (adc2_data.status.callback_full == true) // check if routine was not called
     {
-      adc2_data.overflow = true;
+      adc2_data.status.overflow = true;
     }
-    adc2_data.callback_half = false; // clear flag to prevent memory access while DMA working
-    adc2_data.callback_full = true;
+    adc2_data.status.callback_half = false; // clear flag to prevent memory access while DMA working
+    adc2_data.status.callback_full = true;
   }
   else if (hadc == &KNOCK_ADC) // if ADC3 perform its routine
   {
-    if (adc3_data.callback_full == true) // check if routine was not called
+    if (adc3_data.status.callback_full == true) // check if routine was not called
     {
-      adc3_data.overflow = true;
+      adc3_data.status.overflow = true;
     }
-    adc3_data.callback_half = false; // clear flag to prevent memory access while DMA working
-    adc3_data.callback_full = true;
+    adc3_data.status.callback_half = false; // clear flag to prevent memory access while DMA working
+    adc3_data.status.callback_full = true;
   }
 }
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
   if (hadc == &GENERAL_ADC) // if ADC1 perform its routine
   {
-    if (adc1_data.callback_half == true) // check if routine was not called
+    if (adc1_data.status.callback_half == true) // check if routine was not called
     {
-      adc1_data.overflow = true;
+      adc1_data.status.overflow = true;
     }
-    adc1_data.callback_half = true;
-    adc1_data.callback_full = false; // clear flag to prevent memory access while DMA working
+    adc1_data.status.callback_half = true;
+    adc1_data.status.callback_full = false; // clear flag to prevent memory access while DMA working
   }
   else if (hadc == &SPEED_ADC) // if ADC2 perform its routine
   {
-    if (adc2_data.callback_half == true) // check if routine was not called
+    if (adc2_data.status.callback_half == true) // check if routine was not called
     {
-      adc2_data.overflow = true;
+      adc2_data.status.overflow = true;
     }
-    adc2_data.callback_half = true;
-    adc2_data.callback_full = false; // clear flag to prevent memory access while DMA working
+    adc2_data.status.callback_half = true;
+    adc2_data.status.callback_full = false; // clear flag to prevent memory access while DMA working
   }
   else if (hadc == &KNOCK_ADC) // if ADC3 perform its routine
   {
-    if (adc3_data.callback_half == true) // check if routine was not called
+    if (adc3_data.status.callback_half == true) // check if routine was not called
     {
-      adc3_data.overflow = true;
+      adc3_data.status.overflow = true;
     }
-    adc3_data.callback_half = true;
-    adc3_data.callback_full = false; // clear flag to prevent memory access while DMA working
+    adc3_data.status.callback_half = true;
+    adc3_data.status.callback_full = false; // clear flag to prevent memory access while DMA working
   }
 }
 
@@ -99,10 +99,10 @@ void ADC1_START(void)
 
   HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.buffer, sizeof(adc1_data.buffer) / sizeof(uint16_t));
 
-  adc1_data.callback_half = false;
-  adc1_data.callback_full = false;
-  adc1_data.overflow = false;
-  adc1_data.working = true;
+  adc1_data.status.callback_half = false;
+  adc1_data.status.callback_full = false;
+  adc1_data.status.overflow = false;
+  adc1_data.status.working = true;
 
   nECU_InternalTemp_Init();
 }
@@ -115,10 +115,10 @@ void ADC2_START(void)
 
   HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.buffer, sizeof(adc2_data.buffer) / sizeof(uint16_t));
 
-  adc2_data.callback_half = false;
-  adc2_data.callback_full = false;
-  adc2_data.overflow = false;
-  adc2_data.working = true;
+  adc2_data.status.callback_half = false;
+  adc2_data.status.callback_full = false;
+  adc2_data.status.overflow = false;
+  adc2_data.status.working = true;
 }
 void ADC3_START(void)
 {
@@ -126,23 +126,23 @@ void ADC3_START(void)
   HAL_TIM_Base_Start(adc3_data.samplingTimer);
   HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.buffer, sizeof(adc3_data.buffer) / sizeof(uint16_t));
 
-  adc3_data.callback_half = false;
-  adc3_data.callback_full = false;
-  adc3_data.overflow = false;
-  adc3_data.working = true;
+  adc3_data.status.callback_half = false;
+  adc3_data.status.callback_full = false;
+  adc3_data.status.overflow = false;
+  adc3_data.status.working = true;
 }
 /* Stop functions */
 void ADC_STOP_ALL(void)
 {
-  if (adc1_data.working == true)
+  if (adc1_data.status.working == true)
   {
     ADC1_STOP();
   }
-  if (adc2_data.working == true)
+  if (adc2_data.status.working == true)
   {
     ADC2_STOP();
   }
-  if (adc3_data.working == true)
+  if (adc3_data.status.working == true)
   {
     ADC3_STOP();
   }
@@ -152,33 +152,33 @@ void ADC1_STOP(void)
   adc3_data.UART_transmission = nECU_UART_KnockTx();
   HAL_ADC_Stop_DMA(&GENERAL_ADC);
   nECU_ADC1_Routine(); // finish routine if flags pending
-  adc1_data.working = false;
+  adc1_data.status.working = false;
 }
 void ADC2_STOP(void)
 {
   HAL_ADC_Stop_DMA(&SPEED_ADC);
   nECU_ADC2_Routine(); // finish routine if flags pending
-  adc2_data.working = false;
+  adc2_data.status.working = false;
 }
 void ADC3_STOP(void)
 {
   HAL_TIM_Base_Stop(adc3_data.samplingTimer);
   HAL_ADC_Stop_DMA(&KNOCK_ADC);
-  adc2_data.working = false;
+  adc2_data.status.working = false;
 }
 /* ADC Rutines */
 void nECU_ADC_All_Routine(void)
 {
   /* Remember that all ADC are working simoutainously, all callbacks will be at the same time */
-  if (adc1_data.working == true)
+  if (adc1_data.status.working == true)
   {
     nECU_ADC1_Routine();
   }
-  if (adc2_data.working == true)
+  if (adc2_data.status.working == true)
   {
     nECU_ADC2_Routine();
   }
-  if (adc2_data.working == true)
+  if (adc2_data.status.working == true)
   {
     nECU_ADC3_Routine();
   }
@@ -186,38 +186,38 @@ void nECU_ADC_All_Routine(void)
 void nECU_ADC1_Routine(void)
 {
   /* Conversion Completed callbacks */
-  if (adc1_data.callback_half == true)
+  if (adc1_data.status.callback_half == true)
   {
     nECU_ADC_AverageDMA(&GENERAL_ADC, adc1_data.buffer, GENERAL_DMA_LEN / 2, adc1_data.out, GENERAL_SMOOTH_ALPHA);
-    adc1_data.callback_half = false; // clear flag
+    adc1_data.status.callback_half = false; // clear flag
   }
-  else if (adc1_data.callback_full == true)
+  else if (adc1_data.status.callback_full == true)
   {
     nECU_ADC_AverageDMA(&GENERAL_ADC, &adc1_data.buffer[(GENERAL_DMA_LEN / 2) - 1], GENERAL_DMA_LEN / 2, adc1_data.out, GENERAL_SMOOTH_ALPHA);
     nECU_InternalTemp_Callback();
-    adc1_data.callback_full = false; // clear flag
+    adc1_data.status.callback_full = false; // clear flag
   }
 }
 void nECU_ADC2_Routine(void)
 {
   /* Conversion Completed callbacks */
-  if (adc2_data.callback_half == true)
+  if (adc2_data.status.callback_half == true)
   {
     nECU_ADC_AverageDMA(&SPEED_ADC, adc2_data.buffer, SPEED_DMA_LEN / 2, adc2_data.out, SPEED_SMOOTH_ALPHA);
-    adc2_data.callback_half = false; // clear flag
+    adc2_data.status.callback_half = false; // clear flag
   }
-  else if (adc2_data.callback_full == true)
+  else if (adc2_data.status.callback_full == true)
   {
     nECU_ADC_AverageDMA(&GENERAL_ADC, &adc2_data.buffer[(SPEED_DMA_LEN / 2) - 1], SPEED_DMA_LEN / 2, adc2_data.out, SPEED_SMOOTH_ALPHA);
-    adc2_data.callback_full = false; // clear flag
+    adc2_data.status.callback_full = false; // clear flag
   }
 }
 void nECU_ADC3_Routine(void)
 {
   /* Conversion Completed callbacks */
-  if (adc3_data.callback_half == true)
+  if (adc3_data.status.callback_half == true)
   {
-    adc3_data.callback_half = false; // clear flag
+    adc3_data.status.callback_half = false; // clear flag
     if (*adc3_data.UART_transmission == true)
     {
 #if TEST_UART == 1
@@ -228,9 +228,9 @@ void nECU_ADC3_Routine(void)
     }
     nECU_Knock_ADC_Callback(&adc3_data.buffer[0]);
   }
-  else if (adc3_data.callback_full == true)
+  else if (adc3_data.status.callback_full == true)
   {
-    adc3_data.callback_full = false; // clear flag
+    adc3_data.status.callback_full = false; // clear flag
     if (*adc3_data.UART_transmission == true)
     {
 #if TEST_UART == 1

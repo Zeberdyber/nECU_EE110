@@ -21,7 +21,6 @@ extern "C"
 
 /* Definitions */
 #define SPI_PERIPHERAL_EGT hspi1 // peripheral to which egt ICs are connected
-  /* typedef */
 
   /* Function Prototypes */
   void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi);                                                                        // called when successfully recived data
