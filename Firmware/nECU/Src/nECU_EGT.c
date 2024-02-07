@@ -64,7 +64,7 @@ void EGT_GetSPIData(bool error) // get data of all sensors
     EGT_variables.EGT_CurrentObj->data_Pending++;
     if (EGT_variables.EGT_FirstSensor == true || error == false)
     {
-        EGT_variables.EGT_CurrentSensor = 1;
+        EGT_variables.EGT_CurrentSensor = 2;
         EGT_variables.EGT_FirstSensor = false;
     }
     else
@@ -137,6 +137,7 @@ void EGT_TemperatureTo10bit(MAX31855 *inst) // function to convert temperature v
     inst->EGT_Temperature = (uint16_t)Input;
 }
 
+float EGT_tempe = 0;
 void EGT_PeriodicEventHP(void) // high priority periodic event, launched from timer interrupt
 {
     if (EGT_variables.EGT_Initialized == false)
@@ -201,19 +202,18 @@ void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and d
     inst->SCV_Fault = (inst->in_buffer[3] >> 2) & 0x01;
     inst->Data_Error = (inst->in_buffer[3] >> 3) || (inst->in_buffer[1] >> 7) & 0x01;
     inst->InternalTemp = 99;
-    inst->TcTemp = 1123;
+    inst->TcTemp = 1300;
 
     if (inst->Data_Error == false)
     {
+        inst->TcTemp = ((inst->in_buffer[0] << 6) | (inst->in_buffer[1] >> 2)) * 0.25;
         if (inst->in_buffer[0] & 0x80) // negative sign
-            inst->TcTemp = ((((inst->in_buffer[0] ^ 0xFF) << 6) | ((inst->in_buffer[1] ^ 0xFF) >> 2)) + 1) * -0.25;
-        else
-            inst->TcTemp = ((inst->in_buffer[0] << 6) | (inst->in_buffer[1] >> 2)) * 0.25;
+            inst->TcTemp = -inst->TcTemp;
 
+        inst->InternalTemp = ((inst->in_buffer[2] << 4) | (inst->in_buffer[3] >> 4)) * 0.0625;
         if (inst->in_buffer[2] & 0x80) // negative sign
-            inst->InternalTemp = ((((inst->in_buffer[2] ^ 0xFF) << 4) | ((inst->in_buffer[3] ^ 0xFF) >> 4)) + 1) * -0.0625;
-        else
-            inst->InternalTemp = ((inst->in_buffer[2] << 4) | (inst->in_buffer[3] >> 4)) * 0.0625;
+            inst->InternalTemp = -inst->InternalTemp;
     }
+
     inst->data_Pending = 0;
 }

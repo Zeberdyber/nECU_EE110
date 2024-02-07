@@ -277,6 +277,10 @@ void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
     IGF.IGF_prevCCR = CurrentCCR;
     IGF.frequency = IGF.tim.refClock / Difference; // CCR difference to frequency
     uint16_t RPM = IGF.frequency * 120;
+    if (RPM > IGF_MAX_RPM)
+    {
+        return;
+    }
 
     float rpm_rate = RPM - IGF.RPM;
     if (rpm_rate < 0)

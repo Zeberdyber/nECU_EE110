@@ -20,8 +20,7 @@
     [ ] External AI (analog input) in code integration with proper scaling settings
     [ ] Immobilizer communication
 
-[ ] fault detection (as a seperate file) 
-# set flags for repeted fault
+[ ] fault detection (as a seperate file) - set flags for repeted fault
     [ ] add flags
         - over temp
         - can:
@@ -66,7 +65,7 @@
 
 
 [ ] Tests for each file functions
-    [ ] test flash code
+    [X] test flash code
     [ ] timer interrupt automatic tests functions
 
 [ ] static flags of initialized
@@ -89,15 +88,13 @@
 
 [ ] in watchdogs use pointers to timers from starting files
 
-[X] Onboard LEDs to use non-blocking delay functions
-
 [ ] upToDate internal temperature
 [ ] Clean typedefs
-
-[X] DMA averaging debug
 
 [ ] PWM_Out swap for timer
 
 [ ] IC freq function
 [ ] remove exp_smoothing from Speed_ADCToSpeed
-[ ] check igf with 16-1 filtering
+[X] check igf with 16-1 filtering
+
+[ ] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)

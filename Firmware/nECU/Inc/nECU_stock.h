@@ -44,6 +44,7 @@ extern "C"
 #define VSS_PULSES_PER_KM 4500 // number of pulses that will be recived for a kilometer traveled
 
 #define IGF_MAX_RPM_RATE 3000 // rpm/s rate; used for missfire detection
+#define IGF_MAX_RPM 10000     // maximal rpm allowed
 
     /* Analog sensors */
     void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst);                // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
