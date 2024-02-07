@@ -24,17 +24,34 @@ extern "C"
 #include "stdbool.h"
 #include "nECU_flash.h"
 #include "nECU_debug.h"
+#include "nECU_adc.h"
 
-    /* Definitions */
+    extern OnBoardLED LED_L, LED_R;
 
-        /* Function Prototypes */
-    /* nECU_flash */
+/* Definitions */
+#define SYSTEST_INDICATOR LED_L  // indicator for systests
+#define SYSTEST_DO_FLASH true    // choose to do flas tests !they will delete any saved data!
+#define CODETEST_INDICATOR LED_R // indicator for systests
+
+#define ERROR_HALT true       // should program stop on error
+#define ERROR_BLINK_TIMES 5   // number of blinks when error is detected
+#define ERROR_BLINK_SPEED 250 // delay time in ms
+
+    /* Function Prototypes */
+    /* general */
+    void nECU_tests_error_display(OnBoardLED *inst); // on board LEDs display
+
+    /* system tests */
     bool nECU_systest_Flash_SpeedCalibration(void); // test both read and write to flash memory
     bool nECU_systest_Flash_UserSettings(void);     // test both read and write to flash memory
-    bool nECU_codetest_Flash_compdecompBool(void);  // test nECU_compressBool and nECU_decompressBool
+    void nECU_systest_run(void);                    // run tests of type systest
+    void nECU_systest_error(void);                  // function to call when error detected
 
-    void nECU_systest_run(void);  // run tests of type systest
-    void nECU_codetest_run(void); // run tests of type codetest
+    /* code tests */
+    bool nECU_codetest_Flash_compdecompBool(void); // test nECU_compressBool and nECU_decompressBool
+    bool nECU_codetest_ADC_AvgSmooth(void);        // test script for general functions
+    void nECU_codetest_run(void);                  // run tests of type codetest
+    void nECU_codetest_error(void);                // function to call when error detected
 
 #ifdef __cplusplus
 }

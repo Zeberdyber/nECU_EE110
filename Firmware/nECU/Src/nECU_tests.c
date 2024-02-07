@@ -7,8 +7,22 @@
 
 #include "nECU_tests.h"
 
-extern OnBoardLED LED_L, LED_R;
+/* general */
+void nECU_tests_error_display(OnBoardLED *inst) // on board LEDs display
+{
+    nECU_LED_SetState(inst, GPIO_PIN_RESET);
+    do
+    {
+        for (uint8_t count = 0; count < ERROR_BLINK_TIMES * 2; count++)
+        {
+            HAL_Delay(ERROR_BLINK_SPEED);
+            nECU_LED_FlipState(inst);
+        }
+    } while (ERROR_HALT);
+    nECU_LED_SetState(inst, GPIO_PIN_RESET);
+}
 
+/* system tests */
 bool nECU_systest_Flash_SpeedCalibration(void) // test both read and write to flash memory
 {
     float T1 = 1.0, T2 = 9.99, T3 = -0.0015, T4 = 181516.2;
@@ -44,6 +58,28 @@ bool nECU_systest_Flash_UserSettings(void) // test both read and write to flash 
 
     return false;
 }
+void nECU_systest_run(void) // run tests of type systest
+{
+    if (SYSTEST_DO_FLASH)
+    {
+        HAL_Delay(FLASH_MINIMUM_RUN_TIME);
+        if (nECU_systest_Flash_SpeedCalibration())
+        {
+            nECU_systest_error();
+        }
+
+        if (nECU_systest_Flash_UserSettings())
+        {
+            nECU_systest_error();
+        }
+    }
+}
+void nECU_systest_error(void) // function to call when error detected
+{
+    nECU_tests_error_display(&SYSTEST_INDICATOR);
+}
+
+/* code tests */
 bool nECU_codetest_Flash_compdecompBool(void) // test nECU_compressBool and nECU_decompressBool
 {
     bool bufferIn[8] = {true, true, false, false, true, false, true, false};
@@ -65,34 +101,73 @@ bool nECU_codetest_Flash_compdecompBool(void) // test nECU_compressBool and nECU
     }
     return true;
 }
-
-/* test functions run */
-void nECU_systest_run(void) // run tests of type systest
+bool nECU_codetest_ADC_AvgSmooth(void) // test script for general functions
 {
-    HAL_Delay(FLASH_MINIMUM_RUN_TIME);
-    bool result = false;
-    result = nECU_systest_Flash_SpeedCalibration();
-    while (result)
+    ADC_HandleTypeDef testADC;
+    testADC.Init.NbrOfConversion = 2;
+
+    uint16_t inputBuf[] = {10, 0, 20, 1, 30, 3, 40, 32768};
+    uint16_t outputBuf[] = {0, 0, 0, 0}; // tool large buffer to test data spilage
+
+    nECU_ADC_AverageDMA(&testADC, inputBuf, 8, &outputBuf[1], 1); // no smoothing
+
+    // check limits for spilage
+    if (outputBuf[0] != 0)
     {
-        HAL_Delay(250);
-        nECU_LED_FlipState(&LED_L);
+        return false;
+    }
+    if (outputBuf[3] != 0)
+    {
+        return false;
     }
 
-    result = nECU_systest_Flash_UserSettings();
-    while (result)
+    // check for correct answers
+    if (outputBuf[1] != 25)
     {
-        HAL_Delay(250);
-        nECU_LED_FlipState(&LED_R);
+        return false;
     }
+    if (outputBuf[2] != 8193)
+    {
+        return false;
+    }
+
+    uint16_t avgInputNew[] = {100, 4000};                    // new data for smoothing
+    nECU_ADC_expSmooth(avgInputNew, &outputBuf[1], 2, 0.75); // perform smoothing with new data
+
+    // check limits for spilage
+    if (outputBuf[0] != 0)
+    {
+        return false;
+    }
+    if (outputBuf[3] != 0)
+    {
+        return false;
+    }
+
+    // check for correct answers
+    if (outputBuf[1] != 81)
+    {
+        return false;
+    }
+    if (outputBuf[2] != 5048)
+    {
+        return false;
+    }
+
+    return true;
 }
 void nECU_codetest_run(void) // run tests of type codetest
 {
-    bool result = false;
-    result = nECU_codetest_Flash_compdecompBool();
-    while (result)
+    if (nECU_codetest_Flash_compdecompBool())
     {
-        HAL_Delay(250);
-        nECU_LED_FlipState(&LED_L);
-        nECU_LED_FlipState(&LED_R);
+        nECU_codetest_error();
     }
+    if (nECU_codetest_ADC_AvgSmooth())
+    {
+        nECU_codetest_error();
+    }
+}
+void nECU_codetest_error(void) // function to call when error detected
+{
+    nECU_tests_error_display(&CODETEST_INDICATOR);
 }
