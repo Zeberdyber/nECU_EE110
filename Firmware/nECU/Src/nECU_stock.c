@@ -7,13 +7,18 @@
 
 #include "nECU_stock.h"
 
-extern uint16_t *ADC_MAP, *ADC_BackPressure, *ADC_OX;
+// internal variables
+static AnalogSensor_Handle MAP;
+static AnalogSensor_Handle BackPressure;
+static Oxygen_Handle OX;
+static VSS_Handle VSS;
+static IGF_Handle IGF;
+static stock_GPIO stk_in;
 
-AnalogSensor MAP;
-AnalogSensor BackPressure;
-Oxygen OX;
-VSS_Handle VSS;
-uint8_t spd = 0;
+// initialized flags
+static bool MAP_Initialized = false, BackPressure_Initialized = false, OX_Initialized = false, VSS_Initialized = false, IGF_Initialized = false;
+// external import
+extern uint16_t *ADC_MAP, *ADC_BackPressure, *ADC_OX;
 
 /* Analog sensors */
 void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst) // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
@@ -73,19 +78,17 @@ void nECU_MAP_Init(void) // initialize MAP structure
     nECU_calculateLinearCalibration(&MAP.calibrationData);
     MAP.decimalPoint = MAP_DECIMAL_POINT;
     MAP.ADC_input = ADC_MAP;
-    MAP.initialized = true;
+    MAP_Initialized = true;
 }
 void nECU_MAP_Update(void) // update MAP structure
 {
-    if (MAP.initialized == false)
+    if (MAP_Initialized == false)
     {
         nECU_MAP_Init();
+        return;
     }
-    else
-    {
-        MAP.outputFloat = nECU_getLinearSensor(MAP.ADC_input, &MAP.calibrationData);
-        MAP.output16bit = nECU_FloatToUint16_t(MAP.outputFloat, MAP_DECIMAL_POINT, 10);
-    }
+    MAP.outputFloat = nECU_getLinearSensor(MAP.ADC_input, &MAP.calibrationData);
+    MAP.output16bit = nECU_FloatToUint16_t(MAP.outputFloat, MAP_DECIMAL_POINT, 10);
 }
 /* BackPressure */
 uint8_t *nECU_BackPressure_GetPointer(void) // returns pointer to resulting data
@@ -101,21 +104,19 @@ void nECU_BackPressure_Init(void) // initialize BackPressure structure
     nECU_calculateLinearCalibration(&BackPressure.calibrationData);
     BackPressure.decimalPoint = BACKPRESSURE_DECIMAL_POINT;
     BackPressure.ADC_input = ADC_BackPressure;
-    BackPressure.initialized = true;
+    BackPressure_Initialized = true;
 }
 void nECU_BackPressure_Update(void) // update BackPressure structure
 {
-    if (BackPressure.initialized == false)
+    if (BackPressure_Initialized == false)
     {
         nECU_BackPressure_Init();
+        return;
     }
-    else
-    {
-        BackPressure.outputFloat = nECU_getLinearSensor(BackPressure.ADC_input, &BackPressure.calibrationData);
-        BackPressure.output8bit = nECU_FloatToUint8_t(BackPressure.outputFloat, BACKPRESSURE_DECIMAL_POINT, 8);
-    }
+    BackPressure.outputFloat = nECU_getLinearSensor(BackPressure.ADC_input, &BackPressure.calibrationData);
+    BackPressure.output8bit = nECU_FloatToUint8_t(BackPressure.outputFloat, BACKPRESSURE_DECIMAL_POINT, 8);
 }
-/* Oxygen */
+/* Oxygen Sensor */
 uint8_t *nECU_OX_GetPointer(void) // returns pointer to resulting data
 {
     return &OX.sensor.output8bit;
@@ -130,7 +131,7 @@ void nECU_OX_Init(void) // initialize narrowband lambda structure
     nECU_calculateLinearCalibration(&OX.sensor.calibrationData);
     OX.sensor.decimalPoint = OXYGEN_DECIMAL_POINT;
     OX.sensor.ADC_input = ADC_OX;
-    OX.sensor.initialized = true;
+    OX_Initialized = true;
     /* Heater */
     OX.Heater.Timer = &OX_HEATER_TIMER;
     OX.Heater.Channel = 1;
@@ -147,26 +148,27 @@ void nECU_OX_Init(void) // initialize narrowband lambda structure
 void nECU_OX_Update(void) // update narrowband lambda structure
 {
     /* Sensor update */
-    if (OX.sensor.initialized == false)
+    if (OX_Initialized == false)
     {
         nECU_BackPressure_Init();
+        return;
     }
-    else
-    {
-        OX.sensor.outputFloat = nECU_getLinearSensor(OX.sensor.ADC_input, &OX.sensor.calibrationData);
-        OX.sensor.output8bit = nECU_FloatToUint8_t(OX.sensor.outputFloat, OX.sensor.decimalPoint, 8);
-    }
+    OX.sensor.outputFloat = nECU_getLinearSensor(OX.sensor.ADC_input, &OX.sensor.calibrationData);
+    OX.sensor.output8bit = nECU_FloatToUint8_t(OX.sensor.outputFloat, OX.sensor.decimalPoint, 8);
 
     /* Output update */
-    float coolantFloat = *OX.Coolant;
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
-    OX.Heater.Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolantFloat);
+    float coolant = (float)*OX.Coolant;
+    OX.Heater.Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
     OX.Heater.Timer->Instance->CCR1 = (OX.Heater.Infill * OX.Heater.Timer->Init.Period) / 100;
 }
 void nECU_OX_DeInit(void) // deinitialize narrowband lambda structure
 {
-    HAL_TIM_Base_Stop_IT(OX.Heater.Timer);
-    HAL_TIM_PWM_Stop_IT(OX.Heater.Timer, TIM_CHANNEL_1);
+    if (OX_Initialized == true)
+    {
+        HAL_TIM_Base_Stop_IT(OX.Heater.Timer);
+        HAL_TIM_PWM_Stop_IT(OX.Heater.Timer, TIM_CHANNEL_1);
+    }
 }
 /* VSS - Vehicle Speed Sensor */
 uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
@@ -177,15 +179,21 @@ void nECU_VSS_Init(void) // initialize VSS structure
 {
     VSS.VSS_prevCCR = 0;
     VSS.tim.htim = &FREQ_INPUT_TIMER;
-    VSS.VSS_Channel = TIM_CHANNEL_2;
-    VSS.tim.refClock = TIM_CLOCK / (VSS.tim.htim->Init.Prescaler + 1);
-    VSS.watchdogCount = 0;
-    HAL_TIM_Base_Start_IT(VSS.tim.htim);
-    HAL_TIM_IC_Start_IT(VSS.tim.htim, VSS.VSS_Channel);
+    nECU_tim_Init_struct(&VSS.tim);
+    VSS.tim.Channel_Count = 1;
+    VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
+    nECU_tim_IC_start(&VSS.tim);
+    VSS_Initialized = true;
 }
 void nECU_VSS_Update(void) // update VSS structure
 {
-    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(VSS.tim.htim, VSS.VSS_Channel);
+    if (VSS_Initialized == false) // check if initialized
+    {
+        nECU_VSS_Init();
+        return;
+    }
+
+    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(VSS.tim.htim, VSS.tim.Channel_List[0]);
 
     /* Calculate difference */
     uint16_t Difference = 0; // in miliseconds
@@ -212,22 +220,129 @@ void nECU_VSS_Update(void) // update VSS structure
     VSS.Speed = (uint8_t)speed;
     VSS.watchdogCount = 0;
 }
-void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim) // detect if zero km/h
+void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim) // detect if zero km/h -- !!! to be fixed
 {
-    float time = (TIM_CLOCK / (htim->Init.Prescaler + 1)) / (htim->Init.Period + 1);
-    if (VSS.Speed != 0)
-    {
-        VSS.watchdogCount++;
-        if ((VSS.watchdogCount / time) > (VSS.tim.htim->Init.Period / VSS.tim.refClock))
-        {
-            VSS.Speed = 0;
-        }
-    }
+    // float time = (TIM_CLOCK / (htim->Init.Prescaler + 1)) / (htim->Init.Period + 1);
+    // if (VSS.Speed != 0)
+    // {
+    //     VSS.watchdogCount++;
+    //     if ((VSS.watchdogCount / time) > (VSS.tim.htim->Init.Period / VSS.tim.refClock))
+    //     {
+    //         VSS.Speed = 0;
+    //     }
+    // }
 }
 void nECU_VSS_DeInit(void) // deinitialize VSS structure
 {
-    HAL_TIM_Base_Stop_IT(VSS.tim.htim);
-    HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.VSS_Channel);
+    if (VSS_Initialized == true)
+    {
+        HAL_TIM_Base_Stop_IT(VSS.tim.htim);
+        HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.tim.Channel_List[0]);
+    }
+}
+/* IGF - Ignition feedback */
+void nECU_IGF_Init(void) // initialize and start
+{
+    IGF.IGF_prevCCR = 0;
+    IGF.tim.htim = &FREQ_INPUT_TIMER;
+    nECU_tim_Init_struct(&IGF.tim);
+    IGF.tim.Channel_Count = 1;
+    IGF.tim.Channel_List[0] = TIM_CHANNEL_1;
+    nECU_tim_IC_start(&IGF.tim);
+    IGF_Initialized = true;
+}
+void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
+{
+    if (IGF_Initialized == false) // check if initialized
+    {
+        nECU_IGF_Init();
+        return;
+    }
+
+    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(IGF.tim.htim, IGF.tim.Channel_List[0]);
+    /* Calculate difference */
+    uint16_t Difference = 0; // in CCR value
+    if (IGF.IGF_prevCCR > CurrentCCR)
+    {
+        Difference = ((IGF.tim.htim->Init.Period + 1 - IGF.IGF_prevCCR) + CurrentCCR);
+    }
+    else if (IGF.IGF_prevCCR == CurrentCCR)
+    {
+        return;
+    }
+    else
+    {
+        Difference = (CurrentCCR - IGF.IGF_prevCCR);
+    }
+    IGF.IGF_prevCCR = CurrentCCR;
+    IGF.frequency = IGF.tim.refClock / Difference; // CCR difference to frequency
+    uint16_t RPM = IGF.frequency * 120;
+
+    float rpm_rate = RPM - IGF.RPM;
+    if (rpm_rate < 0)
+    {
+        rpm_rate = -rpm_rate;
+    }
+    rpm_rate *= IGF.frequency;
+    if (rpm_rate > IGF_MAX_RPM_RATE)
+    {
+        nECU_Fault_Missfire();
+    }
+    IGF.RPM = RPM; // save current RPM
+}
+void nECU_IGF_DeInit(void) // stop
+{
+    if (IGF_Initialized == true)
+    {
+        HAL_TIM_Base_Stop_IT(IGF.tim.htim);
+        HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]);
+    }
+}
+/* GPIO inputs */
+void nECU_stock_GPIO_Init(void) // initialize structure variables
+{
+    stk_in.Cranking.GPIO_Pin = Cranking_Pin;
+    stk_in.Cranking.GPIOx = Cranking_GPIO_Port;
+
+    stk_in.Fan_ON.GPIO_Pin = Fan_ON_Pin;
+    stk_in.Fan_ON.GPIOx = Fan_ON_GPIO_Port;
+
+    stk_in.Lights_ON.GPIO_Pin = Lights_ON_Pin;
+    stk_in.Lights_ON.GPIOx = Lights_ON_GPIO_Port;
+}
+void nECU_stock_GPIO_update(void) // update structure variables
+{
+    stk_in.Cranking.State = HAL_GPIO_ReadPin(stk_in.Cranking.GPIOx, stk_in.Cranking.GPIO_Pin);
+    stk_in.Fan_ON.State = HAL_GPIO_ReadPin(stk_in.Fan_ON.GPIOx, stk_in.Fan_ON.GPIO_Pin);
+    stk_in.Lights_ON.State = HAL_GPIO_ReadPin(stk_in.Lights_ON.GPIOx, stk_in.Lights_ON.GPIO_Pin);
+    stk_in.Cranking_b = (bool)stk_in.Cranking.State;
+    stk_in.Fan_ON_b = (bool)stk_in.Fan_ON.State;
+    stk_in.Lights_ON_b = (bool)stk_in.Lights_ON.State;
+}
+bool *nECU_stock_GPIO_getPointer(stock_inputs_ID id) // return pointers of structure variables
+{
+    switch (id)
+    {
+    case INPUT_CRANKING_ID:
+        return &stk_in.Cranking_b;
+        break;
+    case INPUT_FAN_ON_ID:
+        return &stk_in.Fan_ON_b;
+        break;
+    case INPUT_LIGHTS_ON_ID:
+        return &stk_in.Lights_ON_b;
+        break;
+
+    default:
+        break;
+    }
+    return NULL;
+}
+/* Immobilizer */
+bool none = true;
+bool *nECU_Immo_getPointer(void) // returns pointer to immobilizer valid
+{
+    return &none;
 }
 /* General */
 void nECU_Stock_Start(void) // function to initialize all stock stuff
@@ -236,6 +351,7 @@ void nECU_Stock_Start(void) // function to initialize all stock stuff
     nECU_BackPressure_Init();
     nECU_OX_Init();
     nECU_VSS_Init();
+    nECU_IGF_Init();
 }
 void nECU_Stock_Stop(void) // function to deinitialize all stock stuff
 {

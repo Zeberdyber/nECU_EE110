@@ -7,11 +7,13 @@
 
 #include "nECU_Speed.h"
 
-Speed_Sensor Speed_Sens_1, Speed_Sens_2, Speed_Sens_3, Speed_Sens_4;
-
+// internal variables
+static Speed_Sensor Speed_Sens_1, Speed_Sens_2, Speed_Sens_3, Speed_Sens_4;
+static CalibrateRoutine calibrateRoutine;
+// initialized flags
+static bool SS1_Initialized = false, SS2_Initialized = false, SS3_Initialized = false, SS4_Initialized = false;
+// external import
 extern uint16_t *ADC_V1, *ADC_V2, *ADC_V3, *ADC_V4; // ADC variables
-
-CalibrateRoutine calibrateRoutine;
 
 /* Interface functions */
 uint16_t *Speed_GetSpeed(uint8_t sensorNumber) // get current speed
@@ -115,24 +117,35 @@ void Speed_Start(void) // function to start Speed function set
     Speed_Sens_3.WheelSetup = nECU_CAN_getWheelSetupPointer();
     Speed_Sens_4.WheelSetup = nECU_CAN_getWheelSetupPointer();
 
-    // averaging initialization
-    Speed_AverageInit(&Speed_Sens_1);
-    Speed_AverageInit(&Speed_Sens_2);
-    Speed_AverageInit(&Speed_Sens_3);
-    Speed_AverageInit(&Speed_Sens_4);
-
     // other init
     Speed_Sens_1.SpeedData = 0;
     Speed_Sens_2.SpeedData = 0;
     Speed_Sens_3.SpeedData = 0;
     Speed_Sens_4.SpeedData = 0;
+
+    SS1_Initialized = true;
+    SS2_Initialized = true;
+    SS3_Initialized = true;
+    SS4_Initialized = true;
 }
 void Speed_Update(void) // perform update of all sensors
 {
-    Speed_SensorUpdate(&Speed_Sens_1);
-    Speed_SensorUpdate(&Speed_Sens_2);
-    Speed_SensorUpdate(&Speed_Sens_3);
-    Speed_SensorUpdate(&Speed_Sens_4);
+    if (SS1_Initialized == true)
+    {
+        Speed_SensorUpdate(&Speed_Sens_1);
+    }
+    if (SS2_Initialized == true)
+    {
+        Speed_SensorUpdate(&Speed_Sens_2);
+    }
+    if (SS3_Initialized == true)
+    {
+        Speed_SensorUpdate(&Speed_Sens_3);
+    }
+    if (SS4_Initialized == true)
+    {
+        Speed_SensorUpdate(&Speed_Sens_4);
+    }
 }
 void Speed_SensorUpdate(Speed_Sensor *Sensor) // update one sensors data
 {
@@ -153,7 +166,10 @@ void Speed_SensorUpdate(Speed_Sensor *Sensor) // update one sensors data
 
     Speed_ADCToSpeed(Sensor);
     Speed_CorrectToCalib(Sensor);
-    Speed_AverageCalc(Sensor);
+    if (calibrateRoutine.initialized == true) // do only when calibrating
+    {
+        Speed_AverageCalc(Sensor);
+    }
 }
 void Speed_CorrectToCalib(Speed_Sensor *Sensor) // correct data to calibration multiplier
 {
@@ -227,7 +243,7 @@ void Speed_CalibrateAll(void) // function to calibrate speed sensors (periodic f
             Speed_CalibrateSingle(&Speed_Sens_3);
             Speed_CalibrateSingle(&Speed_Sens_4);
             nECU_saveSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
-            Speed_CalibrateInit();
+            Speed_CalibrateInit(); // clear calibration data
         }
     }
 }
@@ -247,7 +263,7 @@ void Speed_CalibrateStart(void) // start calibration process
     calibrateRoutine.active = true;
 }
 
-/* periodic functions */
+/* Periodic functions */
 void Speed_TimingEvent(void) // function to be called periodicaly with desired data update rate
 {
     if (calibrateRoutine.active)
@@ -258,7 +274,7 @@ void Speed_TimingEvent(void) // function to be called periodicaly with desired d
 }
 
 /* Speed testing functions */
-uint8_t Test_Speed_SensorUpdate(void) // function to test Speed functions
+bool Test_Speed_SensorUpdate(void) // function to test Speed functions
 {
     // Success values
     uint16_t Corr_Circ = Wheel_Circ_Set_1; // according to definitions
@@ -278,12 +294,12 @@ uint8_t Test_Speed_SensorUpdate(void) // function to test Speed functions
     // Check results
     if (Test_Obj.WheelCirc != Corr_Circ)
     {
-        return 1;
+        return true;
     }
     if (Test_Obj.SpeedData - Corr_Speed > 50) // Allow for 0.5km/h error due to rounding
     {
-        return 1;
+        return true;
     }
 
-    return 0;
+    return false;
 }

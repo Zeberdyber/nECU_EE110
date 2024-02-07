@@ -19,7 +19,7 @@ extern "C"
 #include "nECU_adc.h"
 #include "string.h"
 #include "nECU_tim.h"
-#include "ProcessData.h"
+#include "nECU_main.h"
 
 /* Definitions */
 #define END_BYTE 0xFF // what will be reciving software looking for to determine end of frame
@@ -39,9 +39,7 @@ extern "C"
     void Send_Triangle_UART(void); // function to send triangle wave over UART
 #endif
 
-    /* typedef */
-
-    /* Function Prototypes */
+        /* Function Prototypes */
     void nECU_UART_SuperFrame(uint16_t *input_buffer, uint8_t *output_buffer); // compose Super frame (diferential frame)
     void nECU_UART_SendKnock(uint16_t *input_buffer);                          // send knock data over
     void nECU_UART_DMA_Tx_Knock(void);                                         // send knock data in DMA mode
@@ -51,6 +49,7 @@ extern "C"
     void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);                   // Rx completed
     void nECU_UART_Tx_Start_Routine(void);                                     // prepare nECU to be able to transmit
     void nECU_UART_Tx_Stop_Routine(void);                                      // return back to regular execution
+    bool *nECU_UART_KnockTx(void);                                             // return pointer to knock tx flag
     void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);                    // Called while UART error
 
 #ifdef __cplusplus

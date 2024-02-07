@@ -1,8 +1,103 @@
-[ ] filtering of VSS
-[ ] test flash code
-[ ] UART sending data live
-[ ] frequency readout (RPM) fix and test functions
-[ ] timer interrupt automatic tests functions
-[ ] Flash saving and reading tests with debugging
-[ ] missfire detection
-[ ] IGF functionality
+[ ] RPM signal clear mess
+
+[ ] Development
+    [ ] OX sensor heater
+    [ ] OX sensor analog signal
+    [ ] IGF missfire
+    [ ] IGF RPM calculation
+
+[ ] Bugs
+    [ ] Tacho display bug (occasionnaly value is displayed twice)
+    [ ] filtering of VSS (low speed correction)
+    [ ] frequency readout (RPM) fix and test functions
+    [ ] Buttons sporadic not working, double click faulty
+
+[ ] Optimization
+    [ ] Knock sensing (after UART added)
+
+[ ] Scheduled
+    [ ] Onboard UART
+    [ ] External AI (analog input) in code integration with proper scaling settings
+    [ ] Immobilizer communication
+
+[ ] fault detection (as a seperate file) 
+# set flags for repeted fault
+    [ ] add flags
+        - over temp
+        - can:
+            > timeout
+            > error
+            > other?
+        - spi:
+            > timeout
+            > error
+            > other?
+        - flash:
+            > save error
+            > erase error
+            > read error
+            > other?
+        - igf:
+            > missfire
+            > no signal
+            > other?
+        - buttons:
+            > other?
+        - egt:
+            > data frame error
+            > ic over temp
+            > sensor error
+        - uart:
+            > other?
+        - VSS:
+            > input ripple
+            > over speed
+            > other?
+        - SpeedSens:
+            > abnormal sensor
+            > data error
+    [ ] function skeletons
+    [ ] warning when temp high (+ MCU_temperature.upToDate monitoring)
+
+[ ] UART
+    [ ] UART variables as a struct
+    [ ] UART knock raw data functions labeled
+    [ ] UART sending data live
+
+
+[ ] Tests for each file functions
+    [ ] test flash code
+    [ ] timer interrupt automatic tests functions
+
+[ ] static flags of initialized
+
+[ ] remove numbers from files "magic numbers"
+[ ] maybe dont calculate difference for each watchdog (waste of time),
+    calculate once and update all
+
+[ ] timer watchdogs
+    [ ] PWM (ox heater, button output)
+    [ ] IC (button inputs, ...)
+
+[ ] timer rewrite to reuse functions
+    [X] PWM functions
+    [ ] IC functions
+
+[ ] use new timer in files
+    [ ] stock
+    [ ] button
+
+[ ] in watchdogs use pointers to timers from starting files
+
+[X] Onboard LEDs to use non-blocking delay functions
+
+[ ] upToDate internal temperature
+[ ] Clean typedefs
+
+[X] DMA averaging debug
+
+[ ] PWM_Out swap for timer
+
+[ ] IC freq function
+[ ] remove exp_smoothing from Speed_ADCToSpeed
+[ ] check igf with 16-1 filtering

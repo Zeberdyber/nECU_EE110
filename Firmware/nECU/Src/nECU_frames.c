@@ -18,10 +18,10 @@ extern uint16_t loopCounter;
 /* Frame 0 */
 void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *pAntilag, bool *pTractionOFF, bool *pClearEngineCode, uint16_t *pLunchControlLevel) // initialization of data structure
 {
-    F0_var.Speed1 = Speed_GetSpeedSlow(1);
-    F0_var.Speed2 = Speed_GetSpeedSlow(2);
-    F0_var.Speed3 = Speed_GetSpeedSlow(3);
-    F0_var.Speed4 = Speed_GetSpeedSlow(4);
+    F0_var.Speed1 = Speed_GetSpeed(1);
+    F0_var.Speed2 = Speed_GetSpeed(2);
+    F0_var.Speed3 = Speed_GetSpeed(3);
+    F0_var.Speed4 = Speed_GetSpeed(4);
     F0_var.TachoShow1 = pTachoShow1;
     F0_var.TachoShow2 = pTachoShow2;
     F0_var.TachoShow3 = pTachoShow3;
@@ -29,15 +29,16 @@ void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *
     F0_var.TractionOFF = pTractionOFF;
     F0_var.ClearEngineCode = pClearEngineCode;
     F0_var.LunchControlLevel = pLunchControlLevel;
+    nECU_stock_GPIO_Init();
+    F0_var.Cranking = nECU_stock_GPIO_getPointer(INPUT_CRANKING_ID);
+    F0_var.Fan_ON = nECU_stock_GPIO_getPointer(INPUT_FAN_ON_ID);
+    F0_var.Lights_ON = nECU_stock_GPIO_getPointer(INPUT_LIGHTS_ON_ID);
+    F0_var.IgnitionKey = nECU_Immo_getPointer();
 }
 void Frame0_Update(void) // update variables for frame 0
 {
     Speed_TimingEvent();
-    F0_var.Cranking = HAL_GPIO_ReadPin(Cranking_GPIO_Port, Cranking_Pin);
-    F0_var.Lights_ON = HAL_GPIO_ReadPin(Lights_ON_GPIO_Port, Lights_ON_Pin);
-    F0_var.Fan_ON = HAL_GPIO_ReadPin(Fan_ON_GPIO_Port, Fan_ON_Pin);
-    F0_var.IgnitionKey = 1; // Here insert code to check immobilizer
-
+    nECU_stock_GPIO_update();
     F0_var.LunchControl1 = false;
     F0_var.LunchControl2 = false;
     F0_var.LunchControl3 = false;
@@ -66,7 +67,7 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
     Frame0_Update();
     uint8_t TxFrame[8];
-    Frame0_ComposeWord(&TxFrame[0], &ZeroBool, &F0_var.Fan_ON, &F0_var.Lights_ON, &F0_var.Cranking, F0_var.Speed1);
+    Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, F0_var.Speed1);
     Frame0_ComposeWord(&TxFrame[2], F0_var.ClearEngineCode, F0_var.TachoShow3, F0_var.TachoShow2, F0_var.TachoShow1, F0_var.Speed2);
     Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl3, &F0_var.LunchControl2, &F0_var.LunchControl1, F0_var.Speed3);
     Frame0_ComposeWord(&TxFrame[6], &ZeroBool, &ZeroBool, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed4);

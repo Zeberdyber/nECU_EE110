@@ -26,19 +26,19 @@ uint8_t delta_counter;
 #if TEST_UART == 1
 bool Triangle_Buffer_ready = false;
 bool Triangle_Buffer_firstPart = true;
-uint16_t Triangle_Buffer[KNOCK_BUFFOR_SIZE];
+uint16_t Triangle_Buffer[KNOCK_DMA_LEN];
 void Send_Triangle_UART(void) // function to send triangle wave over UART
 {
     if (Triangle_Buffer_ready == false) // create test data (triangle wave)
     {
-        for (uint32_t i = 0; i < (KNOCK_BUFFOR_SIZE / 2); i++)
+        for (uint32_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
         {
             Triangle_Buffer[i] = i;
         }
-        for (uint32_t i = 0; i < (KNOCK_BUFFOR_SIZE / 2); i++)
+        for (uint32_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
         {
-            uint8_t current = (KNOCK_BUFFOR_SIZE / 2) - i;
-            Triangle_Buffer[(KNOCK_BUFFOR_SIZE / 2) + i] = current;
+            uint8_t current = (KNOCK_DMA_LEN / 2) - i;
+            Triangle_Buffer[(KNOCK_DMA_LEN / 2) + i] = current;
         }
         Triangle_Buffer_ready = true;
     }
@@ -51,7 +51,7 @@ void Send_Triangle_UART(void) // function to send triangle wave over UART
         }
         else
         {
-            nECU_UART_SendKnock(&Triangle_Buffer[(KNOCK_BUFFOR_SIZE / 2) - 1]);
+            nECU_UART_SendKnock(&Triangle_Buffer[(KNOCK_DMA_LEN / 2) - 1]);
             Triangle_Buffer_firstPart = true;
         }
     }
@@ -191,6 +191,10 @@ void nECU_UART_Tx_Stop_Routine(void) // return back to regular execution
     nECU_Start();
     Knock_UART_Transmission = false;
 }
+bool *nECU_UART_KnockTx(void) // return pointer to knock tx flag
+{
+    return &Knock_UART_Transmission;
+}
 
 /* Error detection */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) // Called while UART error
@@ -202,7 +206,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) // Called while UART erro
         if (error != HAL_UART_ERROR_NONE)
         {
             /* Implement error handling here */
-            UNUSED(huart);
+            UNUSED(huart); // do nothing
         }
     }
 }

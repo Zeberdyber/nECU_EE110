@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  * @file    nECU_button.c
- * @brief   This file provides code for backlight buttons.
+ * @brief   This file provides code for button inputs and their backlight.
  ******************************************************************************
  */
 
@@ -29,48 +29,42 @@ void Button_Stop(void)
   ButtonLight_Stop(&Red.light);
   ButtonLight_Stop(&Orange.light);
   ButtonLight_Stop(&Green.light);
-  ButtonLight_Stop_Timer(&Red.light); // Any button passed to the function
 
   // Stop inputs
   ButtonInput_Stop(&Red.input);
   ButtonInput_Stop(&Orange.input);
   ButtonInput_Stop(&Green.input);
-  ButtonInput_Stop_Timer(&Red.input); // Any button passed to the function
 }
 
 /* BUTTON LIGHT BEGIN */
 void ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonLight object with corresponding timer
 {
-  Light->Timer = htim;
+  Light->Timer.htim = htim;
+  nECU_tim_Init_struct(&Light->Timer);
+  Light->Timer.Channel_Count = 1;
+  Light->CCR = 0;
 
-  HAL_TIM_Base_Start_IT(Light->Timer);
   switch (Channel)
   {
   case 1:
-    Light->Timer->Instance->CCR1 = 0;
-    HAL_TIM_PWM_Start_IT(Light->Timer, TIM_CHANNEL_1);
-    Light->Channel = 1;
-    Light->CCR = 0;
+    Light->Timer.htim->Instance->CCR1 = 0;
+    Light->Timer.Channel_List[0] = TIM_CHANNEL_1;
     break;
   case 2:
-    Light->Timer->Instance->CCR2 = 0;
-    HAL_TIM_PWM_Start_IT(Light->Timer, TIM_CHANNEL_2);
-    Light->Channel = 2;
-    Light->CCR = 0;
+    Light->Timer.htim->Instance->CCR2 = 0;
+    Light->Timer.Channel_List[0] = TIM_CHANNEL_2;
     break;
   case 3:
-    Light->Timer->Instance->CCR3 = 0;
-    HAL_TIM_PWM_Start_IT(Light->Timer, TIM_CHANNEL_3);
-    Light->Channel = 3;
-    Light->CCR = 0;
+    Light->Timer.htim->Instance->CCR3 = 0;
+    Light->Timer.Channel_List[0] = TIM_CHANNEL_3;
     break;
 
   default:
     break;
   }
+  nECU_tim_PWM_start(&Light->Timer);
 
   Light->Mode = BUTTON_MODE_OFF; // Turn off
-  Light->UpdateInterval = (float)1000 / (TIM_CLOCK / ((Light->Timer->Init.Prescaler + 1) * (Light->Timer->Init.Period + 1)));
 }
 void ButtonLight_Update(ButtonLight *Light) // periodic animation update function
 {
@@ -108,45 +102,45 @@ void ButtonLight_Update(ButtonLight *Light) // periodic animation update functio
       Light->ModePrev = Light->Mode;
       Light->Time = 0;
     }
-    if (Light->BreathingCount > 0)
+    if (Light->Breathing.count > 0)
     {
-      Light->BreathingState = ((uint16_t)(Light->Time * Light->UpdateInterval * BUTTON_LIGHT_BREATHING_SPEEDUP / Light->BreathingSpeed) % 255) - 128;
+      Light->Breathing.state = ((uint16_t)(Light->Time * Light->Timer.period * BUTTON_LIGHT_BREATHING_SPEEDUP / Light->Breathing.speed) % 255) - 128;
 
-      if (Light->BreathingState != Light->BreathingStatePrev)
+      if (Light->Breathing.state != Light->Breathing.prevState)
       {
-        if (Light->BreathingState < 0 && Light->BreathingStatePrev > 0)
+        if (Light->Breathing.state < 0 && Light->Breathing.prevState > 0)
         {
-          Light->BreathingCount--;
+          Light->Breathing.count--;
         }
-        Light->BreathingStatePrev = Light->BreathingState;
+        Light->Breathing.prevState = Light->Breathing.state;
       }
 
-      if (Light->BreathingState < 0)
+      if (Light->Breathing.state < 0)
       {
-        Light->BreathingState = -Light->BreathingState;
+        Light->Breathing.state = -Light->Breathing.state;
       }
 
-      Light->Brightness = (((BUTTON_LIGHT_MAXIMUM_INFILL - BUTTON_LIGHT_MINIMUM_INFILL) * Light->BreathingState) / 128) + BUTTON_LIGHT_MINIMUM_INFILL;
+      Light->Brightness = (((BUTTON_LIGHT_MAXIMUM_INFILL - BUTTON_LIGHT_MINIMUM_INFILL) * Light->Breathing.state) / 128) + BUTTON_LIGHT_MINIMUM_INFILL;
     }
 
-    if (Light->BlinkingCount > 0)
+    if (Light->Blinking.count > 0)
     {
-      Light->BlinkingState = (uint32_t)(Light->Time * Light->UpdateInterval / (Light->BlinkingSpeed * BUTTON_LIGHT_BLINKING_SLOWDOWN)) % 2;
-      if (Light->BlinkingState != Light->BlinkingStatePrev) // Execute only on positive edge
+      Light->Blinking.state = (uint32_t)(Light->Time * Light->Timer.period / (Light->Blinking.speed * BUTTON_LIGHT_BLINKING_SLOWDOWN)) % 2;
+      if (Light->Blinking.state != Light->Blinking.prevState) // Execute only on positive edge
       {
-        Light->BlinkingStatePrev = Light->BlinkingState;
-        if (Light->BlinkingState == 1)
+        Light->Blinking.prevState = Light->Blinking.state;
+        if (Light->Blinking.state == 1)
         {
-          Light->BlinkingCount--;
+          Light->Blinking.count--;
         }
       }
-      Light->Brightness = ((BUTTON_LIGHT_MAXIMUM_INFILL - BUTTON_LIGHT_MINIMUM_INFILL) * Light->BlinkingState) + BUTTON_LIGHT_MINIMUM_INFILL;
+      Light->Brightness = ((BUTTON_LIGHT_MAXIMUM_INFILL - BUTTON_LIGHT_MINIMUM_INFILL) * Light->Blinking.state) + BUTTON_LIGHT_MINIMUM_INFILL;
     }
 
-    if (Light->BreathingCount + Light->BlinkingCount == 0)
+    if (Light->Breathing.count + Light->Blinking.count == 0)
     {
-      Light->BlinkingState = 0;
-      Light->BlinkingStatePrev = 0;
+      Light->Blinking.state = 0;
+      Light->Blinking.prevState = 0;
       Light->Mode = BUTTON_MODE_GO_TO_REST;
     }
     break;
@@ -157,18 +151,18 @@ void ButtonLight_Update(ButtonLight *Light) // periodic animation update functio
     break;
   }
 
-  Light->CCR = Light->Brightness * (Light->Timer->Init.Period / 100);
+  Light->CCR = Light->Brightness * (Light->Timer.htim->Init.Period / 100);
 
-  switch (Light->Channel)
+  switch (Light->Timer.Channel_List[0])
   {
-  case 1:
-    Light->Timer->Instance->CCR1 = Light->CCR;
+  case TIM_CHANNEL_1:
+    Light->Timer.htim->Instance->CCR1 = Light->CCR;
     break;
-  case 2:
-    Light->Timer->Instance->CCR2 = Light->CCR;
+  case TIM_CHANNEL_2:
+    Light->Timer.htim->Instance->CCR2 = Light->CCR;
     break;
-  case 3:
-    Light->Timer->Instance->CCR3 = Light->CCR;
+  case TIM_CHANNEL_3:
+    Light->Timer.htim->Instance->CCR3 = Light->CCR;
     break;
 
   default:
@@ -177,14 +171,14 @@ void ButtonLight_Update(ButtonLight *Light) // periodic animation update functio
 }
 void ButtonLight_Set_Blink(ButtonLight *Light, uint8_t Speed, uint16_t Count) // setup blinking animation
 {
-  Light->BlinkingSpeed = Speed;
-  Light->BlinkingCount = Count;
+  Light->Blinking.speed = Speed;
+  Light->Blinking.count = Count;
   Light->Mode = BUTTON_MODE_ANIMATED;
 }
 void ButtonLight_Set_Breathe(ButtonLight *Light, uint8_t Speed, uint16_t Count) // setup breathing animation
 {
-  Light->BreathingSpeed = Speed;
-  Light->BreathingCount = Count;
+  Light->Breathing.speed = Speed;
+  Light->Breathing.count = Count;
   Light->Mode = BUTTON_MODE_ANIMATED;
 }
 void ButtonLight_Set_Mode(ButtonLight *Light, ButtonLight_Mode Mode) // setup mode (animation type)
@@ -200,71 +194,48 @@ void ButtonLight_UpdateAll(void) // function to launch updates for all buttons
 }
 void ButtonLight_TimingEvent(void) // funtion called after pulse finished interrupt from PWM timer
 {
-  Red.light.Time += Red.light.UpdateInterval;
-  Orange.light.Time += Orange.light.UpdateInterval;
-  Green.light.Time += Green.light.UpdateInterval;
+  Red.light.Time += Red.light.Timer.period;
+  Orange.light.Time += Orange.light.Timer.period;
+  Green.light.Time += Green.light.Timer.period;
 }
 void ButtonLight_Stop(ButtonLight *Light) // stops PWM for seected button
 {
-  switch (Light->Channel)
-  {
-  case 1:
-    Light->Timer->Instance->CCR1 = 0;
-    HAL_TIM_PWM_Stop_IT(Light->Timer, TIM_CHANNEL_1);
-    break;
-  case 2:
-    Light->Timer->Instance->CCR2 = 0;
-    HAL_TIM_PWM_Stop_IT(Light->Timer, TIM_CHANNEL_2);
-    break;
-  case 3:
-    Light->Timer->Instance->CCR3 = 0;
-    HAL_TIM_PWM_Stop_IT(Light->Timer, TIM_CHANNEL_3);
-    break;
-
-  default:
-    break;
-  }
-}
-void ButtonLight_Stop_Timer(ButtonLight *Light) // stops timer base
-{
-  HAL_TIM_Base_Stop_IT(Light->Timer);
+  nECU_tim_PWM_stop(&Light->Timer);
 }
 /* BUTTON LIGHT END */
 
 /* BUTTON INPUT BEGIN */
 void ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonInput object with corresponding timer and GPIO
 {
-  button->Timer = htim;
-  button->RisingCCR = 0;
-  button->refClock = TIM_CLOCK / (button->Timer->Init.Prescaler + 1);
-  button->GPIOx = GPIOC;
+  button->Timer.htim = htim;
+  nECU_tim_Init_struct(&button->Timer);
+  button->Timer.Channel_Count = 1;
 
-  HAL_TIM_Base_Start_IT(button->Timer);
+  button->RisingCCR = 0;
+  button->buttonPin.GPIOx = GPIOC;
 
   switch (Channel)
   {
   case 1:
     button->Channel_IC = HAL_TIM_ACTIVE_CHANNEL_1;
-    button->Channel = TIM_CHANNEL_1;
-    button->GPIO_Pin = B1_S_Pin;
+    button->Timer.Channel_List[0] = TIM_CHANNEL_1;
+    button->buttonPin.GPIO_Pin = B1_S_Pin;
     break;
   case 2:
     button->Channel_IC = HAL_TIM_ACTIVE_CHANNEL_2;
-    button->Channel = TIM_CHANNEL_2;
-    button->GPIO_Pin = B2_S_Pin;
+    button->Timer.Channel_List[0] = TIM_CHANNEL_2;
+    button->buttonPin.GPIO_Pin = B2_S_Pin;
     break;
   case 3:
     button->Channel_IC = HAL_TIM_ACTIVE_CHANNEL_3;
-    button->Channel = TIM_CHANNEL_3;
-    button->GPIO_Pin = B3_S_Pin;
-
+    button->Timer.Channel_List[0] = TIM_CHANNEL_3;
+    button->buttonPin.GPIO_Pin = B3_S_Pin;
     break;
 
   default:
     break;
   }
-
-  HAL_TIM_IC_Start_IT(button->Timer, button->Channel);
+  nECU_tim_IC_start(&button->Timer);
 }
 void ButtonInput_TimingEvent(TIM_HandleTypeDef *htim) // funtion called after input capture interrupt from timer
 {
@@ -287,17 +258,17 @@ void ButtonInput_Identify(TIM_HandleTypeDef *htim) // function to identify to wh
 }
 void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called after input capture callback (updates button structure)
 {
-  uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(button->Timer, button->Channel);
+  uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(button->Timer.htim, button->Timer.Channel_List[0]);
 
   /* Calculate difference */
   uint32_t Difference = 0;
   if (button->RisingCCR > CurrentCCR)
   {
-    Difference = ((0xffff - button->RisingCCR) + CurrentCCR) * 1000 / button->refClock;
+    Difference = ((button->Timer.htim->Init.Period - button->RisingCCR) + CurrentCCR) * 1000 / button->Timer.refClock;
   }
   else
   {
-    Difference = (CurrentCCR - button->RisingCCR) * 1000 / button->refClock;
+    Difference = (CurrentCCR - button->RisingCCR) * 1000 / button->Timer.refClock;
   }
 
   if (Difference < BUTTON_INPUT_MINIMUM_PULSE_TIME)
@@ -305,9 +276,9 @@ void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called a
     button->RisingCCR = CurrentCCR;
   }
 
-  button->State = HAL_GPIO_ReadPin(button->GPIOx, button->GPIO_Pin);
+  button->buttonPin.State = HAL_GPIO_ReadPin(button->buttonPin.GPIOx, button->buttonPin.GPIO_Pin);
 
-  if (button->State == (GPIO_PinState)SET) // Rising edge
+  if (button->buttonPin.State == (GPIO_PinState)SET) // Rising edge
   {
     if (Difference < BUTTON_INPUT_DOUBLE_CLICK_TIME)
     {
@@ -363,15 +334,11 @@ Button_ClickType ButtonInput_GetType(Button_ID id) // get click type if avaliabl
 }
 void ButtonInput_Stop(ButtonInput *button) // stop Input Capture for selected button
 {
-  HAL_TIM_IC_Stop_IT(button->Timer, button->Channel);
-}
-void ButtonInput_Stop_Timer(ButtonInput *button) // stops timer base
-{
-  HAL_TIM_Base_Stop_IT(button->Timer);
+  nECU_tim_IC_stop(&button->Timer);
 }
 /* BUTTON INPUT END */
 
-/* Menu specific functions */
+/* Animations */
 void ButtonLight_BreathAllOnce(void) // breath all button lights once
 {
   ButtonLight_Set_Breathe(&Red.light, 100, 2);
@@ -432,7 +399,7 @@ void ButtonLight_SetOne(Button_ID id, bool state) // set selected button
     Mode = BUTTON_MODE_RESTING;
   }
 
-  // if animation is not active then display state
+  // if animation is not active then display buttonPin.State
   switch (id)
   {
   case RED_BUTTON_ID:

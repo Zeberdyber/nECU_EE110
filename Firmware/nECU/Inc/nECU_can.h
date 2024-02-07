@@ -26,9 +26,7 @@ extern "C"
 #define CAN_RX_WHEELSPEED_ID 0x400 // CAN message ID for Wheel Speed
 #define CAN_RX_COOLANT_ID 0x401    // CAN message ID for Coolant Temperature
 
-  /* typedef */
-
-  /* Function Prototypes */
+    /* Function Prototypes */
   // General functions
   void nECU_CAN_Start(void);                                               // start periodic transmission of EGT and Speed sensor data
   void nECU_CAN_WriteToBuffer(uint8_t frameNumber, uint8_t *TxData_Frame); // copy input data to corresponding frame buffer

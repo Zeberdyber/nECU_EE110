@@ -15,8 +15,9 @@ extern "C"
 
 /* Includes */
 #include "main.h"
-#include "stdbool.h"
+#include "nECU_types.h"
 #include "spi.h"
+#include "nECU_spi.h"
 #include "gpio.h"
 
 /* Definitions */
@@ -24,31 +25,10 @@ extern "C"
 #define EGT_NEGATIVE_OFFSET 100     // How much to subtract from the result
 #define EGT_MAXIMUM_PENDING_COUNT 5 // How often at least the data have to be converted
 
-    /* typedef */
-    typedef struct
-    {
-        SPI_HandleTypeDef *hspi;
-        GPIO_TypeDef *GPIOx;
-        uint16_t GPIO_Pin;
-
-        uint8_t buffer[4];
-        uint8_t data_Pending;
-
-        bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error;
-        float InternalTemp, TcTemp;
-        uint16_t EGT_Temperature;
-    } MAX31855;
-
-    typedef struct
-    {
-        MAX31855 TC1, TC2, TC3, TC4;
-        MAX31855 *EGT_CurrentObj;
-        bool EGT_FirstSensor, EGT_Initialized;
-        uint8_t EGT_CurrentSensor;
-    } nECU_EGT;
-
-    /* Function Prototypes */
+        /* Function Prototypes */
     uint16_t *EGT_GetTemperaturePointer(uint8_t sensorNumber);                                           // get function that returns pointer to output data of sensor, ready for can transmission
+    bool *EGT_GetInitialized(void);                                                                      // get function to check if code was EGT_Initialized
+    bool *EGT_GetUpdateOngoing(void);                                                                    // get function to check if current comunication is ongoing
     void EGT_Start(void);                                                                                // initialize all sensors and start communication
     void EGT_GetSPIData(bool error);                                                                     // get data of all sensors
     void EGT_ConvertAll(void);                                                                           // convert data if pending
