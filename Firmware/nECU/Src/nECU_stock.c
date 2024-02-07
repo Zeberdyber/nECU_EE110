@@ -13,6 +13,8 @@ static AnalogSensor_Handle BackPressure;
 static Oxygen_Handle OX;
 static VSS_Handle VSS;
 static IGF_Handle IGF;
+static stock_GPIO stk_in;
+
 // initialized flags
 static bool MAP_Initialized = false, BackPressure_Initialized = false, OX_Initialized = false, VSS_Initialized = false, IGF_Initialized = false;
 // external import
@@ -293,7 +295,52 @@ void nECU_IGF_DeInit(void) // stop
         HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.IGF_Channel);
     }
 }
+/* GPIO inputs */
+void nECU_stock_GPIO_Init(void) // initialize structure variables
+{
+    stk_in.Cranking.GPIO_Pin = Cranking_Pin;
+    stk_in.Cranking.GPIOx = Cranking_GPIO_Port;
 
+    stk_in.Fan_ON.GPIO_Pin = Fan_ON_Pin;
+    stk_in.Fan_ON.GPIOx = Fan_ON_GPIO_Port;
+
+    stk_in.Lights_ON.GPIO_Pin = Lights_ON_Pin;
+    stk_in.Lights_ON.GPIOx = Lights_ON_GPIO_Port;
+}
+void nECU_stock_GPIO_update(void) // update structure variables
+{
+    stk_in.Cranking.State = HAL_GPIO_ReadPin(stk_in.Cranking.GPIOx, stk_in.Cranking.GPIO_Pin);
+    stk_in.Fan_ON.State = HAL_GPIO_ReadPin(stk_in.Fan_ON.GPIOx, stk_in.Fan_ON.GPIO_Pin);
+    stk_in.Lights_ON.State = HAL_GPIO_ReadPin(stk_in.Lights_ON.GPIOx, stk_in.Lights_ON.GPIO_Pin);
+    stk_in.Cranking_b = (bool)stk_in.Cranking.State;
+    stk_in.Fan_ON_b = (bool)stk_in.Fan_ON.State;
+    stk_in.Lights_ON_b = (bool)stk_in.Lights_ON.State;
+}
+bool *nECU_stock_GPIO_getPointer(stock_inputs_ID id) // return pointers of structure variables
+{
+    switch (id)
+    {
+    case INPUT_CRANKING_ID:
+        return &stk_in.Cranking_b;
+        break;
+    case INPUT_FAN_ON_ID:
+        return &stk_in.Fan_ON_b;
+        break;
+    case INPUT_LIGHTS_ON_ID:
+        return &stk_in.Lights_ON_b;
+        break;
+
+    default:
+        break;
+    }
+    return NULL;
+}
+/* Immobilizer */
+bool none = true;
+bool *nECU_Immo_getPointer(void) // returns pointer to immobilizer valid
+{
+    return &none;
+}
 /* General */
 void nECU_Stock_Start(void) // function to initialize all stock stuff
 {

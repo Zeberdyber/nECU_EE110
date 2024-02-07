@@ -183,12 +183,9 @@ typedef struct
 typedef struct
 {
     SPI_HandleTypeDef *hspi;
-    GPIO_TypeDef *GPIOx;
-    uint16_t GPIO_Pin;
-
-    uint8_t buffer[4];
-    uint8_t data_Pending;
-
+    GPIO_struct CS_pin;
+    uint8_t in_buffer[4];
+    bool data_Pending;
     bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error;
     float InternalTemp, TcTemp;
     uint16_t EGT_Temperature;
@@ -208,14 +205,11 @@ typedef struct
     float SpeedSensor2;
     float SpeedSensor3;
     float SpeedSensor4;
-
 } nECU_SpeedCalibrationData;
-
 typedef struct
 {
     uint8_t boolByte1;
 } nECU_UserSettings;
-
 typedef struct
 {
     nECU_SpeedCalibrationData speedData;
@@ -223,13 +217,12 @@ typedef struct
 } nECU_FlashContent;
 
 /* Frames */
-
 typedef struct
 {
-    bool Cranking, Fan_ON, Lights_ON, IgnitionKey;
     bool LunchControl1, LunchControl2, LunchControl3, RollingLunch;
 
     // outside variables
+    bool *Cranking, *Fan_ON, *Lights_ON, *IgnitionKey;
     bool *Antilag, *TractionOFF, *ClearEngineCode;
     bool *TachoShow1, *TachoShow2, *TachoShow3;
     uint16_t *LunchControlLevel;
@@ -335,7 +328,6 @@ typedef struct
     float OUT_MeasuredMax, OUT_MeasuredMin;
     float offset, factor;
 } AnalogSensorCalibration;
-
 typedef struct
 {
     AnalogSensorCalibration calibrationData;
@@ -387,6 +379,18 @@ typedef struct
     float frequency;
     uint16_t RPM, prevRPM;
 } IGF_Handle;
+typedef enum
+{
+    INPUT_CRANKING_ID = 1,
+    INPUT_FAN_ON_ID = 2,
+    INPUT_LIGHTS_ON_ID = 3,
+    INPUT_NONE_ID
+} stock_inputs_ID;
+typedef struct
+{
+    GPIO_struct Cranking, Fan_ON, Lights_ON;
+    bool Cranking_b, Fan_ON_b, Lights_ON_b;
+} stock_GPIO;
 
 /* Timer */
 typedef enum

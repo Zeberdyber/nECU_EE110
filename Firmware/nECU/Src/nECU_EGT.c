@@ -58,7 +58,7 @@ void EGT_GetSPIData(bool error) // get data of all sensors
 {
     if (EGT_variables.EGT_FirstSensor == false)
     {
-        nECU_SPI_Rx_DMA_Stop(EGT_variables.EGT_CurrentObj->GPIOx, &EGT_variables.EGT_CurrentObj->GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi); // turn off comunication for current MAX31855
+        nECU_SPI_Rx_DMA_Stop(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, &EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi); // turn off comunication for current MAX31855
     }
 
     EGT_variables.EGT_CurrentObj->data_Pending++;
@@ -97,7 +97,7 @@ void EGT_GetSPIData(bool error) // get data of all sensors
         return;
         break;
     }
-    nECU_SPI_Rx_DMA_Start(EGT_variables.EGT_CurrentObj->GPIOx, &EGT_variables.EGT_CurrentObj->GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->buffer, 4); // start reciving data
+    nECU_SPI_Rx_DMA_Start(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, &EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->in_buffer, 4); // start reciving data
 }
 void EGT_ConvertAll(void) // convert data if pending
 {
@@ -173,9 +173,9 @@ void MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx,
     inst->TcTemp = 0;
 
     inst->hspi = hspi;
-    inst->GPIOx = GPIOx;
-    inst->GPIO_Pin = GPIO_Pin;
-    HAL_GPIO_WritePin(inst->GPIOx, inst->GPIO_Pin, SET);
+    inst->CS_pin.GPIOx = GPIOx;
+    inst->CS_pin.GPIO_Pin = GPIO_Pin;
+    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, SET);
 }
 uint8_t MAX31855_getError(MAX31855 *inst) // get current error value
 {
@@ -188,32 +188,32 @@ uint8_t MAX31855_getError(MAX31855 *inst) // get current error value
 }
 void MAX31855_UpdateSimple(MAX31855 *inst) // Recive data over SPI and convert it into struct, dont use while in DMA mode
 {
-    HAL_GPIO_WritePin(inst->GPIOx, inst->GPIO_Pin, RESET);
-    HAL_SPI_Receive(inst->hspi, (uint8_t *)inst->buffer, 4, 100);
+    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, RESET);
+    HAL_SPI_Receive(inst->hspi, (uint8_t *)inst->in_buffer, 4, 100);
     inst->data_Pending++;
-    HAL_GPIO_WritePin(inst->GPIOx, inst->GPIO_Pin, SET);
+    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, SET);
     MAX31855_ConvertData(inst);
 }
 void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and data interpretation
 {
-    inst->OC_Fault = (inst->buffer[3] >> 0) & 0x01;
-    inst->SCG_Fault = (inst->buffer[3] >> 1) & 0x01;
-    inst->SCV_Fault = (inst->buffer[3] >> 2) & 0x01;
-    inst->Data_Error = (inst->buffer[3] >> 3) || (inst->buffer[1] >> 7) & 0x01;
+    inst->OC_Fault = (inst->in_buffer[3] >> 0) & 0x01;
+    inst->SCG_Fault = (inst->in_buffer[3] >> 1) & 0x01;
+    inst->SCV_Fault = (inst->in_buffer[3] >> 2) & 0x01;
+    inst->Data_Error = (inst->in_buffer[3] >> 3) || (inst->in_buffer[1] >> 7) & 0x01;
     inst->InternalTemp = 99;
     inst->TcTemp = 1123;
 
     if (inst->Data_Error == false)
     {
-        if (inst->buffer[0] & 0x80) // negative sign
-            inst->TcTemp = ((((inst->buffer[0] ^ 0xFF) << 6) | ((inst->buffer[1] ^ 0xFF) >> 2)) + 1) * -0.25;
+        if (inst->in_buffer[0] & 0x80) // negative sign
+            inst->TcTemp = ((((inst->in_buffer[0] ^ 0xFF) << 6) | ((inst->in_buffer[1] ^ 0xFF) >> 2)) + 1) * -0.25;
         else
-            inst->TcTemp = ((inst->buffer[0] << 6) | (inst->buffer[1] >> 2)) * 0.25;
+            inst->TcTemp = ((inst->in_buffer[0] << 6) | (inst->in_buffer[1] >> 2)) * 0.25;
 
-        if (inst->buffer[2] & 0x80) // negative sign
-            inst->InternalTemp = ((((inst->buffer[2] ^ 0xFF) << 4) | ((inst->buffer[3] ^ 0xFF) >> 4)) + 1) * -0.0625;
+        if (inst->in_buffer[2] & 0x80) // negative sign
+            inst->InternalTemp = ((((inst->in_buffer[2] ^ 0xFF) << 4) | ((inst->in_buffer[3] ^ 0xFF) >> 4)) + 1) * -0.0625;
         else
-            inst->InternalTemp = ((inst->buffer[2] << 4) | (inst->buffer[3] >> 4)) * 0.0625;
+            inst->InternalTemp = ((inst->in_buffer[2] << 4) | (inst->in_buffer[3] >> 4)) * 0.0625;
     }
     inst->data_Pending = 0;
 }

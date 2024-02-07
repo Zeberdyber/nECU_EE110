@@ -73,6 +73,12 @@ extern "C"
     void nECU_IGF_Init(void);   // initialize and start
     void nECU_IGF_Calc(void);   // calculate RPM based on IGF signal, detect missfire
     void nECU_IGF_DeInit(void); // stop
+    /* GPIO inputs */
+    void nECU_stock_GPIO_Init(void);                      // initialize structure variables
+    void nECU_stock_GPIO_update(void);                    // update structure variables
+    bool *nECU_stock_GPIO_getPointer(stock_inputs_ID id); // return pointers of structure variables
+    /* Immobilizer */
+    bool *nECU_Immo_getPointer(void); // returns pointer to immobilizer valid
     /* General */
     void nECU_Stock_Start(void);  // function to initialize all stock stuff
     void nECU_Stock_Stop(void);   // function to deinitialize all stock stuff
