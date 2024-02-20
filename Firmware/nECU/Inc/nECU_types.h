@@ -226,7 +226,7 @@ typedef struct
     bool *Antilag, *TractionOFF, *ClearEngineCode;
     bool *TachoShow1, *TachoShow2, *TachoShow3;
     uint16_t *LunchControlLevel;
-    uint16_t *Speed1, *Speed2, *Speed3, *Speed4;
+    uint16_t *Speed_FL, *Speed_FR, *Speed_RL, *Speed_RR;
 } Frame0_struct;
 typedef struct
 {
@@ -289,6 +289,14 @@ typedef struct
 } ButtonMenu;
 
 /* Speed */
+typedef enum
+{
+    SPEED_SENSOR_FRONT_LEFT = 1,
+    SPEED_SENSOR_FRONT_RIGHT = 2,
+    SPEED_SENSOR_REAR_LEFT = 3,
+    SPEED_SENSOR_REAR_RIGHT = 4,
+    SPEED_SENSOR_NONE_ID
+} Speed_Sensor_ID; // Here update if connected otherwise
 typedef struct
 {
     uint16_t Buffer[SPEED_AVERAGE_BUFFER_SIZE];

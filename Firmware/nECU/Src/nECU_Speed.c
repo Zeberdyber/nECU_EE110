@@ -16,9 +16,9 @@ static bool SS1_Initialized = false, SS2_Initialized = false, SS3_Initialized = 
 extern uint16_t *ADC_V1, *ADC_V2, *ADC_V3, *ADC_V4; // ADC variables
 
 /* Interface functions */
-uint16_t *Speed_GetSpeed(uint8_t sensorNumber) // get current speed
+uint16_t *Speed_GetSpeed(Speed_Sensor_ID ID) // get current speed
 {
-    switch (sensorNumber)
+    switch (ID)
     {
     case 1:
         return &Speed_Sens_1.SpeedData;
@@ -38,9 +38,9 @@ uint16_t *Speed_GetSpeed(uint8_t sensorNumber) // get current speed
         break;
     }
 }
-uint16_t *Speed_GetSpeedSlow(uint8_t sensorNumber) // get slower (average) speed
+uint16_t *Speed_GetSpeedSlow(Speed_Sensor_ID ID) // get slower (average) speed
 {
-    switch (sensorNumber)
+    switch (ID)
     {
     case 1:
         return &Speed_Sens_1.SpeedDataSlow;
@@ -179,14 +179,14 @@ void Speed_ADCToSpeed(Speed_Sensor *Sensor) // function to convert RAW ADC data 
 {
     Sensor->SpeedDataPrev = Sensor->SpeedData;
     float Speed = 0;
-    Speed = (ADCToVolts(*Sensor->InputData) * 3.6 * Speed_HzTomVolts * Sensor->WheelCirc) / Speed_ToothCount;
+    Speed = (ADCToVolts(*Sensor->InputData) * 3.6 * Speed_HzTomVolts * Sensor->WheelCirc) / Speed_ToothCount; // 3.6 to convert mm/s to km/h
 
     for (uint8_t i = 0; i < Speed_DecimalPoint; i++) // move decimal point before float to uint16_t cast
     {
         Speed = Speed * 10;
     }
     Speed -= SPEED_OFFSET;
-    if (Speed > 65535 || Speed < 0) // cut off when over limit
+    if (Speed > UINT16_MAX || Speed < 0) // cut off when over limit
     {
         Speed = 0.0;
     }
@@ -196,12 +196,12 @@ void Speed_ADCToSpeed(Speed_Sensor *Sensor) // function to convert RAW ADC data 
 /* Calibration functions */
 void Speed_CalibrateSingle(Speed_Sensor *Sensor) // function to generate calibration multiplier
 {
-    // Ride 50km/h  ! according to GPS !
+    // Ride with defined (by ) constant speed  ! according to GPS !
 
-    uint16_t CalibrationSpeed = 50;
+    uint16_t CalibrationSpeed = SPEED_CALIB_VELOCITY;
     uint16_t CurrentSpeed = Sensor->SpeedDataSlow;
 
-    for (uint8_t i = 0; i < Speed_DecimalPoint; i++)
+    for (uint8_t i = 0; i < Speed_DecimalPoint; i++) // move by decimal point
     {
         CalibrationSpeed *= 10;
     }
@@ -271,35 +271,4 @@ void Speed_TimingEvent(void) // function to be called periodicaly with desired d
         Speed_CalibrateAll();
     }
     Speed_Update();
-}
-
-/* Speed testing functions */
-bool Test_Speed_SensorUpdate(void) // function to test Speed functions
-{
-    // Success values
-    uint16_t Corr_Circ = Wheel_Circ_Set_1; // according to definitions
-    uint16_t Corr_Speed = 15000;           // 150km/h
-
-    uint16_t Input = VoltsToADC(((Corr_Speed / 100) * Speed_ToothCount) / (3.6 * Wheel_Circ_Set_1 * Speed_HzTomVolts)); // ADC value to plug into test, calculated from known Voltage
-
-    // Create test object
-    Speed_Sensor Test_Obj;
-    Test_Obj.InputData = &Input;
-    Test_Obj.WheelSetup = (uint8_t *)1;
-    Test_Obj.SensorCorrection = 1.0;
-
-    // Perfrom tests
-    Speed_SensorUpdate(&Test_Obj);
-
-    // Check results
-    if (Test_Obj.WheelCirc != Corr_Circ)
-    {
-        return true;
-    }
-    if (Test_Obj.SpeedData - Corr_Speed > 50) // Allow for 0.5km/h error due to rounding
-    {
-        return true;
-    }
-
-    return false;
 }

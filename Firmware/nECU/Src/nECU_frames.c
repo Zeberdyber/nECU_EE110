@@ -18,10 +18,10 @@ extern uint16_t loopCounter;
 /* Frame 0 */
 void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *pAntilag, bool *pTractionOFF, bool *pClearEngineCode, uint16_t *pLunchControlLevel) // initialization of data structure
 {
-    F0_var.Speed1 = Speed_GetSpeed(1);
-    F0_var.Speed2 = Speed_GetSpeed(2);
-    F0_var.Speed3 = Speed_GetSpeed(3);
-    F0_var.Speed4 = Speed_GetSpeed(4);
+    F0_var.Speed_FL = Speed_GetSpeed(SPEED_SENSOR_FRONT_LEFT);
+    F0_var.Speed_FR = Speed_GetSpeed(SPEED_SENSOR_FRONT_RIGHT);
+    F0_var.Speed_RL = Speed_GetSpeed(SPEED_SENSOR_REAR_LEFT);
+    F0_var.Speed_RR = Speed_GetSpeed(SPEED_SENSOR_REAR_RIGHT);
     F0_var.TachoShow1 = pTachoShow1;
     F0_var.TachoShow2 = pTachoShow2;
     F0_var.TachoShow3 = pTachoShow3;
@@ -67,10 +67,10 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
     Frame0_Update();
     uint8_t TxFrame[8];
-    Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, F0_var.Speed1);
-    Frame0_ComposeWord(&TxFrame[2], F0_var.ClearEngineCode, F0_var.TachoShow3, F0_var.TachoShow2, F0_var.TachoShow1, F0_var.Speed2);
-    Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl3, &F0_var.LunchControl2, &F0_var.LunchControl1, F0_var.Speed3);
-    Frame0_ComposeWord(&TxFrame[6], &ZeroBool, &ZeroBool, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed4);
+    Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, F0_var.Speed_FL);
+    Frame0_ComposeWord(&TxFrame[2], F0_var.ClearEngineCode, F0_var.TachoShow3, F0_var.TachoShow2, F0_var.TachoShow1, F0_var.Speed_FR);
+    Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl3, &F0_var.LunchControl2, &F0_var.LunchControl1, F0_var.Speed_RL);
+    Frame0_ComposeWord(&TxFrame[6], &ZeroBool, &ZeroBool, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed_RR);
     nECU_CAN_WriteToBuffer(0, TxFrame);
     *F0_var.ClearEngineCode = false;
 }
