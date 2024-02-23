@@ -308,7 +308,6 @@ typedef struct
     uint8_t *WheelSetup;
     float SensorCorrection;
     uint16_t SpeedData;
-    uint16_t SpeedDataPrev;
     uint16_t SpeedDataSlow;
     uint16_t WheelCirc;
     SpeedAverage Average;

@@ -177,7 +177,6 @@ void Speed_CorrectToCalib(Speed_Sensor *Sensor) // correct data to calibration m
 }
 void Speed_ADCToSpeed(Speed_Sensor *Sensor) // function to convert RAW ADC data to real speed in km/h
 {
-    Sensor->SpeedDataPrev = Sensor->SpeedData;
     float Speed = 0;
     Speed = (ADCToVolts(*Sensor->InputData) * 3.6 * Speed_HzTomVolts * Sensor->WheelCirc) / Speed_ToothCount; // 3.6 to convert mm/s to km/h
 
@@ -190,7 +189,10 @@ void Speed_ADCToSpeed(Speed_Sensor *Sensor) // function to convert RAW ADC data 
     {
         Speed = 0.0;
     }
-    Sensor->SpeedData = Sensor->SpeedDataPrev + SPEED_EXP_ALPHA * ((uint16_t)Speed - Sensor->SpeedDataPrev);
+    uint16_t speed_now = Speed;
+
+    // smooth the signal
+    nECU_ADC_expSmooth(&(speed_now), &(Sensor->SpeedData), 1, SPEED_EXP_ALPHA); // 1 for only one variable to smooth
 }
 
 /* Calibration functions */

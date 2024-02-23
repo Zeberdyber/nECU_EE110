@@ -94,7 +94,7 @@
 [ ] PWM_Out swap for timer
 
 [ ] IC freq function
-[ ] remove exp_smoothing from Speed_ADCToSpeed
+[X] remove exp_smoothing from Speed_ADCToSpeed (used ADC_smooth function)
 [X] check igf with 16-1 filtering
 
 [ ] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
