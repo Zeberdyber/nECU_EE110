@@ -78,23 +78,28 @@
     [ ] PWM (ox heater, button output)
     [ ] IC (button inputs, ...)
 
-[ ] timer rewrite to reuse functions
+[X] timer rewrite to reuse functions
     [X] PWM functions
-    [ ] IC functions
+    [X] IC functions
+    [X] base timer functions
 
-[ ] use new timer in files
-    [ ] stock
-    [ ] button
+[X] use new timer in files
+    [X] stock
+    [X] button
+    [X] can
+
 
 [ ] in watchdogs use pointers to timers from starting files
 
 [ ] upToDate internal temperature
-[ ] Clean typedefs
+[X] Clean typedefs
 
-[ ] PWM_Out swap for timer
+[X] PWM_Out swap for timer
 
 [ ] IC freq function
 [X] remove exp_smoothing from Speed_ADCToSpeed (used ADC_smooth function)
 [X] check igf with 16-1 filtering
 
 [ ] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
+
+[ ] loopcounter as separate functions (in debug file)

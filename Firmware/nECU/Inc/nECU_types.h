@@ -56,13 +56,13 @@ typedef struct
 
 typedef struct
 {
-    uint32_t value;
-    uint32_t preset;
+    uint32_t value;  // current value
+    uint32_t preset; // preset value
 } Counter;
 
 typedef struct
 {
-    TIM_HandleTypeDef *htim;
+    TIM_HandleTypeDef *htim;  // periperal pointer
     float refClock;           // in Hz (pre calculated on initialization)
     float period;             // in ms (pre calculated on initialization)
     uint32_t Channel_List[4]; // list of configured channels
@@ -76,10 +76,10 @@ typedef struct
 } GPIO_struct;
 typedef struct
 {
-    uint32_t timeSet;
-    uint32_t timeStart;
-    bool done;
-    bool active;
+    uint32_t timeSet;   // time to wait in ticks
+    uint32_t timeStart; // tick at which delay started
+    bool done;          // delay ended
+    bool active;        // delay counting or ended
 } nECU_Delay;
 
 /* ADCs */
@@ -132,11 +132,11 @@ typedef enum
 } Button_ID;
 typedef enum
 {
-    BUTTON_MODE_OFF = 0,
-    BUTTON_MODE_RESTING = 1,
-    BUTTON_MODE_GO_TO_REST = 2,
-    BUTTON_MODE_ANIMATED = 3, // breathing or blinking
-    BUTTON_MODE_ON = 5,
+    BUTTON_MODE_OFF = 0,        // turned off
+    BUTTON_MODE_RESTING = 1,    // brightness decreased
+    BUTTON_MODE_GO_TO_REST = 2, // animation of fading down to rest state
+    BUTTON_MODE_ANIMATED = 3,   // breathing or blinking
+    BUTTON_MODE_ON = 5,         // turned on
     BUTTON_MODE_NONE
 } ButtonLight_Mode;
 typedef struct
@@ -182,20 +182,20 @@ typedef struct
 /* EGT */
 typedef struct
 {
-    SPI_HandleTypeDef *hspi;
-    GPIO_struct CS_pin;
-    uint8_t in_buffer[4];
-    bool data_Pending;
-    bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error;
-    float InternalTemp, TcTemp;
-    uint16_t EGT_Temperature;
+    SPI_HandleTypeDef *hspi;                         // peripheral pointer
+    GPIO_struct CS_pin;                              // GPIO for Chip Select
+    uint8_t in_buffer[4];                            // recived data buffer
+    bool data_Pending;                               // data was recieved and is pending to be decoded
+    bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error; // Thermocouple state / data validity
+    float InternalTemp, TcTemp;                      // temperature of ADC chip, thermocouple temperature
+    uint16_t EGT_Temperature;                        // output temperature
 } MAX31855;
 typedef struct
 {
-    MAX31855 TC1, TC2, TC3, TC4;
-    MAX31855 *EGT_CurrentObj;
-    bool EGT_FirstSensor, EGT_Initialized, EGT_CommunicationOngoing;
-    uint8_t EGT_CurrentSensor;
+    MAX31855 TC1, TC2, TC3, TC4;                                     // sensor structures
+    MAX31855 *EGT_CurrentObj;                                        // current object pointer (for sensor asking loop)
+    bool EGT_FirstSensor, EGT_Initialized, EGT_CommunicationOngoing; // flags to indicate state
+    uint8_t EGT_CurrentSensor;                                       // number of current sensor (for sensor asking loop)
 } nECU_EGT;
 
 /* Flash */
@@ -208,7 +208,7 @@ typedef struct
 } nECU_SpeedCalibrationData;
 typedef struct
 {
-    uint8_t boolByte1;
+    uint8_t boolByte1; // byte that holds states of user settings (combined boolean to bytes)
 } nECU_UserSettings;
 typedef struct
 {
@@ -219,7 +219,23 @@ typedef struct
 /* Frames */
 typedef struct
 {
-    bool LunchControl1, LunchControl2, LunchControl3, RollingLunch;
+    uint32_t Mailbox;           // mailbox responsible for message
+    CAN_TxHeaderTypeDef Header; // header data of CAN frame
+    uint8_t Send_Buffer[8];     // message content
+} nECU_CAN_TxFrame;
+typedef enum
+{
+    nECU_Frame_Speed = 0,
+    nECU_Frame_EGT = 1,
+    nECU_Frame_Stock = 2,
+    nECU_Frame_NULL
+} nECU_CAN_Frame_ID;
+typedef struct
+{
+    nECU_CAN_TxFrame can_data; // peripheral data
+    nECU_Timer send_timing;    // timer structure
+
+    bool LunchControl1, LunchControl2, LunchControl3, RollingLunch; // flags from decoding
 
     // outside variables
     bool *Cranking, *Fan_ON, *Lights_ON, *IgnitionKey;
@@ -230,12 +246,20 @@ typedef struct
 } Frame0_struct;
 typedef struct
 {
+    nECU_CAN_TxFrame can_data; // peripheral data
+    nECU_Timer send_timing;    // timer structure
+
+    // outside variables
     uint16_t *EGT1, *EGT2, *EGT3, *EGT4;
     uint8_t *TachoVal1, *TachoVal2, *TachoVal3;
     uint16_t *TuneSelector;
 } Frame1_struct;
 typedef struct
 {
+    nECU_CAN_TxFrame can_data; // peripheral data
+    nECU_Timer send_timing;    // timer structure
+
+    // outside variables
     uint8_t *Backpressure, *OX_Val;
     uint16_t *MAP_Stock_10bit;
     uint8_t *Knock;
@@ -272,11 +296,11 @@ typedef struct
 /* Menu */
 typedef struct
 {
-    bool showPending;
-    uint16_t *input_value;
-    uint16_t prev_input;
-    uint8_t output_value;
-    uint8_t output_multiplier;
+    bool showPending;          // flag indicates that data was not displayed
+    uint16_t *input_value;     // pointer to source value
+    uint16_t prev_input;       // stored previous value
+    uint8_t output_value;      // output value that will be sent over CAN
+    uint8_t output_multiplier; // factor to multiply the output value by
 } TachoValue;
 typedef struct
 {
@@ -299,73 +323,65 @@ typedef enum
 } Speed_Sensor_ID; // Here update if connected otherwise
 typedef struct
 {
-    uint16_t Buffer[SPEED_AVERAGE_BUFFER_SIZE];
-    uint8_t BufferIndex;
+    uint16_t Buffer[SPEED_AVERAGE_BUFFER_SIZE]; // buffer to be filled with ADC data
+    uint8_t BufferIndex;                        // current index at which data should be plugged
 } SpeedAverage;
 typedef struct
 {
-    uint16_t *InputData;
-    uint8_t *WheelSetup;
-    float SensorCorrection;
-    uint16_t SpeedData;
-    uint16_t SpeedDataSlow;
-    uint16_t WheelCirc;
-    SpeedAverage Average;
+    uint16_t *InputData;    // pointer to ADC input data
+    uint8_t *WheelSetup;    // pointer to current wheel setup selected
+    float SensorCorrection; // factor by which result will be multiplied to correct by calibration
+    uint16_t SpeedData;     // output speed
+    uint16_t SpeedDataSlow; // output speed, averaged from multiple measuerements
+    uint16_t WheelCirc;     // circumference of wheel (according to wheel setup)
+    SpeedAverage Average;   // averaging structure
 } Speed_Sensor;
 typedef struct
 {
-    bool active;
-    bool initialized;
-    bool averageReady[4];
+    bool active;          // routine is running
+    bool initialized;     // properly initialized ready to collect data
+    bool averageReady[4]; // flags indicating end of data collection on each sensor
 } CalibrateRoutine;
 
 /* Stock */
 typedef struct
 {
-    uint16_t ADC_MeasuredMax, ADC_MeasuredMin;
-    float OUT_MeasuredMax, OUT_MeasuredMin;
-    float offset, factor;
+    uint16_t ADC_MeasuredMax, ADC_MeasuredMin; // limits of ADC readout
+    float OUT_MeasuredMax, OUT_MeasuredMin;    // limits of resulting output
+    float offset, factor;                      // offset that is added to result, factor by which output is multiplied
 } AnalogSensorCalibration;
 typedef struct
 {
-    AnalogSensorCalibration calibrationData;
-    uint16_t *ADC_input;
-    uint16_t decimalPoint;
-    float outputFloat;
-    uint16_t output16bit;
-    uint8_t output8bit;
+    AnalogSensorCalibration calibrationData; // calibration structure
+    uint16_t *ADC_input;                     // pointer to ADC input data
+    uint16_t decimalPoint;                   // decimal point indicator to store floating point as uint16_t
+    float outputFloat;                       // resulting value in float
+    uint16_t output16bit;                    // resulting value in 16bit
+    uint8_t output8bit;                      // resulting value in 8bit
 } AnalogSensor_Handle;
 
 typedef struct
 {
-    TIM_HandleTypeDef *Timer; // Timer used for PWM
-    uint32_t Channel;         // Timers channel used
-    float Infill;             // infill of PWM signal
-} PWM_Out;
-typedef struct
-{
-    PWM_Out Heater;
-    AnalogSensor_Handle sensor;
-    uint8_t *Coolant;
-    float Infill_max, Infill_min;
-    float Coolant_max, Coolant_min;
+    nECU_Timer Heater;              // timer structure
+    float Heater_Infill;            // infill of PWM signal
+    AnalogSensor_Handle sensor;     // Analog sensor structure
+    uint8_t *Coolant;               // pointer to coolant temperature
+    float Infill_max, Infill_min;   // ranges of heater infill
+    float Coolant_max, Coolant_min; // ranges of coolant temperature
 } Oxygen_Handle;
-
 typedef struct
 {
-    nECU_Timer tim;
-    uint32_t VSS_prevCCR;
-    float frequency;
-    uint8_t Speed;
-    uint16_t watchdogCount;
+    nECU_Timer tim;       // timer structure
+    uint32_t VSS_prevCCR; // previous CCR readout
+    float frequency;      // calculated frequency of interrupts
+    uint8_t Speed;        // resulting speed
 } VSS_Handle;
-
 typedef struct
 {
-    nECU_Timer tim;
-    uint32_t IGF_prevCCR;
-    float frequency;
-    uint16_t RPM;
+    nECU_Timer tim;       // timer structure
+    uint32_t IGF_prevCCR; // previous CCR readout
+    float frequency;      // calculated frequency of interrupts
+    uint16_t RPM;         // resulting RPM
 } IGF_Handle;
 typedef enum
 {
@@ -376,8 +392,8 @@ typedef enum
 } stock_inputs_ID;
 typedef struct
 {
-    GPIO_struct Cranking, Fan_ON, Lights_ON;
-    bool Cranking_b, Fan_ON_b, Lights_ON_b;
+    GPIO_struct Cranking, Fan_ON, Lights_ON; // structues for stock GPIO inputs
+    bool Cranking_b, Fan_ON_b, Lights_ON_b;  // boolean states of GPIO inputs
 } stock_GPIO;
 
 /* Timer */
@@ -388,7 +404,6 @@ typedef enum
     TIM_ERROR = 2,
     TIM_NULL
 } nECU_TIM_State;
-
 typedef struct
 {
     nECU_Timer tim;

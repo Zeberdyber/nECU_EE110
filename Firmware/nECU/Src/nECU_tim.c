@@ -209,6 +209,24 @@ nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim) // function to stop IC on selec
   }
   return result;
 }
+nECU_TIM_State nECU_tim_base_start(nECU_Timer *tim) // function to start base of selected timer
+{
+  nECU_TIM_State result = TIM_OK;
+  if (HAL_TIM_Base_Start_IT(&(tim->htim)))
+  {
+    result = TIM_ERROR; // indicate if not successful
+  }
+  return result;
+}
+nECU_TIM_State nECU_tim_base_stop(nECU_Timer *tim) // function to stop base of selected timer
+{
+  nECU_TIM_State result = TIM_OK;
+  if (HAL_TIM_Base_Stop_IT(&(tim->htim)))
+  {
+    result = TIM_ERROR; // indicate if not successful
+  }
+  return result;
+}
 
 void nECU_tim_Init_struct(nECU_Timer *tim) // initialize structure and precalculate variables
 {

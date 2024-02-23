@@ -61,11 +61,13 @@ extern "C"
   void nECU_Knock_Delay_Start(float *rpm); // start non-blocking delay for knock
 
   /* general nECU timer functions */
-  nECU_TIM_State nECU_tim_PWM_start(nECU_Timer *tim); // function to start PWM on selected timer
-  nECU_TIM_State nECU_tim_PWM_stop(nECU_Timer *tim);  // function to stop PWM on selected timer
-  nECU_TIM_State nECU_tim_IC_start(nECU_Timer *tim);  // function to start IC on selected timer
-  nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim);   // function to stop IC on selected timer
-  void nECU_tim_Init_struct(nECU_Timer *tim);         // initialize structure and precalculate variables
+  nECU_TIM_State nECU_tim_PWM_start(nECU_Timer *tim);  // function to start PWM on selected timer
+  nECU_TIM_State nECU_tim_PWM_stop(nECU_Timer *tim);   // function to stop PWM on selected timer
+  nECU_TIM_State nECU_tim_IC_start(nECU_Timer *tim);   // function to start IC on selected timer
+  nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim);    // function to stop IC on selected timer
+  nECU_TIM_State nECU_tim_base_start(nECU_Timer *tim); // function to start base of selected timer
+  nECU_TIM_State nECU_tim_base_stop(nECU_Timer *tim);  // function to stop base of selected timer
+  void nECU_tim_Init_struct(nECU_Timer *tim);          // initialize structure and precalculate variables
 
   /* Watchdog for timers detection */
   void nECU_tim_Watchdog_Init(void);                                 // initialize structure
