@@ -180,6 +180,14 @@ typedef struct
 } OnBoardLED;
 
 /* EGT */
+typedef enum
+{
+    EGT_CYL1 = 1,
+    EGT_CYL2 = 2,
+    EGT_CYL3 = 3,
+    EGT_CYL4 = 4,
+    EGT_CYL_NONE
+} EGT_Sensor_ID;
 typedef struct
 {
     SPI_HandleTypeDef *hspi;                         // peripheral pointer
@@ -294,6 +302,13 @@ typedef struct
 } nECU_Knock;
 
 /* Menu */
+typedef enum
+{
+    TACHO_SHOW_1 = 1,
+    TACHO_SHOW_2 = 2,
+    TACHO_SHOW_3 = 3,
+    TACHO_SHOW_NONE
+} Tacho_ID;
 typedef struct
 {
     bool showPending;          // flag indicates that data was not displayed
@@ -359,7 +374,6 @@ typedef struct
     uint16_t output16bit;                    // resulting value in 16bit
     uint8_t output8bit;                      // resulting value in 8bit
 } AnalogSensor_Handle;
-
 typedef struct
 {
     nECU_Timer Heater;              // timer structure

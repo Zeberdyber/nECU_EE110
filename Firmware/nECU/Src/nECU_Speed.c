@@ -185,7 +185,7 @@ void Speed_ADCToSpeed(Speed_Sensor *Sensor) // function to convert RAW ADC data 
         Speed = Speed * 10;
     }
     Speed -= SPEED_OFFSET;
-    if (Speed > UINT16_MAX || Speed < 0) // cut off when over limit
+    if (Speed > (float)UINT16_MAX || Speed < 0) // cut off when over limit
     {
         Speed = 0.0;
     }

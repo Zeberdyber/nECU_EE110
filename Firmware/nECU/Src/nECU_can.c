@@ -54,30 +54,25 @@ void nECU_CAN_Start(void) // start periodic transmission of data accroding to th
 }
 void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
 {
+  nECU_CAN_TxFrame *pFrame;
   switch (frameID)
   {
   case nECU_Frame_Speed:
-    for (uint8_t i = 0; i < F0_var.can_data.Header.DLC; i++)
-    {
-      F0_var.can_data.Send_Buffer[i] = TxData_Frame[i];
-    }
+    pFrame = &F0_var.can_data;
     break;
   case nECU_Frame_EGT:
-    for (uint8_t i = 0; i < F1_var.can_data.Header.DLC; i++)
-    {
-      F1_var.can_data.Send_Buffer[i] = TxData_Frame[i];
-    }
+    pFrame = &F1_var.can_data;
     break;
   case nECU_Frame_Stock:
-    for (uint8_t i = 0; i < F2_var.can_data.Header.DLC; i++)
-    {
-      F2_var.can_data.Send_Buffer[i] = TxData_Frame[i];
-    }
+    pFrame = &F2_var.can_data;
     break;
-
   default:
     CAN_Code_Error = 1;
     break;
+  }
+  for (uint8_t i = 0; i < pFrame->Header.DLC; i++)
+  {
+    pFrame->Send_Buffer[i] = TxData_Frame[i];
   }
 }
 void nECU_CAN_Stop(void) // stop all CAN code, with timing
@@ -106,31 +101,32 @@ void nECU_CAN_TimerEvent(TIM_HandleTypeDef *htim) // funtion called after period
 }
 void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for selected frame
 {
+  nECU_CAN_TxFrame *pFrame;
+
   switch (frameID)
   {
   case nECU_Frame_Speed:
-    F0_var.can_data.Header.IDE = CAN_ID_STD;
-    F0_var.can_data.Header.StdId = CAN_TX_FRAME0_ID;
-    F0_var.can_data.Header.RTR = CAN_RTR_DATA;
-    F0_var.can_data.Header.DLC = 8;
+    pFrame = &F0_var.can_data;
+    pFrame->Header.StdId = CAN_TX_FRAME0_ID;
     break;
   case nECU_Frame_EGT:
-    F1_var.can_data.Header.IDE = CAN_ID_STD;
-    F1_var.can_data.Header.StdId = CAN_TX_FRAME1_ID;
-    F1_var.can_data.Header.RTR = CAN_RTR_DATA;
-    F1_var.can_data.Header.DLC = 8;
+    pFrame = &F1_var.can_data;
+    pFrame->Header.StdId = CAN_TX_FRAME1_ID;
     break;
   case nECU_Frame_Stock:
-    F2_var.can_data.Header.IDE = CAN_ID_STD;
-    F2_var.can_data.Header.StdId = CAN_TX_FRAME2_ID;
-    F2_var.can_data.Header.RTR = CAN_RTR_DATA;
-    F2_var.can_data.Header.DLC = 8;
+    pFrame = &F2_var.can_data;
+    pFrame->Header.StdId = CAN_TX_FRAME2_ID;
     break;
 
   default:
     CAN_Code_Error = 1;
     break;
   }
+
+  pFrame->Header.IDE = CAN_ID_STD;
+  pFrame->Header.RTR = CAN_RTR_DATA;
+  pFrame->Header.DLC = 8; // 8 bytes in length
+
   if (!CAN_Running) // If not running start the peripheral
   {
     if (HAL_CAN_Start(&hcan1) == HAL_OK)
@@ -147,33 +143,28 @@ uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame
   }
   else
   {
+    nECU_CAN_TxFrame *pFrame;
     switch (frameID)
     {
     case nECU_Frame_Speed:
-      // if (HAL_CAN_IsTxMessagePending(&hcan1, &(F0_var.can_data.Mailbox)) == 0) // Check if CAN mailbox empty, then send
-      // {
-      HAL_CAN_AddTxMessage(&hcan1, &(F0_var.can_data.Header), F0_var.can_data.Send_Buffer, &(F0_var.can_data.Mailbox)); // Transmit the data
-      return 1;
-      // }
+      pFrame = &F0_var.can_data;
       break;
     case nECU_Frame_EGT:
-      // if (HAL_CAN_IsTxMessagePending(&hcan1, &(F1_var.can_data.Mailbox)) == 0) // Check if CAN mailbox empty, then send
-      // {
-      HAL_CAN_AddTxMessage(&hcan1, &F1_var.can_data.Header, F1_var.can_data.Send_Buffer, &(F1_var.can_data.Mailbox)); // Transmit the data
-      return 1;
-      // }
+      pFrame = &F1_var.can_data;
       break;
     case nECU_Frame_Stock:
-      // if (HAL_CAN_IsTxMessagePending(&hcan1, &(F2_var.can_data.Mailbox)) == 0) // Check if CAN mailbox empty, then send
-      // {
-      HAL_CAN_AddTxMessage(&hcan1, &F2_var.can_data.Header, F2_var.can_data.Send_Buffer, &(F2_var.can_data.Mailbox)); // Transmit the data
-      return 1;
-      // }
+      pFrame = &F2_var.can_data;
       break;
     default:
       CAN_Code_Error = 1;
+      return 0;
       break;
     }
+    // if (HAL_CAN_IsTxMessagePending(&hcan1, &(F2_var.can_data.Mailbox)) == 0) // Check if CAN mailbox empty, then send
+    // {
+    HAL_CAN_AddTxMessage(&hcan1, &(pFrame->Header), pFrame->Send_Buffer, &(pFrame->Mailbox)); // Transmit the data
+    return 1;
+    // }
   }
   return 0;
 }

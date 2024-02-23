@@ -29,8 +29,8 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     EGT_Start();
     Button_Start();
     TachoValue_Init_All();
-    Frame0_Init(TachoValue_Get_ShowPointer(1), TachoValue_Get_ShowPointer(2), TachoValue_Get_ShowPointer(3), Button_Menu_getPointer_Antilag(), Button_Menu_getPointer_TractionOFF(), Button_Menu_getPointer_ClearEngineCode(), Button_Menu_getPointer_LunchControlLevel());
-    Frame1_Init(TachoValue_Get_OutputPointer(1), TachoValue_Get_OutputPointer(2), TachoValue_Get_OutputPointer(3), Button_Menu_getPointer_TuneSelector());
+    Frame0_Init(TachoValue_Get_ShowPointer(TACHO_SHOW_1), TachoValue_Get_ShowPointer(TACHO_SHOW_2), TachoValue_Get_ShowPointer(TACHO_SHOW_3), Button_Menu_getPointer_Antilag(), Button_Menu_getPointer_TractionOFF(), Button_Menu_getPointer_ClearEngineCode(), Button_Menu_getPointer_LunchControlLevel());
+    Frame1_Init(TachoValue_Get_OutputPointer(TACHO_SHOW_1), TachoValue_Get_OutputPointer(TACHO_SHOW_2), TachoValue_Get_OutputPointer(TACHO_SHOW_3), Button_Menu_getPointer_TuneSelector());
     Frame2_Init(nECU_BackPressure_GetPointer(), nECU_OX_GetPointer(), nECU_MAP_GetPointer(), nECU_Knock_GetPointer(), nECU_VSS_GetPointer()); // missing knock and OX data filled with blanks
     nECU_CAN_Start();
     Button_Menu_Init();

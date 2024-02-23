@@ -12,20 +12,20 @@
 nECU_EGT EGT_variables;
 
 /* interface functions */
-uint16_t *EGT_GetTemperaturePointer(uint8_t sensorNumber) // get function that returns pointer to output data of sensor, ready for can transmission
+uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID) // get function that returns pointer to output data of sensor, ready for can transmission
 {
-    switch (sensorNumber)
+    switch (ID)
     {
-    case 1:
+    case EGT_CYL1:
         return &EGT_variables.TC1.EGT_Temperature;
         break;
-    case 2:
+    case EGT_CYL2:
         return &EGT_variables.TC2.EGT_Temperature;
         break;
-    case 3:
+    case EGT_CYL3:
         return &EGT_variables.TC3.EGT_Temperature;
         break;
-    case 4:
+    case EGT_CYL4:
         return &EGT_variables.TC4.EGT_Temperature;
         break;
 
@@ -64,7 +64,7 @@ void EGT_GetSPIData(bool error) // get data of all sensors
     EGT_variables.EGT_CurrentObj->data_Pending++;
     if (EGT_variables.EGT_FirstSensor == true || error == false)
     {
-        EGT_variables.EGT_CurrentSensor = 2;
+        EGT_variables.EGT_CurrentSensor = 2; // after first was done go to second sensor
         EGT_variables.EGT_FirstSensor = false;
     }
     else
@@ -80,16 +80,16 @@ void EGT_GetSPIData(bool error) // get data of all sensors
 
     switch (EGT_variables.EGT_CurrentSensor) // assign next MAX31855
     {
-    case 1:
+    case EGT_CYL1:
         EGT_variables.EGT_CurrentObj = &EGT_variables.TC1;
         break;
-    case 2:
+    case EGT_CYL2:
         EGT_variables.EGT_CurrentObj = &EGT_variables.TC2;
         break;
-    case 3:
+    case EGT_CYL3:
         EGT_variables.EGT_CurrentObj = &EGT_variables.TC3;
         break;
-    case 4:
+    case EGT_CYL4:
         EGT_variables.EGT_CurrentObj = &EGT_variables.TC4;
         break;
 
@@ -190,7 +190,7 @@ uint8_t MAX31855_getError(MAX31855 *inst) // get current error value
 void MAX31855_UpdateSimple(MAX31855 *inst) // Recive data over SPI and convert it into struct, dont use while in DMA mode
 {
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, RESET);
-    HAL_SPI_Receive(inst->hspi, (uint8_t *)inst->in_buffer, 4, 100);
+    HAL_SPI_Receive(inst->hspi, (uint8_t *)inst->in_buffer, sizeof(inst->in_buffer), 100);
     inst->data_Pending++;
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, SET);
     MAX31855_ConvertData(inst);

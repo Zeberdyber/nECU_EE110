@@ -90,10 +90,10 @@ void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4,
 /* Frame 1 */
 void Frame1_Init(uint8_t *pTachoVal1, uint8_t *pTachoVal2, uint8_t *pTachoVal3, uint16_t *pTuneSelector) // initialization of data structure
 {
-    F1_var.EGT1 = EGT_GetTemperaturePointer(1);
-    F1_var.EGT2 = EGT_GetTemperaturePointer(2);
-    F1_var.EGT3 = EGT_GetTemperaturePointer(3);
-    F1_var.EGT4 = EGT_GetTemperaturePointer(4);
+    F1_var.EGT1 = EGT_GetTemperaturePointer(EGT_CYL1);
+    F1_var.EGT2 = EGT_GetTemperaturePointer(EGT_CYL2);
+    F1_var.EGT3 = EGT_GetTemperaturePointer(EGT_CYL3);
+    F1_var.EGT4 = EGT_GetTemperaturePointer(EGT_CYL4);
     F1_var.TachoVal1 = pTachoVal1;
     F1_var.TachoVal2 = pTachoVal2;
     F1_var.TachoVal3 = pTachoVal3;
@@ -112,9 +112,9 @@ void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame1_ComposeWord(&TxFrame[4], F1_var.TachoVal3, F1_var.EGT1);
     Frame1_ComposeWord(&TxFrame[6], (uint8_t *)F1_var.TuneSelector, F1_var.EGT1);
     nECU_CAN_WriteToBuffer(1, TxFrame);
-    TachoValue_Clear_ShowPending(1);
-    TachoValue_Clear_ShowPending(2);
-    TachoValue_Clear_ShowPending(3);
+    TachoValue_Clear_ShowPending(TACHO_SHOW_1);
+    TachoValue_Clear_ShowPending(TACHO_SHOW_2);
+    TachoValue_Clear_ShowPending(TACHO_SHOW_3);
 }
 void Frame1_ComposeWord(uint8_t *buffer, uint8_t *Val6Bit, uint16_t *Val10Bit) // function to create word for use in frame 1
 {

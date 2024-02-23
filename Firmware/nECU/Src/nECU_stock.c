@@ -153,7 +153,7 @@ void nECU_OX_Update(void) // update narrowband lambda structure
     /* Sensor update */
     if (OX_Initialized == false)
     {
-        nECU_BackPressure_Init();
+        nECU_OX_Init();
         return;
     }
     OX.sensor.outputFloat = nECU_getLinearSensor(OX.sensor.ADC_input, &OX.sensor.calibrationData);
@@ -209,10 +209,10 @@ void nECU_VSS_Update(void) // update VSS structure
     }
     VSS.VSS_prevCCR = CurrentCCR;
     VSS.frequency = VSS.tim.refClock / Difference;
-    float speed = (VSS.frequency) * (3600.0f / VSS_PULSES_PER_KM);
-    if (speed > 0xFF)
+    float speed = (VSS.frequency) * (3600.0f / VSS_PULSES_PER_KM); // 3600 for m/s to km/h
+    if (speed > (float)UINT8_MAX)
     {
-        speed = 0xFF;
+        speed = UINT8_MAX;
     }
     else if (speed < 0)
     {

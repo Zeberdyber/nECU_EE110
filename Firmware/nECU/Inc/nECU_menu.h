@@ -32,11 +32,11 @@ extern "C"
   uint16_t *Button_Menu_getPointer_TuneSelector(void);
 
   /* TachoValue interface functions */
-  uint8_t *TachoValue_Get_OutputPointer(uint8_t structNumber); // get pointer to correct structure value
-  bool *TachoValue_Get_ShowPointer(uint8_t structNumber);      // get pointer to correct structure value
-  void TachoValue_Clear_ShowPending(uint8_t structNumber);     // clear pending flag for selected struct
-  void TachoValue_Update_All(void);                            // update all TachoValue structures
-  void TachoValue_Init_All(void);                              // initialize tachometer value structures
+  uint8_t *TachoValue_Get_OutputPointer(Tacho_ID ID); // get pointer to correct structure value
+  bool *TachoValue_Get_ShowPointer(Tacho_ID ID);      // get pointer to correct structure value
+  void TachoValue_Clear_ShowPending(Tacho_ID ID);     // clear pending flag for selected struct
+  void TachoValue_Update_All(void);                   // update all TachoValue structures
+  void TachoValue_Init_All(void);                     // initialize tachometer value structures
   /* TachoValue internal functions */
   void TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier); // initialize single structure
   void TachoValue_Update_Single(TachoValue *inst);                                           // update variables when needed

@@ -65,12 +65,12 @@
 
 
 [ ] Tests for each file functions
-    [X] test flash code
     [ ] timer interrupt automatic tests functions
 
 [ ] static flags of initialized
 
-[ ] remove numbers from files "magic numbers"
+[X] remove numbers from files "magic numbers"
+
 [ ] maybe dont calculate difference for each watchdog (waste of time),
     calculate once and update all
 
@@ -78,28 +78,8 @@
     [ ] PWM (ox heater, button output)
     [ ] IC (button inputs, ...)
 
-[X] timer rewrite to reuse functions
-    [X] PWM functions
-    [X] IC functions
-    [X] base timer functions
-
-[X] use new timer in files
-    [X] stock
-    [X] button
-    [X] can
-
-
 [ ] in watchdogs use pointers to timers from starting files
-
 [ ] upToDate internal temperature
-[X] Clean typedefs
-
-[X] PWM_Out swap for timer
-
-[ ] IC freq function
-[X] remove exp_smoothing from Speed_ADCToSpeed (used ADC_smooth function)
-[X] check igf with 16-1 filtering
-
+[ ] IC freq function (The same callback for every IC, flags to update values)
 [ ] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
-
 [ ] loopcounter as separate functions (in debug file)

@@ -135,7 +135,7 @@ bool *nECU_Knock_Delay_DoneFlag(void) // return flag if knock is due
 }
 void nECU_Knock_Delay_Start(float *rpm) // start non-blocking delay for knock
 {
-  uint32_t delay = (120000 / *rpm) / HAL_GetTickFreq();
+  uint32_t delay = (120000 / *rpm) / HAL_GetTickFreq(); // 120000 = 120 (Hz to rpm) * 1000 (ms to s)
   nECU_Delay_Set(&Knock_rotation_delay, &delay);
   nECU_Delay_Start(&Knock_rotation_delay);
 }
@@ -212,7 +212,7 @@ nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim) // function to stop IC on selec
 nECU_TIM_State nECU_tim_base_start(nECU_Timer *tim) // function to start base of selected timer
 {
   nECU_TIM_State result = TIM_OK;
-  if (HAL_TIM_Base_Start_IT(&(tim->htim)))
+  if (HAL_TIM_Base_Start_IT(tim->htim))
   {
     result = TIM_ERROR; // indicate if not successful
   }
@@ -221,7 +221,7 @@ nECU_TIM_State nECU_tim_base_start(nECU_Timer *tim) // function to start base of
 nECU_TIM_State nECU_tim_base_stop(nECU_Timer *tim) // function to stop base of selected timer
 {
   nECU_TIM_State result = TIM_OK;
-  if (HAL_TIM_Base_Stop_IT(&(tim->htim)))
+  if (HAL_TIM_Base_Stop_IT(tim->htim))
   {
     result = TIM_ERROR; // indicate if not successful
   }
