@@ -12,7 +12,8 @@
 uint16_t blank16bit = 0;
 uint8_t blank8bit = 0;
 
-uint16_t loopCounter = 0;
+nECU_LoopCounter main_loop;
+
 bool Initialized = false;
 extern bool Knock_UART_Transmission;
 
@@ -37,6 +38,7 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     OnBoard_LED_Init();
     nECU_UART_RXStartPC();
     nECU_Knock_Init();
+    nECU_LoopCounter_Init(&main_loop);
     Initialized = true;
 }
 void nECU_main(void) // main rutine of the program
@@ -63,7 +65,8 @@ void nECU_main(void) // main rutine of the program
     {
         nECU_ADC_All_Routine();
     }
-    loopCounter++;
+
+    nECU_LoopCounter_Update(&main_loop);
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {

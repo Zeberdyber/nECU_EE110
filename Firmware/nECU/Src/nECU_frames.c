@@ -13,7 +13,7 @@ Frame0_struct F0_var;
 Frame1_struct F1_var;
 Frame2_struct F2_var;
 
-extern uint16_t loopCounter;
+extern nECU_LoopCounter main_loop;
 
 /* Frame 0 */
 void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *pAntilag, bool *pTractionOFF, bool *pClearEngineCode, uint16_t *pLunchControlLevel) // initialization of data structure
@@ -152,7 +152,7 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     TxFrame[3] = *F2_var.Backpressure;
     TxFrame[4] = *F2_var.Knock;
     TxFrame[5] = *F2_var.VSS;
-    Converter.UintValue = loopCounter;
+    Converter.UintValue = (uint16_t)main_loop.counter;
     TxFrame[6] = Converter.byteArray[1]; // spare
     TxFrame[7] = Converter.byteArray[0]; // spare
     nECU_CAN_WriteToBuffer(2, TxFrame);

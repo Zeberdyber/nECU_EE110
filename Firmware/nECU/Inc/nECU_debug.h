@@ -31,6 +31,13 @@ extern "C"
     /* Fault detection */
     void nECU_Fault_Missfire(void); // routine after missfire was detected
 
+    void nECU_LoopCounter_Init(nECU_LoopCounter *inst);   // Initialize structure
+    void nECU_LoopCounter_Update(nECU_LoopCounter *inst); // Increment counter, get total time
+    void nECU_LoopCounter_Clear(nECU_LoopCounter *inst);  // clear value of the counter
+
+    void nECU_TickTrack_Init(nECU_TickTrack *inst);   // initialize structure
+    void nECU_TickTrack_Update(nECU_TickTrack *inst); // callback to get difference
+
 #ifdef __cplusplus
 }
 #endif

@@ -23,7 +23,7 @@ CAN_FilterTypeDef CoolantFilter;
 /* CAN flags */
 bool Rx_Data_Frame0_Pending = false;
 
-extern uint16_t loopCounter;
+extern nECU_LoopCounter main_loop;
 extern Frame0_struct F0_var;
 extern Frame1_struct F1_var;
 extern Frame2_struct F2_var;
@@ -92,7 +92,7 @@ void nECU_CAN_TimerEvent(TIM_HandleTypeDef *htim) // funtion called after period
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Speed);
     nECU_CAN_TransmitFrame(nECU_Frame_EGT);
-    loopCounter = 0;
+    nECU_LoopCounter_Clear(&main_loop);
   }
   if (htim == &CAN_HIGH_PRIORITY_TIMER) // Timing clock for high priority CAN messages
   {

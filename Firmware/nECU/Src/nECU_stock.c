@@ -10,7 +10,7 @@
 // internal variables
 static AnalogSensor_Handle MAP;
 static AnalogSensor_Handle BackPressure;
-static Oxygen_Handle OX;
+Oxygen_Handle OX;
 VSS_Handle VSS;
 IGF_Handle IGF;
 static stock_GPIO stk_in;

@@ -83,6 +83,11 @@ typedef struct
 } GPIO_struct;
 typedef struct
 {
+    uint32_t previousTick; // tick registered on previous callback
+    uint32_t difference;   // difference between updates of structure
+} nECU_TickTrack;
+typedef struct
+{
     uint32_t timeSet;   // time to wait in ticks
     uint32_t timeStart; // tick at which delay started
     bool done;          // delay ended
@@ -185,6 +190,12 @@ typedef struct
     nECU_Delay delay;         // delay structure for non-blocking blinking
     bool blinking, blinkPrev; // ON/OFF for blinking animation
 } OnBoardLED;
+typedef struct
+{
+    nECU_TickTrack tracker;
+    uint32_t time;    // time of whole loop [ms]
+    uint32_t counter; // loop counter
+} nECU_LoopCounter;
 
 /* EGT */
 typedef enum
@@ -425,7 +436,7 @@ typedef enum
 } nECU_TIM_State;
 typedef struct
 {
-    nECU_Timer tim;
+    nECU_Timer *tim;       // pointer to watched timer
     bool error, warning;   // flags
     uint32_t counter_ms;   // watchdog counter
     uint64_t counter_max;  // value which determines error state

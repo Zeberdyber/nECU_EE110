@@ -15,6 +15,10 @@ static nECU_tim_Watchdog Button_Out_Watchdog, Ox_Out_Watchdog;
 extern VSS_Handle VSS;
 extern IGF_Handle IGF;
 
+/* Used in watchdogs */
+extern Oxygen_Handle OX;
+extern Button Red;
+
 uint8_t nECU_Get_FrameTimer(void) // get current value of frame timer
 {
   /* timer 11 is set to work with 0,1ms count up time, and have 8bit period*/
@@ -265,25 +269,18 @@ void nECU_tim_Watchdog_Init(void) // initialize structure
 {
   // Button out timer
   nECU_tim_Watchdog_Init_struct(&Button_Out_Watchdog);
-  Button_Out_Watchdog.tim.htim = &OX_HEATER_TIMER;
-  Button_Out_Watchdog.tim.Channel_Count = 3;
-  Button_Out_Watchdog.tim.Channel_List[0] = TIM_CHANNEL_1;
-  Button_Out_Watchdog.tim.Channel_List[1] = TIM_CHANNEL_2;
-  Button_Out_Watchdog.tim.Channel_List[2] = TIM_CHANNEL_3;
+  Button_Out_Watchdog.tim = &(Red.light.Timer);
 
   // Ox out timer
   nECU_tim_Watchdog_Init_struct(&Ox_Out_Watchdog);
-  Ox_Out_Watchdog.tim.htim = &BUTTON_OUTPUT_TIMER;
-  Ox_Out_Watchdog.tim.Channel_Count = 1;
-  Ox_Out_Watchdog.tim.Channel_List[0] = TIM_CHANNEL_1;
+  Ox_Out_Watchdog.tim = &(OX.Heater);
 }
 void nECU_tim_Watchdog_Init_struct(nECU_tim_Watchdog *watchdog) // set default values to variables
 {
   watchdog->error = false;
   watchdog->warning = false;
   watchdog->previousTick = 0;
-  nECU_tim_Init_struct(&watchdog->tim);
-  watchdog->counter_max = watchdog->tim.period * (watchdog->tim.htim->Init.Period + 1) * WATCHDOG_PERIOD_MULTIPLIER;
+  watchdog->counter_max = watchdog->tim->period * (watchdog->tim->htim->Init.Period + 1) * WATCHDOG_PERIOD_MULTIPLIER;
 }
 
 void nECU_tim_Watchdog_Periodic(void) // watchdog function for active timers
@@ -291,13 +288,13 @@ void nECU_tim_Watchdog_Periodic(void) // watchdog function for active timers
   /* Get time difference of function calls */
 
   /* PWM Outputs */
-  nECU_tim_Watchdog_CheckStates(&Button_Out_Watchdog);
-  nECU_tim_Watchdog_updateCounter(&Button_Out_Watchdog);
-  nECU_tim_Watchdog_CheckCounter(&Button_Out_Watchdog);
+  nECU_tim_Watchdog_CheckStates(&Button_Out_Watchdog);   // state of peripheral and outputs
+  nECU_tim_Watchdog_updateCounter(&Button_Out_Watchdog); // update watchdog
+  nECU_tim_Watchdog_CheckCounter(&Button_Out_Watchdog);  // check if counter in bounds
 
-  nECU_tim_Watchdog_CheckStates(&Ox_Out_Watchdog);
-  nECU_tim_Watchdog_updateCounter(&Ox_Out_Watchdog);
-  nECU_tim_Watchdog_CheckCounter(&Ox_Out_Watchdog);
+  nECU_tim_Watchdog_CheckStates(&Ox_Out_Watchdog);   // state of peripheral and outputs
+  nECU_tim_Watchdog_updateCounter(&Ox_Out_Watchdog); // update watchdog
+  nECU_tim_Watchdog_CheckCounter(&Ox_Out_Watchdog);  // check if counter in bounds
 }
 void nECU_tim_Watchdog_updateCounter(nECU_tim_Watchdog *watchdog) // update counter value based on systick
 {
@@ -316,11 +313,11 @@ void nECU_tim_Watchdog_updateCounter(nECU_tim_Watchdog *watchdog) // update coun
 }
 void nECU_tim_Watchdog_Callback(TIM_HandleTypeDef *htim) // function to be called on timer interrupt
 {
-  if (htim == Button_Out_Watchdog.tim.htim)
+  if (htim == Button_Out_Watchdog.tim->htim)
   {
     Button_Out_Watchdog.counter_ms = 0;
   }
-  else if (htim == Ox_Out_Watchdog.tim.htim)
+  else if (htim == Ox_Out_Watchdog.tim->htim)
   {
     Ox_Out_Watchdog.counter_ms = 0;
   }
@@ -328,16 +325,16 @@ void nECU_tim_Watchdog_Callback(TIM_HandleTypeDef *htim) // function to be calle
 
 bool nECU_tim_Watchdog_CheckStates(nECU_tim_Watchdog *watchdog) // check state of peripheral
 {
-  if (watchdog->tim.htim->State == HAL_TIM_STATE_RESET) // check if peripheral in use
+  if (watchdog->tim->htim->State == HAL_TIM_STATE_RESET) // check if peripheral in use
   {
     return false; // peripheral not initialized
   }
-  if (watchdog->tim.htim->State == HAL_TIM_STATE_ERROR) // chcek if peripheral error
+  if (watchdog->tim->htim->State == HAL_TIM_STATE_ERROR) // chcek if peripheral error
   {
     watchdog->error = true;
     return true; // peripheral error
   }
-  if (nECU_tim_Watchdog_CheckChannels(&watchdog->tim))
+  if (nECU_tim_Watchdog_CheckChannels(watchdog->tim))
   {
     watchdog->error = true;
     return true; // channel error
