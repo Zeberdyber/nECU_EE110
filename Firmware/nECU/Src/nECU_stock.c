@@ -11,8 +11,8 @@
 static AnalogSensor_Handle MAP;
 static AnalogSensor_Handle BackPressure;
 static Oxygen_Handle OX;
-static VSS_Handle VSS;
-static IGF_Handle IGF;
+VSS_Handle VSS;
+IGF_Handle IGF;
 static stock_GPIO stk_in;
 
 // initialized flags
@@ -179,7 +179,7 @@ uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
 }
 void nECU_VSS_Init(void) // initialize VSS structure
 {
-    VSS.VSS_prevCCR = 0;
+    VSS.ic.previous_CCR = 0;
     VSS.tim.htim = &FREQ_INPUT_TIMER;
     nECU_tim_Init_struct(&VSS.tim);
     VSS.tim.Channel_Count = 1;
@@ -195,21 +195,7 @@ void nECU_VSS_Update(void) // update VSS structure
         return;
     }
 
-    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(VSS.tim.htim, VSS.tim.Channel_List[0]);
-
-    /* Calculate difference */
-    uint16_t Difference = 0; // in miliseconds
-    if (VSS.VSS_prevCCR > CurrentCCR)
-    {
-        Difference = ((VSS.tim.htim->Init.Period + 1 - VSS.VSS_prevCCR) + CurrentCCR);
-    }
-    else
-    {
-        Difference = (CurrentCCR - VSS.VSS_prevCCR);
-    }
-    VSS.VSS_prevCCR = CurrentCCR;
-    VSS.frequency = VSS.tim.refClock / Difference;
-    float speed = (VSS.frequency) * (3600.0f / VSS_PULSES_PER_KM); // 3600 for m/s to km/h
+    float speed = (VSS.ic.frequency) * (3600.0f / VSS_PULSES_PER_KM); // 3600 for m/s to km/h
     if (speed > (float)UINT8_MAX)
     {
         speed = UINT8_MAX;
@@ -244,7 +230,7 @@ void nECU_VSS_DeInit(void) // deinitialize VSS structure
 /* IGF - Ignition feedback */
 void nECU_IGF_Init(void) // initialize and start
 {
-    IGF.IGF_prevCCR = 0;
+    IGF.ic.previous_CCR = 0;
     IGF.tim.htim = &FREQ_INPUT_TIMER;
     nECU_tim_Init_struct(&IGF.tim);
     IGF.tim.Channel_Count = 1;
@@ -260,24 +246,7 @@ void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
         return;
     }
 
-    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(IGF.tim.htim, IGF.tim.Channel_List[0]);
-    /* Calculate difference */
-    uint16_t Difference = 0; // in CCR value
-    if (IGF.IGF_prevCCR > CurrentCCR)
-    {
-        Difference = ((IGF.tim.htim->Init.Period + 1 - IGF.IGF_prevCCR) + CurrentCCR);
-    }
-    else if (IGF.IGF_prevCCR == CurrentCCR)
-    {
-        return;
-    }
-    else
-    {
-        Difference = (CurrentCCR - IGF.IGF_prevCCR);
-    }
-    IGF.IGF_prevCCR = CurrentCCR;
-    IGF.frequency = IGF.tim.refClock / Difference; // CCR difference to frequency
-    uint16_t RPM = IGF.frequency * 120;
+    uint16_t RPM = IGF.ic.frequency * 120;
     if (RPM > IGF_MAX_RPM)
     {
         return;
@@ -288,7 +257,7 @@ void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
     {
         rpm_rate = -rpm_rate;
     }
-    rpm_rate *= IGF.frequency;
+    rpm_rate *= IGF.ic.frequency;
     if (rpm_rate > IGF_MAX_RPM_RATE)
     {
         nECU_Fault_Missfire();
@@ -368,4 +337,6 @@ void nECU_Stock_Update(void) // function to update structures
     nECU_BackPressure_Update();
     nECU_MAP_Update();
     nECU_OX_Update();
+    nECU_VSS_Update();
+    nECU_IGF_Calc();
 }

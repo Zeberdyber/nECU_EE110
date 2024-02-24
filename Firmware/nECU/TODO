@@ -69,8 +69,6 @@
 
 [ ] static flags of initialized
 
-[X] remove numbers from files "magic numbers"
-
 [ ] maybe dont calculate difference for each watchdog (waste of time),
     calculate once and update all
 
@@ -80,6 +78,11 @@
 
 [ ] in watchdogs use pointers to timers from starting files
 [ ] upToDate internal temperature
-[ ] IC freq function (The same callback for every IC, flags to update values)
 [ ] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
 [ ] loopcounter as separate functions (in debug file)
+
+[X] IC freq function (The same callback for every IC, flags to update values)
+[X] implement IC freq function
+
+[ ] button input click/doubleclick/hold bugfix
+[ ] button input nECU_tim_IC_Callback() usage

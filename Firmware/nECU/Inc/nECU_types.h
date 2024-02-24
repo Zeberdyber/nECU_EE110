@@ -70,6 +70,13 @@ typedef struct
 } nECU_Timer;
 typedef struct
 {
+    uint32_t previous_CCR;    // memory of previous callback value
+    uint32_t time_difference; // time in ms
+    float frequency;          // of callbacks in Hz
+} nECU_InputCapture;
+
+typedef struct
+{
     GPIO_PinState State; // Current pin state
     GPIO_TypeDef *GPIOx; // GPIO pin port
     uint16_t GPIO_Pin;   // Pin of GPIO
@@ -386,15 +393,13 @@ typedef struct
 typedef struct
 {
     nECU_Timer tim;       // timer structure
-    uint32_t VSS_prevCCR; // previous CCR readout
-    float frequency;      // calculated frequency of interrupts
+    nECU_InputCapture ic; // input capture structure
     uint8_t Speed;        // resulting speed
 } VSS_Handle;
 typedef struct
 {
     nECU_Timer tim;       // timer structure
-    uint32_t IGF_prevCCR; // previous CCR readout
-    float frequency;      // calculated frequency of interrupts
+    nECU_InputCapture ic; // input capture structure
     uint16_t RPM;         // resulting RPM
 } IGF_Handle;
 typedef enum

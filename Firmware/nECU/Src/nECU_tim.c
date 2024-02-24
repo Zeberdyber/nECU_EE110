@@ -12,6 +12,9 @@ static nECU_Delay Knock_rotation_delay;
 
 static nECU_tim_Watchdog Button_Out_Watchdog, Ox_Out_Watchdog;
 
+extern VSS_Handle VSS;
+extern IGF_Handle IGF;
+
 uint8_t nECU_Get_FrameTimer(void) // get current value of frame timer
 {
   /* timer 11 is set to work with 0,1ms count up time, and have 8bit period*/
@@ -54,10 +57,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     switch (htim->Channel)
     {
     case HAL_TIM_ACTIVE_CHANNEL_1:
-      nECU_IGF_Calc();
+      nECU_tim_IC_Callback(&(IGF.tim), &(IGF.ic));
       break;
     case HAL_TIM_ACTIVE_CHANNEL_2:
-      nECU_VSS_Update();
+      nECU_tim_IC_Callback(&(VSS.tim), &(VSS.ic));
       break;
 
     default:
@@ -237,6 +240,24 @@ void nECU_tim_Init_struct(nECU_Timer *tim) // initialize structure and precalcul
   {
     tim->Channel_List[channel] = 0;
   }
+}
+
+void nECU_tim_IC_Callback(nECU_Timer *tim, nECU_InputCapture *ic) // callback function to calculate basic parameters
+{
+  uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(tim->htim, tim->htim->Channel);
+
+  /* Calculate difference */
+  uint16_t Difference = 0; // in miliseconds
+  if (ic->previous_CCR > CurrentCCR)
+  {
+    Difference = ((tim->htim->Init.Period + 1) - ic->previous_CCR) + CurrentCCR;
+  }
+  else
+  {
+    Difference = CurrentCCR - ic->previous_CCR;
+  }
+  ic->previous_CCR = CurrentCCR;
+  ic->frequency = tim->refClock / Difference;
 }
 
 /* Watchdog for timers detection */

@@ -69,6 +69,8 @@ extern "C"
   nECU_TIM_State nECU_tim_base_stop(nECU_Timer *tim);  // function to stop base of selected timer
   void nECU_tim_Init_struct(nECU_Timer *tim);          // initialize structure and precalculate variables
 
+  void nECU_tim_IC_Callback(nECU_Timer *tim, nECU_InputCapture *ic); // callback function to calculate basic parameters
+
   /* Watchdog for timers detection */
   void nECU_tim_Watchdog_Init(void);                                 // initialize structure
   void nECU_tim_Watchdog_Init_struct(nECU_tim_Watchdog *watchdog);   // set default values to variables
