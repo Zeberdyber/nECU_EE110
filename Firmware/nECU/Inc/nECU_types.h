@@ -123,7 +123,7 @@ typedef struct
 typedef struct
 {
     uint16_t *ADC_data;      // pointer to ADC data
-    uint16_t temperature;    // output data (real_tem*100)
+    int16_t temperature;     // output data (real_tem*100)
     nECU_Delay Update_Delay; // used to provide minimum spacing between temperature calculation
 } nECU_InternalTemp;
 
@@ -215,6 +215,7 @@ typedef struct
     bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error; // Thermocouple state / data validity
     float InternalTemp, TcTemp;                      // temperature of ADC chip, thermocouple temperature
     uint16_t EGT_Temperature;                        // output temperature
+    int16_t IC_Temperature;                          // device temperature
 } MAX31855;
 typedef struct
 {
@@ -443,4 +444,42 @@ typedef struct
     nECU_TickTrack timeTrack; // used to track time between clears
 } nECU_tim_Watchdog;
 
+/* Debug develop */
+typedef enum
+{
+    nECU_ERROR_DEVICE_TEMP_MCU_ID = 1,
+    nECU_ERROR_DEVICE_TEMP_EGT1_ID = 2,
+    nECU_ERROR_DEVICE_TEMP_EGT2_ID = 3,
+    nECU_ERROR_DEVICE_TEMP_EGT3_ID = 4,
+    nECU_ERROR_DEVICE_TEMP_EGT4_ID = 5,
+    nECU_ERROR_NONE
+} nECU_Error_ID;
+typedef struct
+{
+    bool error_flag;
+    float value_at_flag;
+    uint8_t ID;
+} nECU_Debug_error_mesage;
+
+typedef struct
+{
+    int16_t *MCU;
+    int16_t *EGT_IC[4];
+    nECU_Debug_error_mesage over_temperature;
+} nECU_Debug_IC_temp;
+
+typedef struct
+{
+    nECU_Debug_IC_temp device_temperature;
+} nECU_Debug;
+
+// enum device
+// {
+//     MAIN_CPU = 1,
+//     EGT_IC_CYL1 = 2,
+//     EGT_IC_CYL2 = 3,
+//     EGT_IC_CYL3 = 4,
+//     EGT_IC_CYL4 = 5,
+//     DEVICE_NONE = 0
+// };
 #endif // _nECU_types_H_

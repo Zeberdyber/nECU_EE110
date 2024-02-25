@@ -22,7 +22,7 @@
 
 [ ] fault detection (as a seperate file) - set flags for repeted fault
     [ ] add flags
-        - over temp
+        X - over temp
         - can:
             > timeout
             > error
@@ -44,7 +44,7 @@
             > other?
         - egt:
             > data frame error
-            > ic over temp
+            X > ic over temp
             > sensor error
         - uart:
             > other?
@@ -75,13 +75,9 @@
 [ ] timer watchdogs
     [ ] IC (button inputs, ...) // How to do them????
 
-[X] upToDate internal temperature
 [ ] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
 
 [ ] button input click/doubleclick/hold bugfix
 [ ] button input nECU_tim_IC_Callback() usage
-
-[X] Ticktrack in watchdogs
-[X] Ticktrack in nECU_Delay?
 
 [ ] Debug file data structure

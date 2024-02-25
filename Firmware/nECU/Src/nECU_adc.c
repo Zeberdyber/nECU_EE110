@@ -277,7 +277,7 @@ void nECU_InternalTemp_Update(void) // perform update of output variables
   Temperature -= INTERNAL_TEMP_V25;
   Temperature /= (INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
   Temperature += 25;
-  MCU_temperature.temperature = Temperature * 100;
+  MCU_temperature.temperature = Temperature * INTERNAL_TEMP_MULTIPLIER;
 }
 uint16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)
 {

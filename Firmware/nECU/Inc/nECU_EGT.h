@@ -27,6 +27,7 @@ extern "C"
 
     /* Function Prototypes */
     uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID);                                               // get function that returns pointer to output data of sensor, ready for can transmission
+    uint16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID);                                       // get function that returns pointer to internal temperature data of sensor
     bool *EGT_GetInitialized(void);                                                                      // get function to check if code was EGT_Initialized
     bool *EGT_GetUpdateOngoing(void);                                                                    // get function to check if current comunication is ongoing
     void EGT_Start(void);                                                                                // initialize all sensors and start communication

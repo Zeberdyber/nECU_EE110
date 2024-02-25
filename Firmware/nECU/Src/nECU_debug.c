@@ -10,6 +10,7 @@
 
 OnBoardLED LED_L, LED_R;
 bool LED_Initialized = false; // flag to triger initialization
+static nECU_Debug dbg_data;
 
 /* On board LEDs */
 void OnBoard_LED_Init(void) // initialize structures for on board LEDs
@@ -130,4 +131,56 @@ void nECU_TickTrack_Update(nECU_TickTrack *inst) // callback to get difference
         inst->difference = tickNow - inst->previousTick;
     }
     inst->previousTick = tickNow;
+}
+
+void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst) // zeros value inside of structure
+{
+    inst->error_flag = false;
+    inst->ID = 0;
+    inst->value_at_flag = 0.0;
+}
+void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, uint8_t ID) // sets error values
+{
+    inst->error_flag = true;
+    inst->value_at_flag = value;
+    inst->ID = ID;
+}
+void nECU_Debug_Init_Struct(void) // set values to variables in structure
+{
+    /* Device temperature */
+    dbg_data.device_temperature.MCU = nECU_InternalTemp_getTemperature();
+    dbg_data.device_temperature.EGT_IC[0] = EGT_GetTemperatureInternalPointer(EGT_CYL1);
+    dbg_data.device_temperature.EGT_IC[1] = EGT_GetTemperatureInternalPointer(EGT_CYL2);
+    dbg_data.device_temperature.EGT_IC[2] = EGT_GetTemperatureInternalPointer(EGT_CYL3);
+    dbg_data.device_temperature.EGT_IC[3] = EGT_GetTemperatureInternalPointer(EGT_CYL4);
+    nECU_Debug_Message_Init(&(dbg_data.device_temperature.over_temperature));
+}
+void nECU_Debug_IntTemp_Check(void) // check for errors of device temperature
+{
+    if (nECU_Debug_IntTemp_CheckSingle(*(dbg_data.device_temperature.MCU))) // check main IC
+    {
+        nECU_Debug_Message_Set(&(dbg_data.device_temperature.over_temperature), *(dbg_data.device_temperature.MCU), nECU_ERROR_DEVICE_TEMP_MCU_ID);
+        return;
+    }
+    for (uint8_t i = 0; i < 4; i++) // check all EGT devices
+    {
+        if (nECU_Debug_IntTemp_CheckSingle(&(dbg_data.device_temperature.EGT_IC[i])))
+        {
+            nECU_Debug_Message_Set(&(dbg_data.device_temperature.over_temperature), *(dbg_data.device_temperature.EGT_IC[i]), nECU_ERROR_DEVICE_TEMP_EGT1_ID + i);
+            return;
+        }
+    }
+}
+bool nECU_Debug_IntTemp_CheckSingle(int16_t temperature) // checks if passed temperature is in defined bounds
+{
+    /* true => out of bounds, false => no errors */
+    if ((temperature / INTERNAL_TEMP_MULTIPLIER) > DEVICE_TEMPERATURE_MAX)
+    {
+        return true;
+    }
+    else if ((temperature / INTERNAL_TEMP_MULTIPLIER) < DEVICE_TEMPERATURE_MIN)
+    {
+        return true;
+    }
+    return false;
 }

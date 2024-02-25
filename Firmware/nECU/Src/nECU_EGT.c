@@ -34,6 +34,28 @@ uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID) // get function that retur
     }
     return 0;
 }
+uint16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID) // get function that returns pointer to internal temperature data of sensor
+{
+    switch (ID)
+    {
+    case EGT_CYL1:
+        return &EGT_variables.TC1.IC_Temperature;
+        break;
+    case EGT_CYL2:
+        return &EGT_variables.TC2.IC_Temperature;
+        break;
+    case EGT_CYL3:
+        return &EGT_variables.TC3.IC_Temperature;
+        break;
+    case EGT_CYL4:
+        return &EGT_variables.TC4.IC_Temperature;
+        break;
+
+    default:
+        break;
+    }
+    return 0;
+}
 bool *EGT_GetInitialized(void) // get function to check if code was EGT_Initialized
 {
     return &EGT_variables.EGT_Initialized;
@@ -137,7 +159,6 @@ void EGT_TemperatureTo10bit(MAX31855 *inst) // function to convert temperature v
     inst->EGT_Temperature = (uint16_t)Input;
 }
 
-float EGT_tempe = 0;
 void EGT_PeriodicEventHP(void) // high priority periodic event, launched from timer interrupt
 {
     if (EGT_variables.EGT_Initialized == false)
@@ -213,6 +234,8 @@ void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and d
         inst->InternalTemp = ((inst->in_buffer[2] << 4) | (inst->in_buffer[3] >> 4)) * 0.0625;
         if (inst->in_buffer[2] & 0x80) // negative sign
             inst->InternalTemp = -inst->InternalTemp;
+
+        inst->IC_Temperature = inst->InternalTemp;
     }
 
     inst->data_Pending = 0;
