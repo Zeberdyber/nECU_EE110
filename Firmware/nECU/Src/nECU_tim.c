@@ -9,6 +9,7 @@
 
 static nECU_Delay Flash_save_delay;
 static nECU_Delay Knock_rotation_delay;
+extern nECU_InternalTemp MCU_temperature;
 
 static nECU_tim_Watchdog Button_Out_Watchdog, Ox_Out_Watchdog;
 
@@ -80,7 +81,8 @@ bool *nECU_Delay_DoneFlag(nECU_Delay *inst) // return done flag pointer of non-b
 }
 void nECU_Delay_Start(nECU_Delay *inst) // start non-blocking delay
 {
-  inst->timeStart = HAL_GetTick();
+  nECU_TickTrack_Init(&(inst->timeTrack));
+  inst->timePassed = 0;
   inst->done = false;
   inst->active = true;
 }
@@ -94,21 +96,13 @@ void nECU_Delay_Update(nECU_Delay *inst) // update current state of non-blocking
   // nECU_Delay functions are based on tick setting, refer to HAL_Delay() function
   if (inst->done == false && inst->active == true) // do only if needed
   {
-    if (inst->timeStart > HAL_GetTick()) // check if value overload
+    nECU_TickTrack_Update(&(inst->timeTrack));
+    inst->timePassed += inst->timeTrack.difference;
+
+    if (inst->timePassed > inst->timeSet)
     {
-      if ((inst->timeStart + inst->timeSet) > (HAL_GetTick() + UINT32_MAX))
-      {
-        inst->done = true;
-        inst->active = false;
-      }
-    }
-    else
-    {
-      if ((inst->timeStart + inst->timeSet) < HAL_GetTick())
-      {
-        inst->done = true;
-        inst->active = false;
-      }
+      inst->done = true;
+      inst->active = false;
     }
   }
 }
@@ -121,6 +115,7 @@ void nECU_Delay_UpdateAll(void) // update all created non-blocking delays
 {
   nECU_Delay_Update(&Flash_save_delay);
   nECU_Delay_Update(&Knock_rotation_delay);
+  nECU_Delay_Update(&(MCU_temperature.Update_Delay));
 }
 
 /* Flash save user setting delay */
@@ -145,6 +140,18 @@ void nECU_Knock_Delay_Start(float *rpm) // start non-blocking delay for knock
   uint32_t delay = (120000 / *rpm) / HAL_GetTickFreq(); // 120000 = 120 (Hz to rpm) * 1000 (ms to s)
   nECU_Delay_Set(&Knock_rotation_delay, &delay);
   nECU_Delay_Start(&Knock_rotation_delay);
+}
+
+/* Delay for internal temperature update */
+bool *nECU_InternalTemp_Delay_DoneFlag(void) // return flag if internal temperature updates is due
+{
+  return nECU_Delay_DoneFlag(&(MCU_temperature.Update_Delay));
+}
+void nECU_InternalTemp_Delay_Start(void) // start non-blocking delay for internal temperature updates
+{
+  uint32_t delay = INTERNAL_TEMP_UPDATE_DELAY / HAL_GetTickFreq();
+  nECU_Delay_Set(&(MCU_temperature.Update_Delay), &delay);
+  nECU_Delay_Start(&(MCU_temperature.Update_Delay));
 }
 
 /* general nECU timer functions */
@@ -279,7 +286,7 @@ void nECU_tim_Watchdog_Init_struct(nECU_tim_Watchdog *watchdog) // set default v
 {
   watchdog->error = false;
   watchdog->warning = false;
-  watchdog->previousTick = 0;
+  nECU_TickTrack_Init(&(watchdog->timeTrack));
   watchdog->counter_max = watchdog->tim->period * (watchdog->tim->htim->Init.Period + 1) * WATCHDOG_PERIOD_MULTIPLIER;
 }
 
@@ -298,29 +305,27 @@ void nECU_tim_Watchdog_Periodic(void) // watchdog function for active timers
 }
 void nECU_tim_Watchdog_updateCounter(nECU_tim_Watchdog *watchdog) // update counter value based on systick
 {
-  uint32_t CurrentTick = HAL_GetTick() * HAL_GetTickFreq(); // get time in ms
+  nECU_TickTrack_Update(&(watchdog->timeTrack)); // update tracker (get tick difference)
 
-  if (CurrentTick > watchdog->previousTick) // calculate difference (include tick variable roll over)
-  {
-    watchdog->counter_ms += CurrentTick - watchdog->previousTick;
-  }
-  else
-  {
-    watchdog->counter_ms += CurrentTick + UINT32_MAX - watchdog->previousTick;
-  }
-
-  watchdog->previousTick = CurrentTick; // save time for next loop
+  watchdog->counter_ms += watchdog->timeTrack.difference * HAL_GetTickFreq(); // add diference as time
 }
 void nECU_tim_Watchdog_Callback(TIM_HandleTypeDef *htim) // function to be called on timer interrupt
 {
+  nECU_tim_Watchdog *inst;
+
+  /* find which watchdog is responsible */
   if (htim == Button_Out_Watchdog.tim->htim)
   {
-    Button_Out_Watchdog.counter_ms = 0;
+    inst = &Button_Out_Watchdog;
   }
   else if (htim == Ox_Out_Watchdog.tim->htim)
   {
-    Ox_Out_Watchdog.counter_ms = 0;
+    inst = &Ox_Out_Watchdog;
   }
+
+  /* perform watchdog update */
+  inst->counter_ms = 0;
+  nECU_TickTrack_Init(&(inst->timeTrack));
 }
 
 bool nECU_tim_Watchdog_CheckStates(nECU_tim_Watchdog *watchdog) // check state of peripheral

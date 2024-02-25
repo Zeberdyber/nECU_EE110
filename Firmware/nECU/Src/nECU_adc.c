@@ -258,19 +258,16 @@ uint16_t VoltsToADC(float Voltage)
 /* Internal Temperatre (MCU) */
 void nECU_InternalTemp_Init(void) // initialize structure
 {
-  MCU_temperature.conv_divider.value = 0;
-  MCU_temperature.conv_divider.preset = INTERNAL_TEMP_CONV_DIV;
   MCU_temperature.ADC_data = ADC_InternalTemp;
   MCU_temperature.temperature = 0;
+  nECU_InternalTemp_Delay_Start();
 }
 void nECU_InternalTemp_Callback(void) // run when conversion ended
 {
-  MCU_temperature.conv_divider.value++;
-  if (MCU_temperature.conv_divider.value > INTERNAL_TEMP_CONV_DIV)
+  if (MCU_temperature.Update_Delay.done == true)
   {
-    MCU_temperature.conv_divider.value = 0;
-    nECU_InternalTemp_Update();
-    MCU_temperature.upToDate = true;
+    nECU_InternalTemp_Update();                        // calculate value
+    nECU_Delay_Start(&(MCU_temperature.Update_Delay)); // reset delay function
   }
 }
 void nECU_InternalTemp_Update(void) // perform update of output variables

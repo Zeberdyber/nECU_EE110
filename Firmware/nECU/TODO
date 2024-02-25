@@ -73,15 +73,15 @@
     calculate once and update all
 
 [ ] timer watchdogs
-    [X] PWM (ox heater, button output)
     [ ] IC (button inputs, ...) // How to do them????
 
-[X] in watchdogs use pointers to timers from starting files
-[ ] upToDate internal temperature
+[X] upToDate internal temperature
 [ ] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
-[X] loopcounter as separate functions (in debug file)
 
 [ ] button input click/doubleclick/hold bugfix
 [ ] button input nECU_tim_IC_Callback() usage
 
-[ ] Ticktrack in watchdogs
+[X] Ticktrack in watchdogs
+[X] Ticktrack in nECU_Delay?
+
+[ ] Debug file data structure

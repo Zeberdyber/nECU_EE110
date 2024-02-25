@@ -88,10 +88,11 @@ typedef struct
 } nECU_TickTrack;
 typedef struct
 {
-    uint32_t timeSet;   // time to wait in ticks
-    uint32_t timeStart; // tick at which delay started
-    bool done;          // delay ended
-    bool active;        // delay counting or ended
+    uint32_t timeSet;         // time to wait in ticks
+    nECU_TickTrack timeTrack; // time track according to ticks
+    uint32_t timePassed;      // number of ticks in total that have passed
+    bool done;                // delay ended
+    bool active;              // delay counting or ended
 } nECU_Delay;
 
 /* ADCs */
@@ -121,10 +122,9 @@ typedef struct
 } nECU_ADC3;
 typedef struct
 {
-    Counter conv_divider; // callback divider
-    uint16_t *ADC_data;   // pointer to ADC data
-    uint16_t temperature; // output data (real_tem*100)
-    bool upToDate;        // flag that indicates that data is up to date
+    uint16_t *ADC_data;      // pointer to ADC data
+    uint16_t temperature;    // output data (real_tem*100)
+    nECU_Delay Update_Delay; // used to provide minimum spacing between temperature calculation
 } nECU_InternalTemp;
 
 /* Buttons */
@@ -436,11 +436,11 @@ typedef enum
 } nECU_TIM_State;
 typedef struct
 {
-    nECU_Timer *tim;       // pointer to watched timer
-    bool error, warning;   // flags
-    uint32_t counter_ms;   // watchdog counter
-    uint64_t counter_max;  // value which determines error state
-    uint32_t previousTick; // helper variable for counter_ms calculation
+    nECU_Timer *tim;          // pointer to watched timer
+    bool error, warning;      // flags
+    uint32_t counter_ms;      // watchdog counter
+    uint64_t counter_max;     // value which determines error state
+    nECU_TickTrack timeTrack; // used to track time between clears
 } nECU_tim_Watchdog;
 
 #endif // _nECU_types_H_
