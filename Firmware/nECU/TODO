@@ -81,3 +81,11 @@
 [ ] button input nECU_tim_IC_Callback() usage
 
 [ ] Debug file data structure
+
+[X] ADC1 debug (no data)
+[ ] SPI1 debug (errors on transmission)
+
+[X] Stock MAP overflow?? weird behaviour for voltage above 3V
+    Fixed :D, my bad, it was a data overflow on CAN transmission
+[X] OX input tests
+[ ] OX PWM tests

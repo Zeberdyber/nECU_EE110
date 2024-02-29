@@ -108,9 +108,9 @@ void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame1_Update();
     uint8_t TxFrame[8];
     Frame1_ComposeWord(&TxFrame[0], F1_var.TachoVal1, F1_var.EGT1);
-    Frame1_ComposeWord(&TxFrame[2], F1_var.TachoVal2, F1_var.EGT1);
-    Frame1_ComposeWord(&TxFrame[4], F1_var.TachoVal3, F1_var.EGT1);
-    Frame1_ComposeWord(&TxFrame[6], (uint8_t *)F1_var.TuneSelector, F1_var.EGT1);
+    Frame1_ComposeWord(&TxFrame[2], F1_var.TachoVal2, F1_var.EGT2);
+    Frame1_ComposeWord(&TxFrame[4], F1_var.TachoVal3, F1_var.EGT3);
+    Frame1_ComposeWord(&TxFrame[6], (uint8_t *)F1_var.TuneSelector, F1_var.EGT4);
     nECU_CAN_WriteToBuffer(1, TxFrame);
     TachoValue_Clear_ShowPending(TACHO_SHOW_1);
     TachoValue_Clear_ShowPending(TACHO_SHOW_2);

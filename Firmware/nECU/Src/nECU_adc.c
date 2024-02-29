@@ -188,12 +188,12 @@ void nECU_ADC1_Routine(void)
   /* Conversion Completed callbacks */
   if (adc1_data.status.callback_half == true)
   {
-    nECU_ADC_AverageDMA(&GENERAL_ADC, adc1_data.in_buffer, GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
+    nECU_ADC_AverageDMA(&GENERAL_ADC, &(adc1_data.in_buffer[0]), GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
     adc1_data.status.callback_half = false; // clear flag
   }
   else if (adc1_data.status.callback_full == true)
   {
-    nECU_ADC_AverageDMA(&GENERAL_ADC, &adc1_data.in_buffer[(GENERAL_DMA_LEN / 2) - 1], GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
+    nECU_ADC_AverageDMA(&GENERAL_ADC, &(adc1_data.in_buffer[GENERAL_DMA_LEN / 2]), GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
     nECU_InternalTemp_Callback();
     adc1_data.status.callback_full = false; // clear flag
   }
@@ -274,9 +274,9 @@ void nECU_InternalTemp_Update(void) // perform update of output variables
 {
   // convert to temperature
   float Temperature = ADCToVolts(*MCU_temperature.ADC_data);
-  Temperature -= INTERNAL_TEMP_V25;
-  Temperature /= (INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
-  Temperature += 25;
+  Temperature -= (float)INTERNAL_TEMP_V25;
+  Temperature /= (float)(INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
+  Temperature += (float)25;
   MCU_temperature.temperature = Temperature * INTERNAL_TEMP_MULTIPLIER;
 }
 uint16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)

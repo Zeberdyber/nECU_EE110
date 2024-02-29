@@ -159,21 +159,31 @@ bool nECU_codetest_ADC_AvgSmooth(void) // test script for general functions
 
     return false;
 }
-bool Test_codetest_Speed_SensorUpdate(void) // function to test Speed functions
+bool nECU_codetest_Speed_SensorUpdate(void) // function to test Speed functions
 {
     // Success values
     uint16_t Corr_Circ = Wheel_Circ_Set_1; // according to definitions
-    uint16_t Corr_Speed = 15000;           // 150km/h
+    uint16_t Corr_Speed = 150;             // 150km/h
 
-    uint16_t Input = VoltsToADC(((Corr_Speed / 100) * Speed_ToothCount) / (3.6 * Wheel_Circ_Set_1 * Speed_HzTomVolts)); // ADC value to plug into test, calculated from known Voltage
+    uint16_t Input = VoltsToADC(((Corr_Speed)*Speed_ToothCount) / (3.6 * Wheel_Circ_Set_1 * Speed_HzTomVolts)); // ADC value to plug into test, calculated from known Voltage
+
+    for (uint8_t i = 0; i < Speed_DecimalPoint; i++) // move decimal point
+    {
+        Corr_Speed = Corr_Speed * 10;
+    }
 
     // Create test object
     Speed_Sensor Test_Obj;
     Test_Obj.InputData = &Input;
-    Test_Obj.WheelSetup = (uint8_t *)1;
+    uint8_t setup = 1;
+    Test_Obj.WheelSetup = &setup;
     Test_Obj.SensorCorrection = 1.0;
 
     // Perfrom tests
+    for (uint8_t i = 0; i < 255; i++) // do it 255 times to rule out any smoothing
+    {
+        Speed_SensorUpdate(&Test_Obj);
+    }
     Speed_SensorUpdate(&Test_Obj);
 
     // Check results
@@ -181,7 +191,8 @@ bool Test_codetest_Speed_SensorUpdate(void) // function to test Speed functions
     {
         return true;
     }
-    if (Test_Obj.SpeedData - Corr_Speed > 50) // Allow for 0.5km/h error due to rounding
+    int32_t result = Test_Obj.SpeedData - Corr_Speed;
+    if (result > 50 || result < -50) // Allow for 0.5km/h error due to rounding
     {
         return true;
     }
@@ -198,7 +209,7 @@ void nECU_codetest_run(void) // run tests of type codetest
     {
         nECU_codetest_error();
     }
-    if (Test_codetest_Speed_SensorUpdate())
+    if (nECU_codetest_Speed_SensorUpdate())
     {
         nECU_codetest_error();
     }

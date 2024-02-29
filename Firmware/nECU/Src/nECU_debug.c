@@ -164,7 +164,7 @@ void nECU_Debug_IntTemp_Check(void) // check for errors of device temperature
     }
     for (uint8_t i = 0; i < 4; i++) // check all EGT devices
     {
-        if (nECU_Debug_IntTemp_CheckSingle(&(dbg_data.device_temperature.EGT_IC[i])))
+        if (nECU_Debug_IntTemp_CheckSingle(*(dbg_data.device_temperature.EGT_IC[i])))
         {
             nECU_Debug_Message_Set(&(dbg_data.device_temperature.over_temperature), *(dbg_data.device_temperature.EGT_IC[i]), nECU_ERROR_DEVICE_TEMP_EGT1_ID + i);
             return;
