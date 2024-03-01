@@ -144,7 +144,9 @@ void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, uint8_t 
     inst->error_flag = true;
     inst->value_at_flag = value;
     inst->ID = ID;
+    // HERE ADD QUE PUSH
 }
+
 void nECU_Debug_Init_Struct(void) // set values to variables in structure
 {
     /* Device temperature */
@@ -154,31 +156,78 @@ void nECU_Debug_Init_Struct(void) // set values to variables in structure
     dbg_data.device_temperature.EGT_IC[2] = EGT_GetTemperatureInternalPointer(EGT_CYL3);
     dbg_data.device_temperature.EGT_IC[3] = EGT_GetTemperatureInternalPointer(EGT_CYL4);
     nECU_Debug_Message_Init(&(dbg_data.device_temperature.over_temperature));
+
+    /* EGT temperature (thermocuple temperature) */
+    dbg_data.egt_temperature.EGT_IC[0] = EGT_GetTemperaturePointer(EGT_CYL1);
+    dbg_data.egt_temperature.EGT_IC[1] = EGT_GetTemperaturePointer(EGT_CYL2);
+    dbg_data.egt_temperature.EGT_IC[2] = EGT_GetTemperaturePointer(EGT_CYL3);
+    dbg_data.egt_temperature.EGT_IC[3] = EGT_GetTemperaturePointer(EGT_CYL4);
+    nECU_Debug_Message_Init(&(dbg_data.egt_temperature.over_temperature));
+
+    /* EGT communication */
+    dbg_data.egt_communication.EGT_IC[0] = EGT_GetErrorState(EGT_CYL1);
+    dbg_data.egt_communication.EGT_IC[1] = EGT_GetErrorState(EGT_CYL2);
+    dbg_data.egt_communication.EGT_IC[2] = EGT_GetErrorState(EGT_CYL3);
+    dbg_data.egt_communication.EGT_IC[3] = EGT_GetErrorState(EGT_CYL4);
+
+    // IMPLEMENT ERROR DETECTION OF SPI COMMUNICATION FOR EACH SENSOR
+
+    nECU_Debug_Message_Init(&(dbg_data.egt_communication.TC_invalid));
 }
-void nECU_Debug_IntTemp_Check(void) // check for errors of device temperature
+void nECU_Debug_IntTemp_Check(nECU_Debug_IC_temp *inst) // check for errors of device temperature
 {
-    if (nECU_Debug_IntTemp_CheckSingle(*(dbg_data.device_temperature.MCU))) // check main IC
+    if (nECU_Debug_IntTemp_CheckSingle(inst->MCU)) // check main IC
     {
-        nECU_Debug_Message_Set(&(dbg_data.device_temperature.over_temperature), *(dbg_data.device_temperature.MCU), nECU_ERROR_DEVICE_TEMP_MCU_ID);
-        return;
+        nECU_Debug_Message_Set(&(inst->over_temperature), *(inst->MCU), nECU_ERROR_DEVICE_TEMP_MCU_ID);
     }
     for (uint8_t i = 0; i < 4; i++) // check all EGT devices
     {
-        if (nECU_Debug_IntTemp_CheckSingle(*(dbg_data.device_temperature.EGT_IC[i])))
+        if (nECU_Debug_IntTemp_CheckSingle(inst->EGT_IC[i]))
         {
-            nECU_Debug_Message_Set(&(dbg_data.device_temperature.over_temperature), *(dbg_data.device_temperature.EGT_IC[i]), nECU_ERROR_DEVICE_TEMP_EGT1_ID + i);
-            return;
+            nECU_Debug_Message_Set(&(inst->over_temperature), *(inst->EGT_IC[i]), nECU_ERROR_DEVICE_TEMP_EGT1_ID + i);
         }
     }
 }
-bool nECU_Debug_IntTemp_CheckSingle(int16_t temperature) // checks if passed temperature is in defined bounds
+bool nECU_Debug_IntTemp_CheckSingle(int16_t *temperature) // checks if passed temperature is in defined bounds
 {
     /* true => out of bounds, false => no errors */
-    if ((temperature / INTERNAL_TEMP_MULTIPLIER) > DEVICE_TEMPERATURE_MAX)
+    if ((*temperature / INTERNAL_TEMP_MULTIPLIER) > DEVICE_TEMPERATURE_MAX)
     {
         return true;
     }
-    else if ((temperature / INTERNAL_TEMP_MULTIPLIER) < DEVICE_TEMPERATURE_MIN)
+    else if ((*temperature / INTERNAL_TEMP_MULTIPLIER) < DEVICE_TEMPERATURE_MIN)
+    {
+        return true;
+    }
+    return false;
+}
+void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst) // check EGT ICs for error flags
+{
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        if (inst->transmission_NOK[i]) // if error detected set message
+        {
+            nECU_Debug_Message_Set(&(inst->TC_invalid), (float)inst->transmission_NOK[i], nECU_ERROR_EGT_SPI_EGT1_ID + i);
+        }
+        if (inst->EGT_IC[i]) // if error detected set message
+        {
+            nECU_Debug_Message_Set(&(inst->TC_invalid), (float)*inst->EGT_IC[i], nECU_ERROR_EGT_TC_EGT1_ID + i);
+        }
+    }
+}
+void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst) // check if TCs did not exceed fault value
+{
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        if (nECU_Debug_EGTTemp_CheckSingle(inst->EGT_IC[i]))
+        {
+            nECU_Debug_Message_Set(&(inst->over_temperature), *(inst->EGT_IC[i]), nECU_ERROR_EGT_TC_EGT1_ID + i);
+        }
+    }
+}
+bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature) // checks if passed temperature is in defined bound
+{
+    if (*temperature > TC_TEMPERATURE_MAX)
     {
         return true;
     }

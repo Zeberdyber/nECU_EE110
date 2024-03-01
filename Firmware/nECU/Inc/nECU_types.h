@@ -206,6 +206,13 @@ typedef enum
     EGT_CYL4 = 4,
     EGT_CYL_NONE
 } EGT_Sensor_ID;
+typedef enum
+{
+    EGT_ERROR_DATA = 1, // data recived is not valid
+    EGT_ERROR_OC = 2,   // thermocouple not connected
+    EGT_ERROR_SC = 3,   // short circuit to GND or VCC
+    EGT_ERROR_NONE
+} EGT_Error_Code;
 typedef struct
 {
     SPI_HandleTypeDef *hspi;                         // peripheral pointer
@@ -213,6 +220,7 @@ typedef struct
     uint8_t in_buffer[4];                            // recived data buffer
     bool data_Pending;                               // data was recieved and is pending to be decoded
     bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error; // Thermocouple state / data validity
+    EGT_Error_Code ErrCode;                          // code of error acording to definition
     float InternalTemp, TcTemp;                      // temperature of ADC chip, thermocouple temperature
     uint16_t EGT_Temperature;                        // output temperature
     int16_t IC_Temperature;                          // device temperature
@@ -447,30 +455,64 @@ typedef struct
 /* Debug develop */
 typedef enum
 {
+    // internal temperature
     nECU_ERROR_DEVICE_TEMP_MCU_ID = 1,
     nECU_ERROR_DEVICE_TEMP_EGT1_ID = 2,
     nECU_ERROR_DEVICE_TEMP_EGT2_ID = 3,
     nECU_ERROR_DEVICE_TEMP_EGT3_ID = 4,
     nECU_ERROR_DEVICE_TEMP_EGT4_ID = 5,
+
+    // thermocouple over temperature
+    nECU_ERROR_EGT_OVERTEMP_EGT1_ID = 6,
+    nECU_ERROR_EGT_OVERTEMP_EGT2_ID = 7,
+    nECU_ERROR_EGT_OVERTEMP_EGT3_ID = 8,
+    nECU_ERROR_EGT_OVERTEMP_EGT4_ID = 9,
+
+    // thermocouple spi communication
+    nECU_ERROR_EGT_SPI_EGT1_ID = 10,
+    nECU_ERROR_EGT_SPI_EGT2_ID = 11,
+    nECU_ERROR_EGT_SPI_EGT3_ID = 12,
+    nECU_ERROR_EGT_SPI_EGT4_ID = 13,
+
+    // thermocouple connection
+    nECU_ERROR_EGT_TC_EGT1_ID = 14,
+    nECU_ERROR_EGT_TC_EGT2_ID = 15,
+    nECU_ERROR_EGT_TC_EGT3_ID = 16,
+    nECU_ERROR_EGT_TC_EGT4_ID = 17,
+
     nECU_ERROR_NONE
 } nECU_Error_ID;
 typedef struct
 {
-    bool error_flag;
-    float value_at_flag;
-    uint8_t ID;
+    bool error_flag;     // flag indicating error ocurring
+    float value_at_flag; // value that coused flag
+    uint8_t ID;          // ID of error
 } nECU_Debug_error_mesage;
 
 typedef struct
 {
-    int16_t *MCU;
-    int16_t *EGT_IC[4];
-    nECU_Debug_error_mesage over_temperature;
-} nECU_Debug_IC_temp;
+    int16_t *MCU;                             // internal temperature of MCU
+    int16_t *EGT_IC[4];                       // internal temperature of EGT ICs
+    nECU_Debug_error_mesage over_temperature; // error message
+} nECU_Debug_IC_temp;                         // error due to over/under temperature of ICs
 
 typedef struct
 {
-    nECU_Debug_IC_temp device_temperature;
+    EGT_Error_Code *EGT_IC[4];          // error code from recived frame
+    bool transmission_NOK[4];           // flag that communication does not succseed
+    nECU_Debug_error_mesage TC_invalid; // error message
+} nECU_Debug_EGT_Comm;                  // error got from communication with EGT IC
+typedef struct
+{
+    uint16_t *EGT_IC[4];                      // temperature of thermocouples
+    nECU_Debug_error_mesage over_temperature; // error message
+} nECU_Debug_EGT_Temp;                        // error due to over temperature of thermocouple
+
+typedef struct
+{
+    nECU_Debug_EGT_Comm egt_communication; // error got from communication with EGT IC
+    nECU_Debug_EGT_Temp egt_temperature;   // error due to over temperature of thermocouple
+    nECU_Debug_IC_temp device_temperature; // error due to over/under temperature of ICs
 } nECU_Debug;
 
 // enum device

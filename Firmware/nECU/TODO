@@ -43,9 +43,9 @@
         - buttons:
             > other?
         - egt:
-            > data frame error
+            X > data frame error
             X > ic over temp
-            > sensor error
+            X > sensor error
         - uart:
             > other?
         - VSS:
@@ -56,7 +56,8 @@
             > abnormal sensor
             > data error
     [ ] function skeletons
-    [ ] warning when temp high (+ MCU_temperature.upToDate monitoring)
+    [X] warning when temp high (+ MCU_temperature.upToDate monitoring)
+    [ ] Debug message que
 
 [ ] UART
     [ ] UART variables as a struct
@@ -75,7 +76,7 @@
 [ ] timer watchdogs
     [ ] IC (button inputs, ...) // How to do them????
 
-[ ] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
+[X] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
 
 [ ] button input click/doubleclick/hold bugfix
 [ ] button input nECU_tim_IC_Callback() usage

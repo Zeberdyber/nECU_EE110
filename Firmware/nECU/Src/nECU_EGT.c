@@ -12,49 +12,37 @@
 nECU_EGT EGT_variables;
 
 /* interface functions */
-uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID) // get function that returns pointer to output data of sensor, ready for can transmission
+MAX31855 *EGT_IdentifyID(EGT_Sensor_ID ID) // returns pointer to appropriete structure
 {
     switch (ID)
     {
     case EGT_CYL1:
-        return &EGT_variables.TC1.EGT_Temperature;
+        return &EGT_variables.TC1;
         break;
     case EGT_CYL2:
-        return &EGT_variables.TC2.EGT_Temperature;
+        return &EGT_variables.TC2;
         break;
     case EGT_CYL3:
-        return &EGT_variables.TC3.EGT_Temperature;
+        return &EGT_variables.TC3;
         break;
     case EGT_CYL4:
-        return &EGT_variables.TC4.EGT_Temperature;
+        return &EGT_variables.TC4;
         break;
 
     default:
         break;
     }
-    return 0;
+    return &EGT_variables.TC1; // default behaviour
+}
+uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID) // get function that returns pointer to output data of sensor, ready for can transmission
+{
+    MAX31855 *inst = EGT_IdentifyID(ID);
+    return &inst->EGT_Temperature;
 }
 uint16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID) // get function that returns pointer to internal temperature data of sensor
 {
-    switch (ID)
-    {
-    case EGT_CYL1:
-        return &EGT_variables.TC1.IC_Temperature;
-        break;
-    case EGT_CYL2:
-        return &EGT_variables.TC2.IC_Temperature;
-        break;
-    case EGT_CYL3:
-        return &EGT_variables.TC3.IC_Temperature;
-        break;
-    case EGT_CYL4:
-        return &EGT_variables.TC4.IC_Temperature;
-        break;
-
-    default:
-        break;
-    }
-    return 0;
+    MAX31855 *inst = EGT_IdentifyID(ID);
+    return &inst->IC_Temperature;
 }
 bool *EGT_GetInitialized(void) // get function to check if code was EGT_Initialized
 {
@@ -63,6 +51,11 @@ bool *EGT_GetInitialized(void) // get function to check if code was EGT_Initiali
 bool *EGT_GetUpdateOngoing(void) // get function to check if current comunication is ongoing
 {
     return &EGT_variables.EGT_CommunicationOngoing;
+}
+EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID) // get function returns pointer to error code
+{
+    MAX31855 *inst = EGT_IdentifyID(ID);
+    return &inst->ErrCode;
 }
 
 /* EGT functions */
@@ -78,11 +71,6 @@ void EGT_Start(void) // initialize all sensors and start communication
 }
 void EGT_GetSPIData(bool error) // get data of all sensors
 {
-    if (EGT_variables.EGT_FirstSensor == false)
-    {
-        nECU_SPI_Rx_DMA_Stop(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, &EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi); // turn off comunication for current MAX31855
-    }
-
     EGT_variables.EGT_CurrentObj->data_Pending++;
     if (EGT_variables.EGT_FirstSensor == true || error == false)
     {
@@ -119,7 +107,7 @@ void EGT_GetSPIData(bool error) // get data of all sensors
         return;
         break;
     }
-    nECU_SPI_Rx_DMA_Start(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, &EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->in_buffer, 4); // start reciving data
+    nECU_SPI_Rx_IT_Start(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, &EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->in_buffer, 4); // start reciving data
 }
 void EGT_ConvertAll(void) // convert data if pending
 {
@@ -199,14 +187,23 @@ void MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx,
     inst->CS_pin.GPIO_Pin = GPIO_Pin;
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, SET);
 }
-uint8_t MAX31855_getError(MAX31855 *inst) // get current error value
+void MAX31855_collectError(MAX31855 *inst) // get current error value
 {
-    /* 1 - Transmission error, data not valid
-     * 2 - Thermocouple disconnected
-     * 4 - One of thermocouple pins shorted to VCC/GND
-     */
-    uint8_t Error = (inst->SCV_Fault << 2) | (inst->SCG_Fault << 2) | (inst->OC_Fault << 1) | inst->Data_Error;
-    return Error;
+    if (inst->SCG_Fault || inst->SCV_Fault)
+    {
+        inst->ErrCode = EGT_ERROR_SC;
+        return;
+    }
+    else if (inst->OC_Fault)
+    {
+        inst->ErrCode = EGT_ERROR_OC;
+        return;
+    }
+    else if (inst->Data_Error)
+    {
+        inst->ErrCode = EGT_ERROR_DATA;
+        return;
+    }
 }
 void MAX31855_UpdateSimple(MAX31855 *inst) // Recive data over SPI and convert it into struct, dont use while in DMA mode
 {
@@ -239,4 +236,5 @@ void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and d
     }
 
     inst->data_Pending = 0;
+    MAX31855_collectError(inst);
 }
