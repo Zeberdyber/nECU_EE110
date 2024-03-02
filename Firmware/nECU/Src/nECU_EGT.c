@@ -71,14 +71,16 @@ void EGT_Start(void) // initialize all sensors and start communication
 }
 void EGT_GetSPIData(bool error) // get data of all sensors
 {
-    EGT_variables.EGT_CurrentObj->data_Pending++;
-    if (EGT_variables.EGT_FirstSensor == true || error == false)
+    if (EGT_variables.EGT_FirstSensor == true)
     {
-        EGT_variables.EGT_CurrentSensor = 2; // after first was done go to second sensor
+        EGT_variables.EGT_CurrentSensor = 1; // after first was done go to second sensor
         EGT_variables.EGT_FirstSensor = false;
+        EGT_variables.EGT_CommunicationOngoing = true;
     }
     else
     {
+        HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, SET);
+        EGT_variables.EGT_CurrentObj->data_Pending++;
         EGT_variables.EGT_CurrentSensor++; // go to next sensor
     }
     if (EGT_variables.EGT_CurrentSensor > 4) // cycle break if all sensors done
@@ -149,14 +151,9 @@ void EGT_TemperatureTo10bit(MAX31855 *inst) // function to convert temperature v
 
 void EGT_PeriodicEventHP(void) // high priority periodic event, launched from timer interrupt
 {
-    if (EGT_variables.EGT_Initialized == false)
-    {
-        EGT_Start();
-    }
     if (EGT_variables.EGT_CurrentSensor == 0)
     {
         EGT_variables.EGT_FirstSensor = true;
-        EGT_variables.EGT_CommunicationOngoing = true;
         EGT_GetSPIData(false);
     }
     if (EGT_variables.TC1.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC2.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC3.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC4.data_Pending > EGT_MAXIMUM_PENDING_COUNT)
@@ -208,8 +205,10 @@ void MAX31855_collectError(MAX31855 *inst) // get current error value
 void MAX31855_UpdateSimple(MAX31855 *inst) // Recive data over SPI and convert it into struct, dont use while in DMA mode
 {
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, RESET);
-    HAL_SPI_Receive(inst->hspi, (uint8_t *)inst->in_buffer, sizeof(inst->in_buffer), 100);
+    // HAL_Delay(1);
+    HAL_SPI_Receive_IT(inst->hspi, (uint8_t *)inst->in_buffer, sizeof(inst->in_buffer));
     inst->data_Pending++;
+    HAL_Delay(1); // delay for callback
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, SET);
     MAX31855_ConvertData(inst);
 }
@@ -232,7 +231,7 @@ void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and d
         if (inst->in_buffer[2] & 0x80) // negative sign
             inst->InternalTemp = -inst->InternalTemp;
 
-        inst->IC_Temperature = inst->InternalTemp;
+        inst->IC_Temperature = inst->InternalTemp; // float to int16_t
     }
 
     inst->data_Pending = 0;

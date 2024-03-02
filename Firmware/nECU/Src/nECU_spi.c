@@ -23,10 +23,11 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) // called when error ocured
 {
   if (hspi == &SPI_PERIPHERAL_EGT)
   {
+    __HAL_SPI_CLEAR_OVRFLAG(hspi);
+    uint32_t error = HAL_SPI_GetError(hspi);
     bool *egt_communication_active = EGT_GetUpdateOngoing();
     if (*egt_communication_active == true)
     {
-      __HAL_SPI_CLEAR_OVRFLAG(hspi);
       uint32_t error = HAL_SPI_GetError(hspi);
       EGT_GetSPIData(true); // update EGT sensors
     }

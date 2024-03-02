@@ -218,7 +218,7 @@ typedef struct
     SPI_HandleTypeDef *hspi;                         // peripheral pointer
     GPIO_struct CS_pin;                              // GPIO for Chip Select
     uint8_t in_buffer[4];                            // recived data buffer
-    bool data_Pending;                               // data was recieved and is pending to be decoded
+    uint8_t data_Pending;                            // data was recieved and is pending to be decoded
     bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error; // Thermocouple state / data validity
     EGT_Error_Code ErrCode;                          // code of error acording to definition
     float InternalTemp, TcTemp;                      // temperature of ADC chip, thermocouple temperature

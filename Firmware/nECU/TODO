@@ -2,7 +2,7 @@
 
 [ ] Development
     [ ] OX sensor heater
-    [ ] OX sensor analog signal
+    [X] OX sensor analog signal
     [ ] IGF missfire
     [ ] IGF RPM calculation
 
@@ -84,7 +84,7 @@
 [ ] Debug file data structure
 
 [X] ADC1 debug (no data)
-[ ] SPI1 debug (errors on transmission)
+[X] SPI1 debug (errors on transmission)
 
 [X] Stock MAP overflow?? weird behaviour for voltage above 3V
     Fixed :D, my bad, it was a data overflow on CAN transmission
