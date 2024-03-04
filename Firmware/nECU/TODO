@@ -1,7 +1,7 @@
 [ ] RPM signal clear mess
 
 [ ] Development
-    [ ] OX sensor heater
+    [X] OX sensor heater
     [ ] IGF missfire
     [ ] IGF RPM calculation
 
@@ -73,9 +73,9 @@
 [ ] button input nECU_tim_IC_Callback() usage
 
 [ ] Debug file data structure
-[ ] OX PWM tests
+[X] OX PWM tests
     [X] Resolder the IC (no output signal) [no result]
-    [ ] VDD to 5V (error on the board)
+    [X] VDD to 5V (error on the board)
 
 [ ] VSS tests
     [ ] input ripple test

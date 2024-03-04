@@ -36,9 +36,9 @@ extern "C"
 #define OXYGEN_VOLTAGE_MAX 1.0     // maximum voltage of lambda sensor
 #define OXYGEN_VOLTAGE_MIN 0.0     // minimum voltage of lambda sensor
 #define OXYGEN_HEATER_MAX 90       // maximum % infill of heater PWM
-#define OXYGEN_HEATER_MIN 20       // maximum % infill of heater PWM
+#define OXYGEN_HEATER_MIN 0        // maximum % infill of heater PWM
 #define OXYGEN_COOLANT_MAX 80      // maximum degrees that will couse minimum infill
-#define OXYGEN_COOLANT_MIN 20      // minimum degrees that will couse maximum infill
+#define OXYGEN_COOLANT_MIN 40      // minimum degrees that will couse maximum infill
 #define OXYGEN_DECIMAL_POINT 2     // how many numbers after decimal point
 
 #define VSS_PULSES_PER_KM 4500 // number of pulses that will be recived for a kilometer traveled

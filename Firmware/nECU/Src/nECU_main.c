@@ -65,7 +65,6 @@ void nECU_main(void) // main rutine of the program
     {
         nECU_ADC_All_Routine();
     }
-
     nECU_LoopCounter_Update(&main_loop);
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)

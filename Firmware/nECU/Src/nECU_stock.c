@@ -174,7 +174,7 @@ void nECU_OX_DeInit(void) // deinitialize narrowband lambda structure
 }
 void nECU_OX_PWM_Set(float *infill) // function to set PWM according to set infill
 {
-    OX.Heater.htim->Instance->CCR1 = (*infill * OX.Heater.htim->Init.Period) / 100;
+    OX.Heater.htim->Instance->CCR1 = (*infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 }
 /* VSS - Vehicle Speed Sensor */
 uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
