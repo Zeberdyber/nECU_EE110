@@ -482,13 +482,30 @@ typedef enum
     nECU_ERROR_EGT_TC_EGT3_ID = 16,
     nECU_ERROR_EGT_TC_EGT4_ID = 17,
 
+    // flash interaction
+    nECU_ERROR_FLASH_SPEED_SAVE_ID = 18,
+    nECU_ERROR_FLASH_SPEED_READ_ID = 19,
+    nECU_ERROR_FLASH_USER_SAVE_ID = 20,
+    nECU_ERROR_FLASH_USER_READ_ID = 21,
+    nECU_ERROR_FLASH_DEBUG_QUE_SAVE_ID = 22,
+    nECU_ERROR_FLASH_DEBUG_QUE_READ_ID = 23,
+    nECU_ERROR_FLASH_ERASE_ID = 24,
+
     nECU_ERROR_NONE
 } nECU_Error_ID;
+typedef enum
+{
+    nECU_FLASH_ERROR_SPEED = 1,
+    nECU_FLASH_ERROR_USER = 2,
+    nECU_FLASH_ERROR_DBGQUE = 3,
+    nECU_FLASH_ERROR_ERASE = 4,
+    nECU_FLASH_ERROR_NONE
+} nECU_Flash_Error_ID;
 typedef struct
 {
     bool error_flag;     // flag indicating error ocurring
     float value_at_flag; // value that coused flag
-    uint8_t ID;          // ID of error
+    nECU_Error_ID ID;    // ID of error
 } nECU_Debug_error_mesage;
 
 typedef struct

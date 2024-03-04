@@ -42,15 +42,16 @@ extern "C"
     void nECU_TickTrack_Init(nECU_TickTrack *inst);   // initialize structure
     void nECU_TickTrack_Update(nECU_TickTrack *inst); // callback to get difference
 
-    void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst);                         // zeros value inside of structure
-    void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, uint8_t ID); // sets error values
+    void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst);                               // zeros value inside of structure
+    void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Error_ID ID); // sets error values
 
-    void nECU_Debug_Init_Struct(void);                          // set values to variables in structure
-    void nECU_Debug_IntTemp_Check(nECU_Debug_IC_temp *inst);    // check for errors of device temperature
-    bool nECU_Debug_IntTemp_CheckSingle(int16_t *temperature);  // checks if passed temperature is in defined bounds
-    void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst);   // check if TCs did not exceed fault value
-    bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature); // checks if passed temperature is in defined bound
-    void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst);   // check EGT ICs for error flags
+    void nECU_Debug_Init_Struct(void);                                    // set values to variables in structure
+    void nECU_Debug_IntTemp_Check(nECU_Debug_IC_temp *inst);              // check for errors of device temperature
+    bool nECU_Debug_IntTemp_CheckSingle(int16_t *temperature);            // checks if passed temperature is in defined bounds
+    void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst);             // check if TCs did not exceed fault value
+    bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature);           // checks if passed temperature is in defined bound
+    void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst);             // check EGT ICs for error flags
+    void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read); // indicate error from flash functions
 
     void nECU_Debug_Init_Que(void);                              // initializes que
     void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message); // add message to debug que

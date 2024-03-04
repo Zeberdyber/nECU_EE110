@@ -11,6 +11,7 @@
 OnBoardLED LED_L, LED_R;
 bool LED_Initialized = false; // flag to triger initialization
 static nECU_Debug dbg_data;
+static bool debug_que_initialized = false;
 
 /* On board LEDs */
 void OnBoard_LED_Init(void) // initialize structures for on board LEDs
@@ -139,12 +140,13 @@ void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst) // zeros value insid
     inst->ID = 0;
     inst->value_at_flag = 0.0;
 }
-void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, uint8_t ID) // sets error values
+void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Error_ID ID) // sets error values
 {
     inst->error_flag = true;
     inst->value_at_flag = value;
     inst->ID = ID;
     // HERE ADD QUE PUSH
+    nECU_Debug_Que_Write(inst);
 }
 
 void nECU_Debug_Init_Struct(void) // set values to variables in structure
@@ -233,6 +235,32 @@ bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature) // checks if passed t
     }
     return false;
 }
+void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read) // indicate error from flash functions
+{
+    // write_read ==  true => writing, false => reading
+    nECU_Debug_error_mesage temporary;
+    nECU_Debug_Message_Init(&temporary);
+    nECU_Error_ID id;
+    switch (ID)
+    {
+    case nECU_FLASH_ERROR_SPEED:
+        id = nECU_ERROR_FLASH_SPEED_SAVE_ID + write_read;
+        break;
+    case nECU_FLASH_ERROR_USER:
+        id = nECU_ERROR_FLASH_USER_SAVE_ID + write_read;
+        break;
+    case nECU_FLASH_ERROR_DBGQUE:
+        id = nECU_ERROR_FLASH_DEBUG_QUE_SAVE_ID + write_read;
+        break;
+    case nECU_FLASH_ERROR_ERASE:
+        id = nECU_ERROR_FLASH_ERASE_ID;
+        break;
+
+    default:
+        break;
+    }
+    nECU_Debug_Message_Set(&temporary, (float)HAL_GetTick(), id);
+}
 
 void nECU_Debug_Init_Que(void) // initializes que
 {
@@ -243,9 +271,15 @@ void nECU_Debug_Init_Que(void) // initializes que
     {
         nECU_Debug_Message_Init(&(dbg_data.error_que.messages[que_index])); // clear each
     }
+    debug_que_initialized = true;
 }
 void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to debug que
 {
+    if (debug_que_initialized == false)
+    {
+        return;
+    }
+
     dbg_data.error_que.counter.value++;
     dbg_data.error_que.message_count++;
     if (dbg_data.error_que.counter.value == dbg_data.error_que.counter.preset) // check if reached maximum value
@@ -261,6 +295,11 @@ void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to de
 }
 void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message) // read newest message from debug que
 {
+    if (debug_que_initialized == false)
+    {
+        return;
+    }
+
     if (dbg_data.error_que.message_count == 0) // break if no messages in que
     {
         return;

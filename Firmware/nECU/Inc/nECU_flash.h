@@ -18,9 +18,11 @@ extern "C"
 #include "nECU_types.h"
 #include "stm32f4xx.h"
 #include "string.h"
+#include "nECU_debug.h"
 
 /* Definitions */
 #define FLASH_DATA_START_ADDRESS 0x080E0000                                                                  // address of sector 11 of flash memory
+#define FLASH_DATA_END_ADDRESS 0x080E1000 /* ADD HERE FLASH RANGE */                                         // end address of sector 11 of flash memory
 #define FLASH_DATA_SIZE 16                                                                                   // Size of memory sector in bytes
 #define SPEED_DATA_OFFSET 0                                                                                  // offset where to start the speed calibration data in flash
 #define USER_SETTINGS_OFFSET (sizeof(nECU_SpeedCalibrationData) + SPEED_DATA_OFFSET)                         // offset where to start the user settings data in flash
@@ -41,17 +43,23 @@ extern "C"
     void nECU_readDebugQue(nECU_Debug_error_que *que);
 
     /* Flash functions */
-    void nECU_FLASH_cleanFlashSector(void); // clean flash sector
-    void nECU_FLASH_getAllMemory(void);     // get data from flash
-    void nECU_FLASH_saveFlashSector(void);  // save everything, then read to RAM
+    void nECU_FLASH_cleanFlashSector(void);       // clean flash sector
+    void nECU_FLASH_cleanFlashSector_check(void); // check if erase was successful
+    void nECU_FLASH_getAllMemory(void);           // get data from flash
+    void nECU_FLASH_saveFlashSector(void);        // save everything, then read to RAM
 
     /* Dedicated to data type functions */
-    void nECU_FLASH_writeSpeedCalibrationData(const nECU_SpeedCalibrationData *data); // function to write calibration data to flash memory
-    void nECU_FLASH_readSpeedCalibrationData(nECU_SpeedCalibrationData *data);        // function to read calibration data from flash memory
-    void nECU_FLASH_writeUserSettings(const nECU_UserSettings *data);                 // function to write settings data to flash memory
-    void nECU_FLASH_readUserSettings(nECU_UserSettings *data);                        // function to read settings data to flash memory
-    void nECU_FLASH_writeDebugQue(nECU_Debug_error_que *que);                         // function to write debug que to flash memory
-    void nECU_FLASH_readDebugQue(nECU_Debug_error_que *que);                          // function to read debug que to flash memory
+    void nECU_FLASH_writeSpeedCalibrationData(nECU_SpeedCalibrationData *data); // function to write calibration data to flash memory
+    void nECU_FLASH_readSpeedCalibrationData(nECU_SpeedCalibrationData *data);  // function to read calibration data from flash memory
+    void nECU_FLASH_checkSpeedCalibrationData(nECU_SpeedCalibrationData *data); // check if passed data is the same as in memory
+
+    void nECU_FLASH_writeUserSettings(nECU_UserSettings *data); // function to write settings data to flash memory
+    void nECU_FLASH_readUserSettings(nECU_UserSettings *data);  // function to read settings data to flash memory
+    void nECU_FLASH_checkUserSettings(nECU_UserSettings *data); // check if passed data is the same as in memory
+
+    void nECU_FLASH_writeDebugQue(nECU_Debug_error_que *que); // function to write debug que to flash memory
+    void nECU_FLASH_readDebugQue(nECU_Debug_error_que *que);  // function to read debug que to flash memory
+    void nECU_FLASH_checkDebugQue(nECU_Debug_error_que *que); // check if passed que is the same as in memory
 
     /* Helper functions */
     void nECU_compressBool(bool *bufferIn, uint8_t *out);   // compress bool array to one byte

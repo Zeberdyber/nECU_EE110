@@ -30,10 +30,9 @@
             > error
             > other?
         - flash:
-            > save error
-            > erase error
-            > read error
-            > other?
+            X > save error
+            X > erase error
+            X > read error
         - igf:
             > missfire
             > no signal
@@ -51,7 +50,7 @@
             > abnormal sensor
             > data error
     [ ] function skeletons
-    [ ] Debug message que
+    [X] Debug message que
 
 [ ] UART
     [ ] UART variables as a struct
@@ -82,3 +81,5 @@
     [ ] input ripple test
 
 [X] Debug message que saving
+
+[ ] Add flash range
