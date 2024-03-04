@@ -60,10 +60,11 @@ extern "C"
     void nECU_BackPressure_Init(void);           // initialize BackPressure structure
     void nECU_BackPressure_Update(void);         // update BackPressure structure
     /* Oxygen Sensor */
-    uint8_t *nECU_OX_GetPointer(void); // returns pointer to resulting data
-    void nECU_OX_Init(void);           // initialize narrowband lambda structure
-    void nECU_OX_Update(void);         // update narrowband lambda structure
-    void nECU_OX_DeInit(void);         // deinitialize narrowband lambda structure
+    uint8_t *nECU_OX_GetPointer(void);   // returns pointer to resulting data
+    void nECU_OX_Init(void);             // initialize narrowband lambda structure
+    void nECU_OX_Update(void);           // update narrowband lambda structure
+    void nECU_OX_DeInit(void);           // deinitialize narrowband lambda structure
+    void nECU_OX_PWM_Set(float *infill); // function to set PWM according to set infill
     /* VSS - Vehicle Speed Sensor */
     uint8_t *nECU_VSS_GetPointer(void);                // returns pointer to resulting data
     void nECU_VSS_Init(void);                          // initialize VSS structure

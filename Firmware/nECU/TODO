@@ -2,7 +2,6 @@
 
 [ ] Development
     [ ] OX sensor heater
-    [X] OX sensor analog signal
     [ ] IGF missfire
     [ ] IGF RPM calculation
 
@@ -28,7 +27,6 @@
             > error
             > other?
         - spi:
-            > timeout
             > error
             > other?
         - flash:
@@ -46,17 +44,13 @@
             X > data frame error
             X > ic over temp
             X > sensor error
-        - uart:
-            > other?
         - VSS:
             > input ripple
             > over speed
-            > other?
         - SpeedSens:
             > abnormal sensor
             > data error
     [ ] function skeletons
-    [X] warning when temp high (+ MCU_temperature.upToDate monitoring)
     [ ] Debug message que
 
 [ ] UART
@@ -76,17 +70,15 @@
 [ ] timer watchdogs
     [ ] IC (button inputs, ...) // How to do them????
 
-[X] switch from SPI_DMA to SPI_IT (DMA errors occur?, error callback handling)
-
 [ ] button input click/doubleclick/hold bugfix
 [ ] button input nECU_tim_IC_Callback() usage
 
 [ ] Debug file data structure
-
-[X] ADC1 debug (no data)
-[X] SPI1 debug (errors on transmission)
-
-[X] Stock MAP overflow?? weird behaviour for voltage above 3V
-    Fixed :D, my bad, it was a data overflow on CAN transmission
-[X] OX input tests
 [ ] OX PWM tests
+    [X] Resolder the IC (no output signal) [no result]
+    [ ] VDD to 5V (error on the board)
+
+[ ] VSS tests
+    [ ] input ripple test
+
+[X] Debug message que saving

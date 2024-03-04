@@ -52,6 +52,10 @@ extern "C"
     bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature); // checks if passed temperature is in defined bound
     void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst);   // check EGT ICs for error flags
 
+    void nECU_Debug_Init_Que(void);                              // initializes que
+    void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message); // add message to debug que
+    void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message);  // read newest message from debug que
+
 #ifdef __cplusplus
 }
 #endif

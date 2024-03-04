@@ -65,6 +65,17 @@ void nECU_readUserSettings(bool *pAntiLag, bool *pTractionOFF)
     nECU_decompressBool(&(Flash.userData.boolByte1), decompressed);
 }
 
+/* Debug que (flash function interface) */
+/* Que not stored in RAM as it is a big structure */
+void nECU_saveDebugQue(nECU_Debug_error_que *que)
+{
+    nECU_FLASH_writeDebugQue(que);
+}
+void nECU_readDebugQue(nECU_Debug_error_que *que)
+{
+    nECU_FLASH_readDebugQue(que);
+}
+
 /* Flash functions */
 void nECU_FLASH_cleanFlashSector(void) // clean flash sector
 {
@@ -84,11 +95,12 @@ void nECU_FLASH_getAllMemory(void) // get data from flash
 }
 void nECU_FLASH_saveFlashSector(void) // save everything, then read to RAM
 {
-    nECU_FLASH_cleanFlashSector();                            // clear all data
     nECU_FLASH_writeSpeedCalibrationData(&(Flash.speedData)); // save speed calib
     nECU_FLASH_writeUserSettings(&(Flash.userData));          // save user settings
     nECU_FLASH_getAllMemory();                                // update RAM
 }
+
+/* Dedicated to data type functions */
 void nECU_FLASH_writeSpeedCalibrationData(const nECU_SpeedCalibrationData *data) // function to write calibration data to flash memory
 {
     Flash.speedData = *data; // copy new data to buffer
@@ -148,6 +160,29 @@ void nECU_FLASH_readUserSettings(nECU_UserSettings *data) // function to read se
     if (data->boolByte1 == UINT8_MAX)
     {
         data->boolByte1 = 0;
+    }
+}
+void nECU_FLASH_writeDebugQue(nECU_Debug_error_que *que) // function to write debug que to flash memory
+{
+    HAL_FLASH_Unlock();
+    FLASH_FlushCaches();
+
+    // Write the data to flash memory
+    for (int i = 0; i < sizeof(nECU_Debug_error_que); i += 1)
+    {
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + DEBUG_QUE_OFFSET + i, *(uint8_t *)((uint8_t *)que + i));
+    }
+
+    HAL_FLASH_Lock();
+}
+void nECU_FLASH_readDebugQue(nECU_Debug_error_que *que) // function to read debug que to flash memory
+{
+    memcpy(que, (const void *)FLASH_DATA_START_ADDRESS + DEBUG_QUE_OFFSET, sizeof(nECU_Debug_error_que)); // copy the que
+
+    if (que->message_count == UINT16_MAX) // if que is maximum (no memory was written beforehand) set messages to zero
+    {
+        memset(que, 0, sizeof(nECU_Debug_error_que)); // zero-out memory region
+        que->message_count = 0;
     }
 }
 

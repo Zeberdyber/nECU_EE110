@@ -163,7 +163,7 @@ void nECU_OX_Update(void) // update narrowband lambda structure
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
     float coolant = (float)*OX.Coolant;
     OX.Heater_Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
-    OX.Heater.htim->Instance->CCR1 = (OX.Heater_Infill * OX.Heater.htim->Init.Period) / 100;
+    nECU_OX_PWM_Set(&(OX.Heater_Infill));
 }
 void nECU_OX_DeInit(void) // deinitialize narrowband lambda structure
 {
@@ -171,6 +171,10 @@ void nECU_OX_DeInit(void) // deinitialize narrowband lambda structure
     {
         nECU_tim_PWM_stop(&(OX.Heater));
     }
+}
+void nECU_OX_PWM_Set(float *infill) // function to set PWM according to set infill
+{
+    OX.Heater.htim->Instance->CCR1 = (*infill * OX.Heater.htim->Init.Period) / 100;
 }
 /* VSS - Vehicle Speed Sensor */
 uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data

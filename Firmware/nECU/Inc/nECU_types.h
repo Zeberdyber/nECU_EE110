@@ -37,6 +37,8 @@
 #define KNOCK_DMA_LEN 512     // length of DMA buffer for KNOCK_ADC
 #define FFT_LENGTH 2048       // length of data passed to FFT code and result precision
 
+#define DEBUG_QUE_LEN 50 // number of debug messages that will be stored in memory
+
 union FloatToBytes
 {
     float floatValue;
@@ -507,12 +509,19 @@ typedef struct
     uint16_t *EGT_IC[4];                      // temperature of thermocouples
     nECU_Debug_error_mesage over_temperature; // error message
 } nECU_Debug_EGT_Temp;                        // error due to over temperature of thermocouple
+typedef struct
+{
+    nECU_Debug_error_mesage messages[DEBUG_QUE_LEN]; // que
+    Counter counter;                                 // counter to track position of newest message
+    uint16_t message_count;                          // count of messages in the que
+} nECU_Debug_error_que;
 
 typedef struct
 {
     nECU_Debug_EGT_Comm egt_communication; // error got from communication with EGT IC
     nECU_Debug_EGT_Temp egt_temperature;   // error due to over temperature of thermocouple
     nECU_Debug_IC_temp device_temperature; // error due to over/under temperature of ICs
+    nECU_Debug_error_que error_que;        // que of active error messages
 } nECU_Debug;
 
 // enum device

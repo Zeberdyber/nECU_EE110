@@ -233,3 +233,43 @@ bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature) // checks if passed t
     }
     return false;
 }
+
+void nECU_Debug_Init_Que(void) // initializes que
+{
+    dbg_data.error_que.counter.preset = sizeof(dbg_data.error_que.messages) / sizeof(nECU_Debug_error_mesage); // calculate length of que
+    dbg_data.error_que.counter.value = 0;
+    dbg_data.error_que.message_count = 0;
+    for (uint16_t que_index = 0; que_index < dbg_data.error_que.counter.preset; que_index++)
+    {
+        nECU_Debug_Message_Init(&(dbg_data.error_que.messages[que_index])); // clear each
+    }
+}
+void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to debug que
+{
+    dbg_data.error_que.counter.value++;
+    dbg_data.error_que.message_count++;
+    if (dbg_data.error_que.counter.value == dbg_data.error_que.counter.preset) // check if reached maximum value
+    {
+        dbg_data.error_que.counter.value = 0;
+    }
+    if (dbg_data.error_que.message_count >= dbg_data.error_que.counter.preset) // cap the maximum number of messages
+    {
+        dbg_data.error_que.message_count = dbg_data.error_que.counter.preset;
+    }
+
+    memcpy(&(dbg_data.error_que.messages[dbg_data.error_que.counter.value]), message, sizeof(nECU_Debug_error_mesage)); // copy to que
+}
+void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message) // read newest message from debug que
+{
+    if (dbg_data.error_que.message_count == 0) // break if no messages in que
+    {
+        return;
+    }
+
+    memcpy(message, &(dbg_data.error_que.messages[dbg_data.error_que.counter.value]), sizeof(nECU_Debug_error_mesage)); // read last message
+
+    nECU_Debug_Message_Init(&(dbg_data.error_que.messages[dbg_data.error_que.counter.value])); // clear que position
+
+    dbg_data.error_que.counter.value--;
+    dbg_data.error_que.message_count--;
+}
