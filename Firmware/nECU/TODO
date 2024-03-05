@@ -1,7 +1,6 @@
 [ ] RPM signal clear mess
 
 [ ] Development
-    [X] OX sensor heater
     [ ] IGF missfire
     [ ] IGF RPM calculation
 
@@ -27,8 +26,7 @@
             > error
             > other?
         - spi:
-            > error
-            > other?
+            X > error
         - flash:
             X > save error
             X > erase error
@@ -49,7 +47,6 @@
         - SpeedSens:
             > abnormal sensor
             > data error
-    [ ] function skeletons
     [X] Debug message que
 
 [ ] UART
@@ -72,14 +69,11 @@
 [ ] button input click/doubleclick/hold bugfix
 [ ] button input nECU_tim_IC_Callback() usage
 
-[ ] Debug file data structure
-[X] OX PWM tests
-    [X] Resolder the IC (no output signal) [no result]
-    [X] VDD to 5V (error on the board)
+[???] Debug file data structure
 
 [ ] VSS tests
     [ ] input ripple test
 
-[X] Debug message que saving
+[X] Add flash range
 
-[ ] Add flash range
+[ ] EGT retest after new functions added

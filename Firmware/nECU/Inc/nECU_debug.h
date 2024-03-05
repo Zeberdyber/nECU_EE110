@@ -51,6 +51,7 @@ extern "C"
     void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst);             // check if TCs did not exceed fault value
     bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature);           // checks if passed temperature is in defined bound
     void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst);             // check EGT ICs for error flags
+    void nECU_Debug_EGTcomm_error(EGT_Sensor_ID ID);                      // to be called when error occurs
     void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read); // indicate error from flash functions
 
     void nECU_Debug_Init_Que(void);                              // initializes que

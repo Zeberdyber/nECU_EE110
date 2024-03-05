@@ -220,6 +220,7 @@ typedef struct
     SPI_HandleTypeDef *hspi;                         // peripheral pointer
     GPIO_struct CS_pin;                              // GPIO for Chip Select
     uint8_t in_buffer[4];                            // recived data buffer
+    uint8_t comm_fail;                               // counter of how many times communication have failed
     uint8_t data_Pending;                            // data was recieved and is pending to be decoded
     bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error; // Thermocouple state / data validity
     EGT_Error_Code ErrCode;                          // code of error acording to definition
@@ -229,10 +230,10 @@ typedef struct
 } MAX31855;
 typedef struct
 {
-    MAX31855 TC1, TC2, TC3, TC4;                                     // sensor structures
-    MAX31855 *EGT_CurrentObj;                                        // current object pointer (for sensor asking loop)
-    bool EGT_FirstSensor, EGT_Initialized, EGT_CommunicationOngoing; // flags to indicate state
-    uint8_t EGT_CurrentSensor;                                       // number of current sensor (for sensor asking loop)
+    bool updatePending;          // flag if data update is needed
+    MAX31855 TC1, TC2, TC3, TC4; // sensor structures
+    MAX31855 *EGT_CurrentObj;    // current object pointer (for sensor asking loop)
+    uint8_t EGT_CurrentSensor;   // number of current sensor (for sensor asking loop)
 } nECU_EGT;
 
 /* Flash */
@@ -518,7 +519,6 @@ typedef struct
 typedef struct
 {
     EGT_Error_Code *EGT_IC[4];          // error code from recived frame
-    bool transmission_NOK[4];           // flag that communication does not succseed
     nECU_Debug_error_mesage TC_invalid; // error message
 } nECU_Debug_EGT_Comm;                  // error got from communication with EGT IC
 typedef struct

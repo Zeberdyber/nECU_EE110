@@ -11,6 +11,8 @@
 /* EGT variables */
 nECU_EGT EGT_variables;
 
+static bool EGT_initialized = false;
+
 /* interface functions */
 MAX31855 *EGT_IdentifyID(EGT_Sensor_ID ID) // returns pointer to appropriete structure
 {
@@ -46,11 +48,7 @@ uint16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID) // get function th
 }
 bool *EGT_GetInitialized(void) // get function to check if code was EGT_Initialized
 {
-    return &EGT_variables.EGT_Initialized;
-}
-bool *EGT_GetUpdateOngoing(void) // get function to check if current comunication is ongoing
-{
-    return &EGT_variables.EGT_CommunicationOngoing;
+    return &EGT_initialized;
 }
 EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID) // get function returns pointer to error code
 {
@@ -66,51 +64,10 @@ void EGT_Start(void) // initialize all sensors and start communication
     MAX31855_Init(&EGT_variables.TC3, &SPI_PERIPHERAL_EGT, T3_CS_GPIO_Port, T3_CS_Pin);
     MAX31855_Init(&EGT_variables.TC4, &SPI_PERIPHERAL_EGT, T4_CS_GPIO_Port, T4_CS_Pin);
     EGT_variables.EGT_CurrentSensor = 0;
-    EGT_variables.EGT_FirstSensor = true;
-    EGT_variables.EGT_Initialized = true;
+    EGT_variables.updatePending = true;
+    EGT_initialized = true;
 }
-void EGT_GetSPIData(bool error) // get data of all sensors
-{
-    if (EGT_variables.EGT_FirstSensor == true)
-    {
-        EGT_variables.EGT_CurrentSensor = 1; // after first was done go to second sensor
-        EGT_variables.EGT_FirstSensor = false;
-        EGT_variables.EGT_CommunicationOngoing = true;
-    }
-    else
-    {
-        HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, SET);
-        EGT_variables.EGT_CurrentObj->data_Pending++;
-        EGT_variables.EGT_CurrentSensor++; // go to next sensor
-    }
-    if (EGT_variables.EGT_CurrentSensor > 4) // cycle break if all sensors done
-    {
-        EGT_variables.EGT_CurrentSensor = 0;
-        EGT_variables.EGT_CommunicationOngoing = false;
-        return;
-    }
 
-    switch (EGT_variables.EGT_CurrentSensor) // assign next MAX31855
-    {
-    case EGT_CYL1:
-        EGT_variables.EGT_CurrentObj = &EGT_variables.TC1;
-        break;
-    case EGT_CYL2:
-        EGT_variables.EGT_CurrentObj = &EGT_variables.TC2;
-        break;
-    case EGT_CYL3:
-        EGT_variables.EGT_CurrentObj = &EGT_variables.TC3;
-        break;
-    case EGT_CYL4:
-        EGT_variables.EGT_CurrentObj = &EGT_variables.TC4;
-        break;
-
-    default:
-        return;
-        break;
-    }
-    nECU_SPI_Rx_IT_Start(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, &EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->in_buffer, 4); // start reciving data
-}
 void EGT_ConvertAll(void) // convert data if pending
 {
     if (EGT_variables.TC1.data_Pending > 0)
@@ -149,25 +106,76 @@ void EGT_TemperatureTo10bit(MAX31855 *inst) // function to convert temperature v
     inst->EGT_Temperature = (uint16_t)Input;
 }
 
-void EGT_PeriodicEventHP(void) // high priority periodic event, launched from timer interrupt
+void EGT_Periodic(void) // periodic function to be called every main loop execution
 {
-    if (EGT_variables.EGT_CurrentSensor == 0)
-    {
-        EGT_variables.EGT_FirstSensor = true;
-        EGT_GetSPIData(false);
-    }
-    if (EGT_variables.TC1.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC2.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC3.data_Pending > EGT_MAXIMUM_PENDING_COUNT || EGT_variables.TC4.data_Pending > EGT_MAXIMUM_PENDING_COUNT)
-    {
-        EGT_PeriodicEventLP();
-    }
-}
-void EGT_PeriodicEventLP(void) // low priority periodic event, launched fsrom regular main loop
-{
-    if (EGT_variables.EGT_Initialized == false)
+    if (EGT_initialized == false)
     {
         EGT_Start();
     }
-    EGT_ConvertAll();
+    if (EGT_variables.updatePending == true)
+    {
+        // do the update for each sensor
+        if (EGT_variables.EGT_CurrentSensor == 0) // begin the transmission
+        {
+            EGT_SPI_startNext();
+        }
+        else if (EGT_variables.EGT_CurrentSensor > 4) // do if all sensors were done
+        {
+            EGT_ConvertAll();
+            EGT_variables.EGT_CurrentSensor = 0;
+            EGT_variables.updatePending = false;
+        }
+    }
+}
+MAX31855 *EGT_SPI_getNext(uint8_t sensorNumber) // returns pointer to correct IC
+{
+    switch (EGT_variables.EGT_CurrentSensor) // assign next MAX31855
+    {
+    case EGT_CYL1:
+        return &EGT_variables.TC1;
+    case EGT_CYL2:
+        return &EGT_variables.TC2;
+    case EGT_CYL3:
+        return &EGT_variables.TC3;
+    case EGT_CYL4:
+        return &EGT_variables.TC4;
+    default:
+        return &EGT_variables.TC1;
+    }
+}
+void EGT_SPI_startNext(void) // starts SPI communication for next IC
+{
+    EGT_variables.EGT_CurrentSensor++;
+    EGT_variables.EGT_CurrentObj = EGT_SPI_getNext(EGT_variables.EGT_CurrentSensor);
+    nECU_SPI_Rx_IT_Start(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, &EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->in_buffer, 4); // start reciving data
+}
+void EGT_SPI_Callback(bool error) // callback from SPI_TX end callback
+{
+    // Pull pin high to stop transmission
+    HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, SET);
+
+    if (error = true) // if error
+    {
+        EGT_variables.EGT_CurrentObj->comm_fail++;
+        if (EGT_variables.EGT_CurrentObj->comm_fail > EGT_COMM_FAIL_MAX) // if fail threshold reached
+        {
+            nECU_Debug_EGTcomm_error(EGT_variables.EGT_CurrentSensor);
+            EGT_variables.EGT_CurrentObj->comm_fail = 0;
+        }
+    }
+    else
+    {
+        EGT_variables.EGT_CurrentObj->data_Pending++; // indicate that data was recived and can be used for the update
+    }
+
+    if (EGT_variables.EGT_CurrentSensor < 4) // if not done go to next sensor
+    {
+        EGT_SPI_startNext();
+    }
+}
+void EGT_RequestUpdate(void) // indicate that update is needed
+{
+    EGT_variables.updatePending = true;
 }
 
 void MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin) // First initialization

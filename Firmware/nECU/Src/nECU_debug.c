@@ -203,20 +203,6 @@ bool nECU_Debug_IntTemp_CheckSingle(int16_t *temperature) // checks if passed te
     }
     return false;
 }
-void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst) // check EGT ICs for error flags
-{
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        if (inst->transmission_NOK[i]) // if error detected set message
-        {
-            nECU_Debug_Message_Set(&(inst->TC_invalid), (float)inst->transmission_NOK[i], nECU_ERROR_EGT_SPI_EGT1_ID + i);
-        }
-        if (inst->EGT_IC[i]) // if error detected set message
-        {
-            nECU_Debug_Message_Set(&(inst->TC_invalid), (float)*inst->EGT_IC[i], nECU_ERROR_EGT_TC_EGT1_ID + i);
-        }
-    }
-}
 void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst) // check if TCs did not exceed fault value
 {
     for (uint8_t i = 0; i < 4; i++)
@@ -234,6 +220,22 @@ bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature) // checks if passed t
         return true;
     }
     return false;
+}
+void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst) // check EGT ICs for error flags
+{
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        if (inst->EGT_IC[i]) // if error detected set message
+        {
+            nECU_Debug_Message_Set(&(inst->TC_invalid), (float)*inst->EGT_IC[i], nECU_ERROR_EGT_TC_EGT1_ID + i);
+        }
+    }
+}
+void nECU_Debug_EGTcomm_error(EGT_Sensor_ID ID) // to be called when error occurs
+{
+    nECU_Debug_error_mesage temporary;
+    nECU_Debug_Message_Init(&temporary);
+    nECU_Debug_Message_Set(&temporary, (float)HAL_GetTick(), nECU_ERROR_EGT_SPI_EGT1_ID + ID);
 }
 void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read) // indicate error from flash functions
 {

@@ -57,7 +57,7 @@ void nECU_main(void) // main rutine of the program
         ButtonLight_UpdateAll();
         // /* Low priority [non-critical] */
         nECU_Stock_Update();
-        EGT_PeriodicEventLP();
+        EGT_Periodic();
         // OnBoard_LED_Update();
         nECU_Delay_UpdateAll();
     }

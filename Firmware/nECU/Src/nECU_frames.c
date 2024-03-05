@@ -101,7 +101,7 @@ void Frame1_Init(uint8_t *pTachoVal1, uint8_t *pTachoVal2, uint8_t *pTachoVal3, 
 }
 void Frame1_Update(void) // update variables for frame 1
 {
-    EGT_PeriodicEventHP();
+    EGT_RequestUpdate();
 }
 void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
