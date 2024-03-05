@@ -54,7 +54,7 @@ void Button_Menu(void) // update function
     }
     else if (RedType == CLICK_TYPE_HOLD) // Calibrate speed sensors
     {
-      ButtonLight_Breath(RED_BUTTON_ID, 100, 10);
+      ButtonLight_Breath(RED_BUTTON_ID, 100, 10); // temporary line as no speed sensor is working properly
       // Speed_CalibrateStart();
     }
     if (OrangeType == CLICK_TYPE_SINGLE_CLICK) // Antilag ON/OFF
@@ -140,51 +140,51 @@ uint16_t *Button_Menu_getPointer_TuneSelector(void)
 }
 
 /* TachoValue interface functions */
-uint8_t *TachoValue_Get_OutputPointer(uint8_t structNumber) // get pointer to correct structure value
+uint8_t *TachoValue_Get_OutputPointer(Tacho_ID ID) // get pointer to correct structure value
 {
-  switch (structNumber)
+  switch (ID)
   {
-  case 1:
+  case TACHO_SHOW_1:
     return &Tacho1.output_value;
     break;
-  case 2:
+  case TACHO_SHOW_2:
     return &Tacho2.output_value;
     break;
-  case 3:
+  case TACHO_SHOW_3:
     return &Tacho3.output_value;
     break;
   default:
     break;
   }
 }
-bool *TachoValue_Get_ShowPointer(uint8_t structNumber) // get pointer to correct structure value
+bool *TachoValue_Get_ShowPointer(Tacho_ID ID) // get pointer to correct structure value
 {
-  switch (structNumber)
+  switch (ID)
   {
-  case 1:
+  case TACHO_SHOW_1:
     return &Tacho1.showPending;
     break;
-  case 2:
+  case TACHO_SHOW_2:
     return &Tacho2.showPending;
     break;
-  case 3:
+  case TACHO_SHOW_3:
     return &Tacho3.showPending;
     break;
   default:
     break;
   }
 }
-void TachoValue_Clear_ShowPending(uint8_t structNumber) // clear pending flag for selected struct
+void TachoValue_Clear_ShowPending(Tacho_ID ID) // clear pending flag for selected struct
 {
-  switch (structNumber)
+  switch (ID)
   {
-  case 1:
+  case TACHO_SHOW_1:
     Tacho1.showPending == false;
     break;
-  case 2:
+  case TACHO_SHOW_2:
     Tacho2.showPending == false;
     break;
-  case 3:
+  case TACHO_SHOW_3:
     Tacho3.showPending == false;
     break;
   default:

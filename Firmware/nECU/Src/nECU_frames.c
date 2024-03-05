@@ -13,15 +13,15 @@ Frame0_struct F0_var;
 Frame1_struct F1_var;
 Frame2_struct F2_var;
 
-extern uint16_t loopCounter;
+extern nECU_LoopCounter main_loop;
 
 /* Frame 0 */
 void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *pAntilag, bool *pTractionOFF, bool *pClearEngineCode, uint16_t *pLunchControlLevel) // initialization of data structure
 {
-    F0_var.Speed1 = Speed_GetSpeed(1);
-    F0_var.Speed2 = Speed_GetSpeed(2);
-    F0_var.Speed3 = Speed_GetSpeed(3);
-    F0_var.Speed4 = Speed_GetSpeed(4);
+    F0_var.Speed_FL = Speed_GetSpeed(SPEED_SENSOR_FRONT_LEFT);
+    F0_var.Speed_FR = Speed_GetSpeed(SPEED_SENSOR_FRONT_RIGHT);
+    F0_var.Speed_RL = Speed_GetSpeed(SPEED_SENSOR_REAR_LEFT);
+    F0_var.Speed_RR = Speed_GetSpeed(SPEED_SENSOR_REAR_RIGHT);
     F0_var.TachoShow1 = pTachoShow1;
     F0_var.TachoShow2 = pTachoShow2;
     F0_var.TachoShow3 = pTachoShow3;
@@ -67,10 +67,10 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
     Frame0_Update();
     uint8_t TxFrame[8];
-    Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, F0_var.Speed1);
-    Frame0_ComposeWord(&TxFrame[2], F0_var.ClearEngineCode, F0_var.TachoShow3, F0_var.TachoShow2, F0_var.TachoShow1, F0_var.Speed2);
-    Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl3, &F0_var.LunchControl2, &F0_var.LunchControl1, F0_var.Speed3);
-    Frame0_ComposeWord(&TxFrame[6], &ZeroBool, &ZeroBool, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed4);
+    Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, F0_var.Speed_FL);
+    Frame0_ComposeWord(&TxFrame[2], F0_var.ClearEngineCode, F0_var.TachoShow3, F0_var.TachoShow2, F0_var.TachoShow1, F0_var.Speed_FR);
+    Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl3, &F0_var.LunchControl2, &F0_var.LunchControl1, F0_var.Speed_RL);
+    Frame0_ComposeWord(&TxFrame[6], &ZeroBool, &ZeroBool, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed_RR);
     nECU_CAN_WriteToBuffer(0, TxFrame);
     *F0_var.ClearEngineCode = false;
 }
@@ -90,10 +90,10 @@ void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4,
 /* Frame 1 */
 void Frame1_Init(uint8_t *pTachoVal1, uint8_t *pTachoVal2, uint8_t *pTachoVal3, uint16_t *pTuneSelector) // initialization of data structure
 {
-    F1_var.EGT1 = EGT_GetTemperaturePointer(1);
-    F1_var.EGT2 = EGT_GetTemperaturePointer(2);
-    F1_var.EGT3 = EGT_GetTemperaturePointer(3);
-    F1_var.EGT4 = EGT_GetTemperaturePointer(4);
+    F1_var.EGT1 = EGT_GetTemperaturePointer(EGT_CYL1);
+    F1_var.EGT2 = EGT_GetTemperaturePointer(EGT_CYL2);
+    F1_var.EGT3 = EGT_GetTemperaturePointer(EGT_CYL3);
+    F1_var.EGT4 = EGT_GetTemperaturePointer(EGT_CYL4);
     F1_var.TachoVal1 = pTachoVal1;
     F1_var.TachoVal2 = pTachoVal2;
     F1_var.TachoVal3 = pTachoVal3;
@@ -101,20 +101,20 @@ void Frame1_Init(uint8_t *pTachoVal1, uint8_t *pTachoVal2, uint8_t *pTachoVal3, 
 }
 void Frame1_Update(void) // update variables for frame 1
 {
-    EGT_PeriodicEventHP();
+    EGT_RequestUpdate();
 }
 void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
     Frame1_Update();
     uint8_t TxFrame[8];
     Frame1_ComposeWord(&TxFrame[0], F1_var.TachoVal1, F1_var.EGT1);
-    Frame1_ComposeWord(&TxFrame[2], F1_var.TachoVal2, F1_var.EGT1);
-    Frame1_ComposeWord(&TxFrame[4], F1_var.TachoVal3, F1_var.EGT1);
-    Frame1_ComposeWord(&TxFrame[6], (uint8_t *)F1_var.TuneSelector, F1_var.EGT1);
+    Frame1_ComposeWord(&TxFrame[2], F1_var.TachoVal2, F1_var.EGT2);
+    Frame1_ComposeWord(&TxFrame[4], F1_var.TachoVal3, F1_var.EGT3);
+    Frame1_ComposeWord(&TxFrame[6], (uint8_t *)F1_var.TuneSelector, F1_var.EGT4);
     nECU_CAN_WriteToBuffer(1, TxFrame);
-    TachoValue_Clear_ShowPending(1);
-    TachoValue_Clear_ShowPending(2);
-    TachoValue_Clear_ShowPending(3);
+    TachoValue_Clear_ShowPending(TACHO_SHOW_1);
+    TachoValue_Clear_ShowPending(TACHO_SHOW_2);
+    TachoValue_Clear_ShowPending(TACHO_SHOW_3);
 }
 void Frame1_ComposeWord(uint8_t *buffer, uint8_t *Val6Bit, uint16_t *Val10Bit) // function to create word for use in frame 1
 {
@@ -152,7 +152,7 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     TxFrame[3] = *F2_var.Backpressure;
     TxFrame[4] = *F2_var.Knock;
     TxFrame[5] = *F2_var.VSS;
-    Converter.UintValue = loopCounter;
+    Converter.UintValue = (uint16_t)main_loop.counter;
     TxFrame[6] = Converter.byteArray[1]; // spare
     TxFrame[7] = Converter.byteArray[0]; // spare
     nECU_CAN_WriteToBuffer(2, TxFrame);

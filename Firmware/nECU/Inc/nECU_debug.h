@@ -21,6 +21,10 @@ extern "C"
 /* Definitions */
 #define ONBOARD_LED_MS_PER_BLINK 1000 // number of miliseconds for full blink
 
+#define DEVICE_TEMPERATURE_MAX 55  // in deg C
+#define DEVICE_TEMPERATURE_MIN -20 // in deg C
+#define TC_TEMPERATURE_MAX 1000    // in deg C
+
     /* On board LED */
     void OnBoard_LED_Init(void);                                   // initialize structures for on board LEDs
     void OnBoard_LED_UpdateSingle(OnBoardLED *inst);               // function to perform logic behind blinking times and update to GPIO
@@ -30,6 +34,29 @@ extern "C"
 
     /* Fault detection */
     void nECU_Fault_Missfire(void); // routine after missfire was detected
+
+    void nECU_LoopCounter_Init(nECU_LoopCounter *inst);   // Initialize structure
+    void nECU_LoopCounter_Update(nECU_LoopCounter *inst); // Increment counter, get total time
+    void nECU_LoopCounter_Clear(nECU_LoopCounter *inst);  // clear value of the counter
+
+    void nECU_TickTrack_Init(nECU_TickTrack *inst);   // initialize structure
+    void nECU_TickTrack_Update(nECU_TickTrack *inst); // callback to get difference
+
+    void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst);                               // zeros value inside of structure
+    void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Error_ID ID); // sets error values
+
+    void nECU_Debug_Init_Struct(void);                                    // set values to variables in structure
+    void nECU_Debug_IntTemp_Check(nECU_Debug_IC_temp *inst);              // check for errors of device temperature
+    bool nECU_Debug_IntTemp_CheckSingle(int16_t *temperature);            // checks if passed temperature is in defined bounds
+    void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst);             // check if TCs did not exceed fault value
+    bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature);           // checks if passed temperature is in defined bound
+    void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst);             // check EGT ICs for error flags
+    void nECU_Debug_EGTcomm_error(EGT_Sensor_ID ID);                      // to be called when error occurs
+    void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read); // indicate error from flash functions
+
+    void nECU_Debug_Init_Que(void);                              // initializes que
+    void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message); // add message to debug que
+    void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message);  // read newest message from debug que
 
 #ifdef __cplusplus
 }

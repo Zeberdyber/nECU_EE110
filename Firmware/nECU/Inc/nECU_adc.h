@@ -37,9 +37,10 @@ Time ADC1 {/8, 12bit, 8 channels, 480 cycles each}
 
 #define KNOCK_ADC hadc3 // ADC responsible for knock sensor data collection
 
-#define INTERNAL_TEMP_SLOPE (float)2.5 // slope defined in datasheet [mV/C]
-#define INTERNAL_TEMP_V25 (float)0.76  // Voltage at 25C from calibration (defined in datasheet)
-#define INTERNAL_TEMP_CONV_DIV 100     // division of conversions taken into account (8bit)
+#define INTERNAL_TEMP_SLOPE (float)2.5  // slope defined in datasheet [mV/C]
+#define INTERNAL_TEMP_V25 (float)0.76   // Voltage at 25C from calibration (defined in datasheet)
+#define INTERNAL_TEMP_UPDATE_DELAY 1000 // once per second (1000ms)
+#define INTERNAL_TEMP_MULTIPLIER 100    // value by which internal temperature result will be multipled
 
 #define VREFINT_CALIB ((uint16_t *)((uint32_t)0x1FFF7A2A)) // Internal voltage reference raw value at 30 degrees C, VDDA=3.3V (defined in datasheet)
 #define VREF_CALIB 3.3                                     // VDDA voltage at which all other values were created (defined in datasheet)

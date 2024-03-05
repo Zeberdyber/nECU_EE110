@@ -21,19 +21,20 @@ extern "C"
 #include "nECU_can.h"
 
 /* Definitions */
-#define Wheel_Circ_Set_1 1888 // Circumference of wheel for setup 1 in mm
-#define Wheel_Circ_Set_2 1870 // Circumference of wheel for setup 2 in mm
-#define Speed_DecimalPoint 1  // Specifies how many numbers should be after decimal point
-#define Speed_HzTomVolts 0.63 // Specifies electrical parameter of LM2907 used components
-#define Speed_ToothCount 43   // Impulses per revolution of a wheel
-#define Speed_SampleNumber 10 // Number of samples to average from
-#define SPEED_OFFSET 4        // negative offset for noise compensation
-#define SPEED_EXP_ALPHA 0.04  // alpha of exponential filter
+#define Wheel_Circ_Set_1 1888   // Circumference of wheel for setup 1 in mm
+#define Wheel_Circ_Set_2 1870   // Circumference of wheel for setup 2 in mm
+#define Speed_DecimalPoint 1    // Specifies how many numbers should be after decimal point
+#define Speed_HzTomVolts 0.63   // Specifies electrical parameter of LM2907 used components
+#define Speed_ToothCount 43     // Impulses per revolution of a wheel
+#define Speed_SampleNumber 10   // Number of samples to average from
+#define SPEED_OFFSET 4          // negative offset for noise compensation
+#define SPEED_EXP_ALPHA 0.04    // alpha of exponential filter
+#define SPEED_CALIB_VELOCITY 50 // speed at which calibraion is done in km/h
 
     /* Interface functions */
-    uint16_t *Speed_GetSpeed(uint8_t sensorNumber);     // get current speed
-    uint16_t *Speed_GetSpeedSlow(uint8_t sensorNumber); // get slower (average) speed
-    void Speed_SetWheelSetup(uint8_t WheelSetup);       // set wheel setup for all sensors
+    uint16_t *Speed_GetSpeed(Speed_Sensor_ID ID);     // get current speed
+    uint16_t *Speed_GetSpeedSlow(Speed_Sensor_ID ID); // get slower (average) speed
+    void Speed_SetWheelSetup(uint8_t WheelSetup);     // set wheel setup for all sensors
 
     /* Averaging */
     void Speed_AverageCalc(Speed_Sensor *Sensor); // routine to calculate averaged speed
@@ -54,9 +55,6 @@ extern "C"
 
     /* Periodic functions */
     void Speed_TimingEvent(void); // function to be called periodicaly with desired data update rate
-
-    /* Speed testing functions */
-    bool Test_Speed_SensorUpdate(void); // function to test Speed functions
 
 #ifdef __cplusplus
 }

@@ -50,6 +50,7 @@ extern "C"
     /* code tests */
     bool nECU_codetest_Flash_compdecompBool(void); // test nECU_compressBool and nECU_decompressBool
     bool nECU_codetest_ADC_AvgSmooth(void);        // test script for general functions
+    bool nECU_codetest_Speed_SensorUpdate(void);   // function to test Speed functions
     void nECU_codetest_run(void);                  // run tests of type codetest
     void nECU_codetest_error(void);                // function to call when error detected
 

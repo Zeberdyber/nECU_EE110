@@ -12,77 +12,77 @@
 bool CAN_Running = false;
 uint8_t CAN_Code_Error = 0; // error in user code ex: no valid solution for given input
 
-/* CAN Mailboxes */
-uint32_t CAN_TxMailbox_Frame0 = CAN_TX_MAILBOX0;
-uint32_t CAN_TxMailbox_Frame1 = CAN_TX_MAILBOX1;
-uint32_t CAN_TxMailbox_Frame2 = CAN_TX_MAILBOX2;
-
+/* RX variables */
 /* CAN Headers */
-CAN_TxHeaderTypeDef CanTxFrame0;
-CAN_TxHeaderTypeDef CanTxFrame1;
-CAN_TxHeaderTypeDef CanTxFrame2;
 CAN_RxHeaderTypeDef CanRxFrame0;
-
 /* CAN Frame buffers */
-uint8_t TxData_Frame0[8];
-uint8_t TxData_Frame1[8];
-uint8_t TxData_Frame2[8];
 uint8_t RxData_Frame0[8];
-
 /* CAN filters */
 CAN_FilterTypeDef WheelSetupFilter;
 CAN_FilterTypeDef CoolantFilter;
-
 /* CAN flags */
 bool Rx_Data_Frame0_Pending = false;
 
-extern uint16_t loopCounter;
+extern nECU_LoopCounter main_loop;
+extern Frame0_struct F0_var;
+extern Frame1_struct F1_var;
+extern Frame2_struct F2_var;
 
 // General functions
 void nECU_CAN_Start(void) // start periodic transmission of data accroding to the timers
 {
-  nECU_CAN_InitFrame(0);
-  nECU_CAN_InitFrame(1);
-  nECU_CAN_InitFrame(2);
+  nECU_CAN_InitFrame(nECU_Frame_Speed);
+  nECU_CAN_InitFrame(nECU_Frame_EGT);
+  nECU_CAN_InitFrame(nECU_Frame_Stock);
   nECU_CAN_RX_InitFrame();
 
-  HAL_TIM_Base_Start_IT(&CAN_LOW_PRIORITY_TIMER);  // timing counter
-  HAL_TIM_Base_Start_IT(&CAN_HIGH_PRIORITY_TIMER); // timing counter
-}
-void nECU_CAN_WriteToBuffer(uint8_t frameNumber, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
-{
-  switch (frameNumber)
-  {
-  case 0:
-    for (uint8_t i = 0; i < CanTxFrame0.DLC; i++)
-    {
-      TxData_Frame0[i] = TxData_Frame[i];
-    }
-    break;
-  case 1:
-    for (uint8_t i = 0; i < CanTxFrame1.DLC; i++)
-    {
-      TxData_Frame1[i] = TxData_Frame[i];
-    }
-    break;
-  case 2:
-    for (uint8_t i = 0; i < CanTxFrame2.DLC; i++)
-    {
-      TxData_Frame2[i] = TxData_Frame[i];
-    }
-    break;
+  F0_var.send_timing.htim = &CAN_LOW_PRIORITY_TIMER;
+  F1_var.send_timing.htim = &CAN_LOW_PRIORITY_TIMER;
+  F2_var.send_timing.htim = &CAN_HIGH_PRIORITY_TIMER;
 
+  nECU_tim_Init_struct(&(F0_var.send_timing));
+  nECU_tim_Init_struct(&(F1_var.send_timing));
+  nECU_tim_Init_struct(&(F2_var.send_timing));
+
+  nECU_tim_base_start(&(F0_var.send_timing));
+  nECU_tim_base_start(&(F1_var.send_timing));
+  nECU_tim_base_start(&(F2_var.send_timing));
+
+  F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
+  F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
+  F2_var.can_data.Mailbox = CAN_TX_MAILBOX2;
+}
+void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
+{
+  nECU_CAN_TxFrame *pFrame;
+  switch (frameID)
+  {
+  case nECU_Frame_Speed:
+    pFrame = &F0_var.can_data;
+    break;
+  case nECU_Frame_EGT:
+    pFrame = &F1_var.can_data;
+    break;
+  case nECU_Frame_Stock:
+    pFrame = &F2_var.can_data;
+    break;
   default:
     CAN_Code_Error = 1;
     break;
+  }
+  for (uint8_t i = 0; i < pFrame->Header.DLC; i++)
+  {
+    pFrame->Send_Buffer[i] = TxData_Frame[i];
   }
 }
 void nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   HAL_CAN_Stop(&hcan1);
   nECU_CAN_RX_Stop();
-  HAL_TIM_Base_Stop_IT(&CAN_LOW_PRIORITY_TIMER);
-  HAL_TIM_Base_Stop_IT(&CAN_HIGH_PRIORITY_TIMER);
+
+  nECU_tim_base_stop(&(F0_var.send_timing));
+  nECU_tim_base_stop(&(F1_var.send_timing));
+  nECU_tim_base_stop(&(F2_var.send_timing));
 }
 
 // Communication functions
@@ -90,42 +90,43 @@ void nECU_CAN_TimerEvent(TIM_HandleTypeDef *htim) // funtion called after period
 {
   if (htim == &CAN_LOW_PRIORITY_TIMER) // Timing clock for normal priority CAN messages
   {
-    nECU_CAN_TransmitFrame(0);
-    nECU_CAN_TransmitFrame(1);
-    loopCounter = 0;
+    nECU_CAN_TransmitFrame(nECU_Frame_Speed);
+    nECU_CAN_TransmitFrame(nECU_Frame_EGT);
+    nECU_LoopCounter_Clear(&main_loop);
   }
   if (htim == &CAN_HIGH_PRIORITY_TIMER) // Timing clock for high priority CAN messages
   {
-    nECU_CAN_TransmitFrame(2);
+    nECU_CAN_TransmitFrame(nECU_Frame_Stock);
   }
 }
-void nECU_CAN_InitFrame(uint8_t frameNumber) // initialize header for selected frame
+void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for selected frame
 {
-  switch (frameNumber)
+  nECU_CAN_TxFrame *pFrame;
+
+  switch (frameID)
   {
-  case 0:
-    CanTxFrame0.IDE = CAN_ID_STD;
-    CanTxFrame0.StdId = CAN_TX_FRAME0_ID;
-    CanTxFrame0.RTR = CAN_RTR_DATA;
-    CanTxFrame0.DLC = 8;
+  case nECU_Frame_Speed:
+    pFrame = &F0_var.can_data;
+    pFrame->Header.StdId = CAN_TX_FRAME0_ID;
     break;
-  case 1:
-    CanTxFrame1.IDE = CAN_ID_STD;
-    CanTxFrame1.StdId = CAN_TX_FRAME1_ID;
-    CanTxFrame1.RTR = CAN_RTR_DATA;
-    CanTxFrame1.DLC = 8;
+  case nECU_Frame_EGT:
+    pFrame = &F1_var.can_data;
+    pFrame->Header.StdId = CAN_TX_FRAME1_ID;
     break;
-  case 2:
-    CanTxFrame2.IDE = CAN_ID_STD;
-    CanTxFrame2.StdId = CAN_TX_FRAME2_ID;
-    CanTxFrame2.RTR = CAN_RTR_DATA;
-    CanTxFrame2.DLC = 8;
+  case nECU_Frame_Stock:
+    pFrame = &F2_var.can_data;
+    pFrame->Header.StdId = CAN_TX_FRAME2_ID;
     break;
 
   default:
     CAN_Code_Error = 1;
     break;
   }
+
+  pFrame->Header.IDE = CAN_ID_STD;
+  pFrame->Header.RTR = CAN_RTR_DATA;
+  pFrame->Header.DLC = 8; // 8 bytes in length
+
   if (!CAN_Running) // If not running start the peripheral
   {
     if (HAL_CAN_Start(&hcan1) == HAL_OK)
@@ -134,7 +135,7 @@ void nECU_CAN_InitFrame(uint8_t frameNumber) // initialize header for selected f
     }
   }
 }
-uint8_t nECU_CAN_TransmitFrame(uint8_t frameNumber) // send selected frame over CAN
+uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame over CAN
 {
   if (!CAN_Running && HAL_CAN_Start(&hcan1) == 0) // If not running start the peripheral
   {
@@ -142,39 +143,34 @@ uint8_t nECU_CAN_TransmitFrame(uint8_t frameNumber) // send selected frame over 
   }
   else
   {
-    switch (frameNumber)
+    nECU_CAN_TxFrame *pFrame;
+    switch (frameID)
     {
-    case 0:
-      // if (HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame0) == 0) // Check if CAN mailbox empty, then send
-      // {
-      HAL_CAN_AddTxMessage(&hcan1, &CanTxFrame0, TxData_Frame0, &CAN_TxMailbox_Frame0); // Transmit the data
-      return 1;
-      // }
+    case nECU_Frame_Speed:
+      pFrame = &F0_var.can_data;
       break;
-    case 1:
-      // if (HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame1) == 0) // Check if CAN mailbox empty, then send
-      // {
-      HAL_CAN_AddTxMessage(&hcan1, &CanTxFrame1, TxData_Frame1, &CAN_TxMailbox_Frame1); // Transmit the data
-      return 1;
-      // }
+    case nECU_Frame_EGT:
+      pFrame = &F1_var.can_data;
       break;
-    case 2:
-      // if (HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame2) == 0) // Check if CAN mailbox empty, then send
-      // {
-      HAL_CAN_AddTxMessage(&hcan1, &CanTxFrame2, TxData_Frame2, &CAN_TxMailbox_Frame2); // Transmit the data
-      return 1;
-      // }
+    case nECU_Frame_Stock:
+      pFrame = &F2_var.can_data;
       break;
     default:
       CAN_Code_Error = 1;
+      return 0;
       break;
     }
+    // if (HAL_CAN_IsTxMessagePending(&hcan1, &(F2_var.can_data.Mailbox)) == 0) // Check if CAN mailbox empty, then send
+    // {
+    HAL_CAN_AddTxMessage(&hcan1, &(pFrame->Header), pFrame->Send_Buffer, &(pFrame->Mailbox)); // Transmit the data
+    return 1;
+    // }
   }
   return 0;
 }
 uint8_t nECU_CAN_IsBusy(void) // Check if any messages are pending
 {
-  if (HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame0) || HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame1) || HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame2))
+  if (HAL_CAN_IsTxMessagePending(&hcan1, F0_var.can_data.Mailbox) || HAL_CAN_IsTxMessagePending(&hcan1, F1_var.can_data.Mailbox) || HAL_CAN_IsTxMessagePending(&hcan1, F2_var.can_data.Mailbox))
   {
     return 1;
   }
@@ -192,7 +188,7 @@ bool nECU_CAN_GetState(void) // get data if can periperal buisy
   {
     return true;
   }
-  if (HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame0) || HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame1) || HAL_CAN_IsTxMessagePending(&hcan1, CAN_TxMailbox_Frame2)) // message is waiting for TX
+  if (HAL_CAN_IsTxMessagePending(&hcan1, F0_var.can_data.Mailbox) || HAL_CAN_IsTxMessagePending(&hcan1, F1_var.can_data.Mailbox) || HAL_CAN_IsTxMessagePending(&hcan1, F2_var.can_data.Mailbox)) // message is waiting for TX
   {
     return true;
   }

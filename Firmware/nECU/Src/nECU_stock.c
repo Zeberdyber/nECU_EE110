@@ -10,9 +10,9 @@
 // internal variables
 static AnalogSensor_Handle MAP;
 static AnalogSensor_Handle BackPressure;
-static Oxygen_Handle OX;
-static VSS_Handle VSS;
-static IGF_Handle IGF;
+Oxygen_Handle OX;
+VSS_Handle VSS;
+IGF_Handle IGF;
 static stock_GPIO stk_in;
 
 // initialized flags
@@ -131,26 +131,29 @@ void nECU_OX_Init(void) // initialize narrowband lambda structure
     nECU_calculateLinearCalibration(&OX.sensor.calibrationData);
     OX.sensor.decimalPoint = OXYGEN_DECIMAL_POINT;
     OX.sensor.ADC_input = ADC_OX;
-    OX_Initialized = true;
     /* Heater */
-    OX.Heater.Timer = &OX_HEATER_TIMER;
-    OX.Heater.Channel = 1;
-    HAL_TIM_Base_Start_IT(OX.Heater.Timer);
-    HAL_TIM_PWM_Start_IT(OX.Heater.Timer, TIM_CHANNEL_1);
-    OX.Heater.Infill = 0;
+    // timer configuration
+    OX.Heater.htim = &OX_HEATER_TIMER;
+    nECU_tim_Init_struct(&(OX.Heater));
+    OX.Heater.Channel_Count = 1;
+    OX.Heater.Channel_List[0] = TIM_CHANNEL_1;
+    nECU_tim_PWM_start(&(OX.Heater));
+    // variables configuration
+    OX.Heater_Infill = 0;
     OX.Coolant = nECU_CAN_getCoolantPointer();
-    OX.Heater.Timer->Instance->CCR1 = 0;
     OX.Infill_max = OXYGEN_HEATER_MAX;
     OX.Infill_min = OXYGEN_HEATER_MIN;
     OX.Coolant_max = OXYGEN_COOLANT_MAX;
     OX.Coolant_min = OXYGEN_COOLANT_MIN;
+
+    OX_Initialized = true;
 }
 void nECU_OX_Update(void) // update narrowband lambda structure
 {
     /* Sensor update */
     if (OX_Initialized == false)
     {
-        nECU_BackPressure_Init();
+        nECU_OX_Init();
         return;
     }
     OX.sensor.outputFloat = nECU_getLinearSensor(OX.sensor.ADC_input, &OX.sensor.calibrationData);
@@ -159,16 +162,19 @@ void nECU_OX_Update(void) // update narrowband lambda structure
     /* Output update */
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
     float coolant = (float)*OX.Coolant;
-    OX.Heater.Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
-    OX.Heater.Timer->Instance->CCR1 = (OX.Heater.Infill * OX.Heater.Timer->Init.Period) / 100;
+    OX.Heater_Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
+    nECU_OX_PWM_Set(&(OX.Heater_Infill));
 }
 void nECU_OX_DeInit(void) // deinitialize narrowband lambda structure
 {
     if (OX_Initialized == true)
     {
-        HAL_TIM_Base_Stop_IT(OX.Heater.Timer);
-        HAL_TIM_PWM_Stop_IT(OX.Heater.Timer, TIM_CHANNEL_1);
+        nECU_tim_PWM_stop(&(OX.Heater));
     }
+}
+void nECU_OX_PWM_Set(float *infill) // function to set PWM according to set infill
+{
+    OX.Heater.htim->Instance->CCR1 = (*infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 }
 /* VSS - Vehicle Speed Sensor */
 uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
@@ -177,7 +183,7 @@ uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
 }
 void nECU_VSS_Init(void) // initialize VSS structure
 {
-    VSS.VSS_prevCCR = 0;
+    VSS.ic.previous_CCR = 0;
     VSS.tim.htim = &FREQ_INPUT_TIMER;
     nECU_tim_Init_struct(&VSS.tim);
     VSS.tim.Channel_Count = 1;
@@ -193,24 +199,10 @@ void nECU_VSS_Update(void) // update VSS structure
         return;
     }
 
-    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(VSS.tim.htim, VSS.tim.Channel_List[0]);
-
-    /* Calculate difference */
-    uint16_t Difference = 0; // in miliseconds
-    if (VSS.VSS_prevCCR > CurrentCCR)
+    float speed = (VSS.ic.frequency) * (3600.0f / VSS_PULSES_PER_KM); // 3600 for m/s to km/h
+    if (speed > (float)UINT8_MAX)
     {
-        Difference = ((VSS.tim.htim->Init.Period + 1 - VSS.VSS_prevCCR) + CurrentCCR);
-    }
-    else
-    {
-        Difference = (CurrentCCR - VSS.VSS_prevCCR);
-    }
-    VSS.VSS_prevCCR = CurrentCCR;
-    VSS.frequency = VSS.tim.refClock / Difference;
-    float speed = (VSS.frequency) * (3600.0f / VSS_PULSES_PER_KM);
-    if (speed > 0xFF)
-    {
-        speed = 0xFF;
+        speed = UINT8_MAX;
     }
     else if (speed < 0)
     {
@@ -218,7 +210,6 @@ void nECU_VSS_Update(void) // update VSS structure
     }
 
     VSS.Speed = (uint8_t)speed;
-    VSS.watchdogCount = 0;
 }
 void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim) // detect if zero km/h -- !!! to be fixed
 {
@@ -243,7 +234,7 @@ void nECU_VSS_DeInit(void) // deinitialize VSS structure
 /* IGF - Ignition feedback */
 void nECU_IGF_Init(void) // initialize and start
 {
-    IGF.IGF_prevCCR = 0;
+    IGF.ic.previous_CCR = 0;
     IGF.tim.htim = &FREQ_INPUT_TIMER;
     nECU_tim_Init_struct(&IGF.tim);
     IGF.tim.Channel_Count = 1;
@@ -259,31 +250,18 @@ void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
         return;
     }
 
-    uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(IGF.tim.htim, IGF.tim.Channel_List[0]);
-    /* Calculate difference */
-    uint16_t Difference = 0; // in CCR value
-    if (IGF.IGF_prevCCR > CurrentCCR)
-    {
-        Difference = ((IGF.tim.htim->Init.Period + 1 - IGF.IGF_prevCCR) + CurrentCCR);
-    }
-    else if (IGF.IGF_prevCCR == CurrentCCR)
+    uint16_t RPM = IGF.ic.frequency * 120;
+    if (RPM > IGF_MAX_RPM)
     {
         return;
     }
-    else
-    {
-        Difference = (CurrentCCR - IGF.IGF_prevCCR);
-    }
-    IGF.IGF_prevCCR = CurrentCCR;
-    IGF.frequency = IGF.tim.refClock / Difference; // CCR difference to frequency
-    uint16_t RPM = IGF.frequency * 120;
 
     float rpm_rate = RPM - IGF.RPM;
     if (rpm_rate < 0)
     {
         rpm_rate = -rpm_rate;
     }
-    rpm_rate *= IGF.frequency;
+    rpm_rate *= IGF.ic.frequency;
     if (rpm_rate > IGF_MAX_RPM_RATE)
     {
         nECU_Fault_Missfire();
@@ -363,4 +341,6 @@ void nECU_Stock_Update(void) // function to update structures
     nECU_BackPressure_Update();
     nECU_MAP_Update();
     nECU_OX_Update();
+    nECU_VSS_Update();
+    nECU_IGF_Calc();
 }

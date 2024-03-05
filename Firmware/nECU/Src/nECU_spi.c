@@ -12,22 +12,14 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) // called when successfully
 {
   if (hspi == &SPI_PERIPHERAL_EGT)
   {
-    bool *egt_communication_active = EGT_GetUpdateOngoing();
-    if (*egt_communication_active == true)
-    {
-      EGT_GetSPIData(false); // update EGT sensors
-    }
+    EGT_SPI_Callback(false); // update EGT sensors
   }
 }
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) // called when error ocured
 {
   if (hspi == &SPI_PERIPHERAL_EGT)
   {
-    bool *egt_communication_active = EGT_GetUpdateOngoing();
-    if (*egt_communication_active == true)
-    {
-      EGT_GetSPIData(true); // update EGT sensors
-    }
+    EGT_SPI_Callback(true); // update EGT sensors
   }
 }
 bool nECU_SPI_getBusy(SPI_HandleTypeDef *hspi) // get state (if busy) of the SPI communication
@@ -61,11 +53,18 @@ void nECU_SPI_Rx_DMA_Start(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTy
 }
 void nECU_SPI_Rx_DMA_Stop(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTypeDef *hspi) // end communication with selected device
 {
-  bool ans = nECU_SPI_getBusy(hspi);
-  ans = ans;
   if (nECU_SPI_getBusy(hspi) == false) // check if done
   {
     HAL_GPIO_WritePin(GPIOx, *GPIO_Pin, SET);
     HAL_SPI_DMAStop(hspi);
+  }
+}
+
+void nECU_SPI_Rx_IT_Start(GPIO_TypeDef *GPIOx, uint16_t *GPIO_Pin, SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size) // start communication with selected device
+{
+  if (nECU_SPI_getBusy(hspi) == false) // check if available
+  {
+    HAL_GPIO_WritePin(GPIOx, *GPIO_Pin, RESET);
+    HAL_SPI_Receive_IT(hspi, (uint8_t *)pData, Size);
   }
 }

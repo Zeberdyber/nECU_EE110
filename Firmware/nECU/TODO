@@ -1,8 +1,6 @@
 [ ] RPM signal clear mess
 
 [ ] Development
-    [ ] OX sensor heater
-    [ ] OX sensor analog signal
     [ ] IGF missfire
     [ ] IGF RPM calculation
 
@@ -20,23 +18,19 @@
     [ ] External AI (analog input) in code integration with proper scaling settings
     [ ] Immobilizer communication
 
-[ ] fault detection (as a seperate file) 
-# set flags for repeted fault
+[ ] fault detection (as a seperate file) - set flags for repeted fault
     [ ] add flags
-        - over temp
+        X - over temp
         - can:
             > timeout
             > error
             > other?
         - spi:
-            > timeout
-            > error
-            > other?
+            X > error
         - flash:
-            > save error
-            > erase error
-            > read error
-            > other?
+            X > save error
+            X > erase error
+            X > read error
         - igf:
             > missfire
             > no signal
@@ -44,20 +38,16 @@
         - buttons:
             > other?
         - egt:
-            > data frame error
-            > ic over temp
-            > sensor error
-        - uart:
-            > other?
+            X > data frame error
+            X > ic over temp
+            X > sensor error
         - VSS:
             > input ripple
             > over speed
-            > other?
         - SpeedSens:
             > abnormal sensor
             > data error
-    [ ] function skeletons
-    [ ] warning when temp high (+ MCU_temperature.upToDate monitoring)
+    [X] Debug message que
 
 [ ] UART
     [ ] UART variables as a struct
@@ -66,38 +56,24 @@
 
 
 [ ] Tests for each file functions
-    [ ] test flash code
     [ ] timer interrupt automatic tests functions
 
 [ ] static flags of initialized
 
-[ ] remove numbers from files "magic numbers"
 [ ] maybe dont calculate difference for each watchdog (waste of time),
     calculate once and update all
 
 [ ] timer watchdogs
-    [ ] PWM (ox heater, button output)
-    [ ] IC (button inputs, ...)
+    [ ] IC (button inputs, ...) // How to do them????
 
-[ ] timer rewrite to reuse functions
-    [X] PWM functions
-    [ ] IC functions
+[ ] button input click/doubleclick/hold bugfix
+[ ] button input nECU_tim_IC_Callback() usage
 
-[ ] use new timer in files
-    [ ] stock
-    [ ] button
+[???] Debug file data structure
 
-[ ] in watchdogs use pointers to timers from starting files
+[ ] VSS tests
+    [ ] input ripple test
 
-[X] Onboard LEDs to use non-blocking delay functions
+[X] Add flash range
 
-[ ] upToDate internal temperature
-[ ] Clean typedefs
-
-[X] DMA averaging debug
-
-[ ] PWM_Out swap for timer
-
-[ ] IC freq function
-[ ] remove exp_smoothing from Speed_ADCToSpeed
-[ ] check igf with 16-1 filtering
+[ ] EGT retest after new functions added

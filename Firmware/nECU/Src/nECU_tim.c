@@ -9,8 +9,16 @@
 
 static nECU_Delay Flash_save_delay;
 static nECU_Delay Knock_rotation_delay;
+extern nECU_InternalTemp MCU_temperature;
 
 static nECU_tim_Watchdog Button_Out_Watchdog, Ox_Out_Watchdog;
+
+extern VSS_Handle VSS;
+extern IGF_Handle IGF;
+
+/* Used in watchdogs */
+extern Oxygen_Handle OX;
+extern Button Red;
 
 uint8_t nECU_Get_FrameTimer(void) // get current value of frame timer
 {
@@ -54,10 +62,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     switch (htim->Channel)
     {
     case HAL_TIM_ACTIVE_CHANNEL_1:
-      nECU_IGF_Calc();
+      nECU_tim_IC_Callback(&(IGF.tim), &(IGF.ic));
       break;
     case HAL_TIM_ACTIVE_CHANNEL_2:
-      nECU_VSS_Update();
+      nECU_tim_IC_Callback(&(VSS.tim), &(VSS.ic));
       break;
 
     default:
@@ -73,7 +81,8 @@ bool *nECU_Delay_DoneFlag(nECU_Delay *inst) // return done flag pointer of non-b
 }
 void nECU_Delay_Start(nECU_Delay *inst) // start non-blocking delay
 {
-  inst->timeStart = HAL_GetTick();
+  nECU_TickTrack_Init(&(inst->timeTrack));
+  inst->timePassed = 0;
   inst->done = false;
   inst->active = true;
 }
@@ -87,21 +96,13 @@ void nECU_Delay_Update(nECU_Delay *inst) // update current state of non-blocking
   // nECU_Delay functions are based on tick setting, refer to HAL_Delay() function
   if (inst->done == false && inst->active == true) // do only if needed
   {
-    if (inst->timeStart > HAL_GetTick()) // check if value overload
+    nECU_TickTrack_Update(&(inst->timeTrack));
+    inst->timePassed += inst->timeTrack.difference;
+
+    if (inst->timePassed > inst->timeSet)
     {
-      if ((inst->timeStart + inst->timeSet) > (HAL_GetTick() + UINT32_MAX))
-      {
-        inst->done = true;
-        inst->active = false;
-      }
-    }
-    else
-    {
-      if ((inst->timeStart + inst->timeSet) < HAL_GetTick())
-      {
-        inst->done = true;
-        inst->active = false;
-      }
+      inst->done = true;
+      inst->active = false;
     }
   }
 }
@@ -114,6 +115,7 @@ void nECU_Delay_UpdateAll(void) // update all created non-blocking delays
 {
   nECU_Delay_Update(&Flash_save_delay);
   nECU_Delay_Update(&Knock_rotation_delay);
+  nECU_Delay_Update(&(MCU_temperature.Update_Delay));
 }
 
 /* Flash save user setting delay */
@@ -135,9 +137,21 @@ bool *nECU_Knock_Delay_DoneFlag(void) // return flag if knock is due
 }
 void nECU_Knock_Delay_Start(float *rpm) // start non-blocking delay for knock
 {
-  uint32_t delay = (120000 / *rpm) / HAL_GetTickFreq();
+  uint32_t delay = (120000 / *rpm) / HAL_GetTickFreq(); // 120000 = 120 (Hz to rpm) * 1000 (ms to s)
   nECU_Delay_Set(&Knock_rotation_delay, &delay);
   nECU_Delay_Start(&Knock_rotation_delay);
+}
+
+/* Delay for internal temperature update */
+bool *nECU_InternalTemp_Delay_DoneFlag(void) // return flag if internal temperature updates is due
+{
+  return nECU_Delay_DoneFlag(&(MCU_temperature.Update_Delay));
+}
+void nECU_InternalTemp_Delay_Start(void) // start non-blocking delay for internal temperature updates
+{
+  uint32_t delay = INTERNAL_TEMP_UPDATE_DELAY / HAL_GetTickFreq();
+  nECU_Delay_Set(&(MCU_temperature.Update_Delay), &delay);
+  nECU_Delay_Start(&(MCU_temperature.Update_Delay));
 }
 
 /* general nECU timer functions */
@@ -209,6 +223,24 @@ nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim) // function to stop IC on selec
   }
   return result;
 }
+nECU_TIM_State nECU_tim_base_start(nECU_Timer *tim) // function to start base of selected timer
+{
+  nECU_TIM_State result = TIM_OK;
+  if (HAL_TIM_Base_Start_IT(tim->htim))
+  {
+    result = TIM_ERROR; // indicate if not successful
+  }
+  return result;
+}
+nECU_TIM_State nECU_tim_base_stop(nECU_Timer *tim) // function to stop base of selected timer
+{
+  nECU_TIM_State result = TIM_OK;
+  if (HAL_TIM_Base_Stop_IT(tim->htim))
+  {
+    result = TIM_ERROR; // indicate if not successful
+  }
+  return result;
+}
 
 void nECU_tim_Init_struct(nECU_Timer *tim) // initialize structure and precalculate variables
 {
@@ -221,30 +253,41 @@ void nECU_tim_Init_struct(nECU_Timer *tim) // initialize structure and precalcul
   }
 }
 
+void nECU_tim_IC_Callback(nECU_Timer *tim, nECU_InputCapture *ic) // callback function to calculate basic parameters
+{
+  uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(tim->htim, tim->htim->Channel);
+
+  /* Calculate difference */
+  uint16_t Difference = 0; // in miliseconds
+  if (ic->previous_CCR > CurrentCCR)
+  {
+    Difference = ((tim->htim->Init.Period + 1) - ic->previous_CCR) + CurrentCCR;
+  }
+  else
+  {
+    Difference = CurrentCCR - ic->previous_CCR;
+  }
+  ic->previous_CCR = CurrentCCR;
+  ic->frequency = tim->refClock / Difference;
+}
+
 /* Watchdog for timers detection */
 void nECU_tim_Watchdog_Init(void) // initialize structure
 {
   // Button out timer
   nECU_tim_Watchdog_Init_struct(&Button_Out_Watchdog);
-  Button_Out_Watchdog.tim.htim = &OX_HEATER_TIMER;
-  Button_Out_Watchdog.tim.Channel_Count = 3;
-  Button_Out_Watchdog.tim.Channel_List[0] = TIM_CHANNEL_1;
-  Button_Out_Watchdog.tim.Channel_List[1] = TIM_CHANNEL_2;
-  Button_Out_Watchdog.tim.Channel_List[2] = TIM_CHANNEL_3;
+  Button_Out_Watchdog.tim = &(Red.light.Timer);
 
   // Ox out timer
   nECU_tim_Watchdog_Init_struct(&Ox_Out_Watchdog);
-  Ox_Out_Watchdog.tim.htim = &BUTTON_OUTPUT_TIMER;
-  Ox_Out_Watchdog.tim.Channel_Count = 1;
-  Ox_Out_Watchdog.tim.Channel_List[0] = TIM_CHANNEL_1;
+  Ox_Out_Watchdog.tim = &(OX.Heater);
 }
 void nECU_tim_Watchdog_Init_struct(nECU_tim_Watchdog *watchdog) // set default values to variables
 {
   watchdog->error = false;
   watchdog->warning = false;
-  watchdog->previousTick = 0;
-  nECU_tim_Init_struct(&watchdog->tim);
-  watchdog->counter_max = watchdog->tim.period * (watchdog->tim.htim->Init.Period + 1) * WATCHDOG_PERIOD_MULTIPLIER;
+  nECU_TickTrack_Init(&(watchdog->timeTrack));
+  watchdog->counter_max = watchdog->tim->period * (watchdog->tim->htim->Init.Period + 1) * WATCHDOG_PERIOD_MULTIPLIER;
 }
 
 void nECU_tim_Watchdog_Periodic(void) // watchdog function for active timers
@@ -252,53 +295,51 @@ void nECU_tim_Watchdog_Periodic(void) // watchdog function for active timers
   /* Get time difference of function calls */
 
   /* PWM Outputs */
-  nECU_tim_Watchdog_CheckStates(&Button_Out_Watchdog);
-  nECU_tim_Watchdog_updateCounter(&Button_Out_Watchdog);
-  nECU_tim_Watchdog_CheckCounter(&Button_Out_Watchdog);
+  nECU_tim_Watchdog_CheckStates(&Button_Out_Watchdog);   // state of peripheral and outputs
+  nECU_tim_Watchdog_updateCounter(&Button_Out_Watchdog); // update watchdog
+  nECU_tim_Watchdog_CheckCounter(&Button_Out_Watchdog);  // check if counter in bounds
 
-  nECU_tim_Watchdog_CheckStates(&Ox_Out_Watchdog);
-  nECU_tim_Watchdog_updateCounter(&Ox_Out_Watchdog);
-  nECU_tim_Watchdog_CheckCounter(&Ox_Out_Watchdog);
+  nECU_tim_Watchdog_CheckStates(&Ox_Out_Watchdog);   // state of peripheral and outputs
+  nECU_tim_Watchdog_updateCounter(&Ox_Out_Watchdog); // update watchdog
+  nECU_tim_Watchdog_CheckCounter(&Ox_Out_Watchdog);  // check if counter in bounds
 }
 void nECU_tim_Watchdog_updateCounter(nECU_tim_Watchdog *watchdog) // update counter value based on systick
 {
-  uint32_t CurrentTick = HAL_GetTick() * HAL_GetTickFreq(); // get time in ms
+  nECU_TickTrack_Update(&(watchdog->timeTrack)); // update tracker (get tick difference)
 
-  if (CurrentTick > watchdog->previousTick) // calculate difference (include tick variable roll over)
-  {
-    watchdog->counter_ms += CurrentTick - watchdog->previousTick;
-  }
-  else
-  {
-    watchdog->counter_ms += CurrentTick + UINT32_MAX - watchdog->previousTick;
-  }
-
-  watchdog->previousTick = CurrentTick; // save time for next loop
+  watchdog->counter_ms += watchdog->timeTrack.difference * HAL_GetTickFreq(); // add diference as time
 }
 void nECU_tim_Watchdog_Callback(TIM_HandleTypeDef *htim) // function to be called on timer interrupt
 {
-  if (htim == Button_Out_Watchdog.tim.htim)
+  nECU_tim_Watchdog *inst;
+
+  /* find which watchdog is responsible */
+  if (htim == Button_Out_Watchdog.tim->htim)
   {
-    Button_Out_Watchdog.counter_ms = 0;
+    inst = &Button_Out_Watchdog;
   }
-  else if (htim == Ox_Out_Watchdog.tim.htim)
+  else if (htim == Ox_Out_Watchdog.tim->htim)
   {
-    Ox_Out_Watchdog.counter_ms = 0;
+    inst = &Ox_Out_Watchdog;
   }
+
+  /* perform watchdog update */
+  inst->counter_ms = 0;
+  nECU_TickTrack_Init(&(inst->timeTrack));
 }
 
 bool nECU_tim_Watchdog_CheckStates(nECU_tim_Watchdog *watchdog) // check state of peripheral
 {
-  if (watchdog->tim.htim->State == HAL_TIM_STATE_RESET) // check if peripheral in use
+  if (watchdog->tim->htim->State == HAL_TIM_STATE_RESET) // check if peripheral in use
   {
     return false; // peripheral not initialized
   }
-  if (watchdog->tim.htim->State == HAL_TIM_STATE_ERROR) // chcek if peripheral error
+  if (watchdog->tim->htim->State == HAL_TIM_STATE_ERROR) // chcek if peripheral error
   {
     watchdog->error = true;
     return true; // peripheral error
   }
-  if (nECU_tim_Watchdog_CheckChannels(&watchdog->tim))
+  if (nECU_tim_Watchdog_CheckChannels(watchdog->tim))
   {
     watchdog->error = true;
     return true; // channel error
