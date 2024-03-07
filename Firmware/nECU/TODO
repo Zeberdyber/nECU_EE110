@@ -1,8 +1,8 @@
-[ ] RPM signal clear mess
+[X] RPM signal clear mess
 
-[ ] Development
-    [ ] IGF missfire
-    [ ] IGF RPM calculation
+[X] Development
+    [X] IGF missfire
+    [X] IGF RPM calculation
 
 [ ] Bugs
     [ ] Tacho display bug (occasionnaly value is displayed twice)

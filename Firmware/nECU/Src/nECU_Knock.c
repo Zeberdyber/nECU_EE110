@@ -8,6 +8,7 @@
 #include "nECU_Knock.h"
 
 nECU_Knock Knock;
+extern IGF_Handle IGF;
 
 /* Knock detection */
 void nECU_Knock_Init(void) // initialize and start
@@ -94,9 +95,7 @@ void nECU_Knock_DetectMagn(void) // function to detect knock based on ADC input
 void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of knock range
 {
     /* get thresholds */
-    // float rpm_float = RPM.RPM;
-    uint8_t *rpm_can = nECU_CAN_getRPMPointer();
-    float rpm_float = *rpm_can * 20;
+    float rpm_float = IGF.RPM;
     if (rpm_float < 750) // while idle
     {
         return;
