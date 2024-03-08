@@ -1,9 +1,3 @@
-[X] RPM signal clear mess
-
-[X] Development
-    [X] IGF missfire
-    [X] IGF RPM calculation
-
 [ ] Bugs
     [ ] Tacho display bug (occasionnaly value is displayed twice)
     [ ] filtering of VSS (low speed correction)
@@ -74,6 +68,12 @@
 [ ] VSS tests
     [ ] input ripple test
 
-[X] Add flash range
-
 [ ] EGT retest after new functions added
+
+[ ] working flag for each module
+    done on EGT
+[ ] Skip interrupts and update routines if not "working"
+    done on EGT
+
+[X] EGT start delay (due to extern ADC startup time)
+    [ ] set startup time from datasheet

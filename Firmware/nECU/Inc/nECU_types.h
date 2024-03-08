@@ -234,6 +234,7 @@ typedef struct
     MAX31855 TC1, TC2, TC3, TC4; // sensor structures
     MAX31855 *EGT_CurrentObj;    // current object pointer (for sensor asking loop)
     uint8_t EGT_CurrentSensor;   // number of current sensor (for sensor asking loop)
+    nECU_Delay startup_Delay;    // used as a delay to prevent spi communication until ICs turn on properly
 } nECU_EGT;
 
 /* Flash */
