@@ -106,7 +106,7 @@ void nECU_LoopCounter_Update(nECU_LoopCounter *inst) // Increment counter, get t
 {
     inst->counter++;
     nECU_TickTrack_Update(&(inst->tracker));
-    inst->time += inst->tracker.difference * HAL_GetTickFreq(); // add difference in ms
+    inst->time += inst->tracker.difference * inst->tracker.convFactor; // add difference in ms
 }
 void nECU_LoopCounter_Clear(nECU_LoopCounter *inst) // clear value of the counter
 {
@@ -119,6 +119,7 @@ void nECU_TickTrack_Init(nECU_TickTrack *inst) // initialize structure
 {
     inst->previousTick = HAL_GetTick();
     inst->difference = 0;
+    inst->convFactor = HAL_GetTickFreq();
 }
 void nECU_TickTrack_Update(nECU_TickTrack *inst) // callback to get difference
 {

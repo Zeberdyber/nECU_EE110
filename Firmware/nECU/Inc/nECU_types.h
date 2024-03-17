@@ -87,6 +87,7 @@ typedef struct
 {
     uint32_t previousTick; // tick registered on previous callback
     uint32_t difference;   // difference between updates of structure
+    uint8_t convFactor;    // do: difference*convFactor = to get time in ms
 } nECU_TickTrack;
 typedef struct
 {
@@ -178,6 +179,7 @@ typedef struct
     ButtonLight_Mode Mode;      // Modes according to typedef
     ButtonLight_Mode ModePrev;  // Previous state of Mode
     float Time;                 // internal time for resting animation in ms
+    nECU_TickTrack TimeTracker; // tracks time using systick
 } ButtonLight;
 typedef struct
 {
@@ -272,7 +274,8 @@ typedef enum
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_Timer send_timing;    // timer structure
+    nECU_TickTrack timer;      // used to track timing between frames
+    uint16_t timeElapsed;      // time passed since previous frame
 
     bool LunchControl1, LunchControl2, LunchControl3, RollingLunch; // flags from decoding
 
@@ -286,7 +289,8 @@ typedef struct
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_Timer send_timing;    // timer structure
+    nECU_TickTrack timer;      // used to track timing between frames
+    uint16_t timeElapsed;      // time passed since previous frame
 
     // outside variables
     uint16_t *EGT1, *EGT2, *EGT3, *EGT4;
@@ -296,7 +300,8 @@ typedef struct
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_Timer send_timing;    // timer structure
+    nECU_TickTrack timer;      // used to track timing between frames
+    uint16_t timeElapsed;      // time passed since previous frame
 
     // outside variables
     uint8_t *Backpressure, *OX_Val;
@@ -329,7 +334,7 @@ typedef struct
     Knock_FFT fft;
 
     // regression
-    nECU_Timer regres;
+    nECU_TickTrack regres;
 } nECU_Knock;
 
 /* Menu */

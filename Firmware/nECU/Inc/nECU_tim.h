@@ -26,11 +26,8 @@ extern "C"
 #define OX_HEATER_TIMER htim2
 #define BUTTON_INPUT_TIMER htim3
 #define FREQ_INPUT_TIMER htim4
-#define CAN_LOW_PRIORITY_TIMER htim6
-#define CAN_HIGH_PRIORITY_TIMER htim7
 #define KNOCK_ADC_SAMPLING_TIMER htim8
 #define FRAME_TIMER htim10
-#define KNOCK_REGRES_TIMER htim11
 
 #define FLASH_SAVE_DELAY_TIME 5000 // time to wait for before save happens in ms
 

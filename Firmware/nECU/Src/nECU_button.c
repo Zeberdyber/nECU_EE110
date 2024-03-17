@@ -64,6 +64,8 @@ void ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *ht
   }
   nECU_tim_PWM_start(&Light->Timer);
 
+  nECU_TickTrack_Init(&(Light->TimeTracker));
+
   Light->Mode = BUTTON_MODE_OFF; // Turn off
 }
 void ButtonLight_Update(ButtonLight *Light) // periodic animation update function
@@ -188,15 +190,22 @@ void ButtonLight_Set_Mode(ButtonLight *Light, ButtonLight_Mode Mode) // setup mo
 }
 void ButtonLight_UpdateAll(void) // function to launch updates for all buttons
 {
+  ButtonLight_TimeTrack(); // update times
   ButtonLight_Update(&Red.light);
   ButtonLight_Update(&Orange.light);
   ButtonLight_Update(&Green.light);
 }
-void ButtonLight_TimingEvent(void) // funtion called after pulse finished interrupt from PWM timer
+void ButtonLight_TimeTrack(void) // funtion called to update time passed
 {
-  Red.light.Time += Red.light.Timer.period;
-  Orange.light.Time += Orange.light.Timer.period;
-  Green.light.Time += Green.light.Timer.period;
+  // update trackers
+  nECU_TickTrack_Update(&(Red.light.TimeTracker));
+  nECU_TickTrack_Update(&(Orange.light.TimeTracker));
+  nECU_TickTrack_Update(&(Green.light.TimeTracker));
+
+  // add to time passed
+  Red.light.Time += Red.light.TimeTracker.difference * Red.light.TimeTracker.convFactor;
+  Orange.light.Time += Orange.light.TimeTracker.difference * Orange.light.TimeTracker.convFactor;
+  Green.light.Time += Green.light.TimeTracker.difference * Green.light.TimeTracker.convFactor;
 }
 void ButtonLight_Stop(ButtonLight *Light) // stops PWM for seected button
 {

@@ -77,3 +77,29 @@
 
 [X] EGT start delay (due to extern ADC startup time)
     [ ] set startup time from datasheet
+
+[X] reduce interrupt count
+    [-] CAN1 RX0 {not possible}
+    [X] CAN1 SCE
+    [X] TIM1 and TIM10
+    [-] TIM3 {input capture, not possible}
+    [-] TIM4 {input capture, not possible}
+    [-] SPI1 {not possible, faster with interrupt}
+    [X] USART1 (immobilizer)
+    [X] TIM8 and TIM13
+    [X] TIM6
+    [X] TIM7
+    [X] DMA2
+        [-] stream 0 (ADC1)
+        [X] stream 1 (immobilizer) 
+        [-] stream 3 (ADC2)
+        [-] stream 7 (ADC3)
+
+[X] CAN messages to tick track
+[X] button animation to tick track
+[X] Knock regres to tick track
+
+[ ] test: knock sampling
+[ ] test: knock regression
+[ ] test: CAN message timing
+[ ] test: button animations

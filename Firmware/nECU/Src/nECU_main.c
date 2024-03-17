@@ -45,9 +45,9 @@ void nECU_main(void) // main rutine of the program
 {
     if (Initialized == true)
     {
-        // Speed_Update();
-
         /* High prioryty [time critical] */
+        nECU_Knock_UpdatePeriodic();
+        nECU_CAN_CheckTime(); // checks if its time to send packet
         nECU_ADC_All_Routine();
         Button_Menu();
         Frame0_PrepareBuffer();

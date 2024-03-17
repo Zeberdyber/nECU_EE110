@@ -25,17 +25,20 @@ extern "C"
 #define CAN_TX_FRAME2_ID 0x502     // CAN message ID for frame 2
 #define CAN_RX_WHEELSPEED_ID 0x400 // CAN message ID for Wheel Speed
 #define CAN_RX_COOLANT_ID 0x401    // CAN message ID for Coolant Temperature
+#define CAN_TX_FRAME0_TIME 100     // time in ms between frame send
+#define CAN_TX_FRAME1_TIME 100     // time in ms between frame send
+#define CAN_TX_FRAME2_TIME 100     // time in ms between frame send
 
-    /* Function Prototypes */
+  /* Function Prototypes */
   // General functions
-  void nECU_CAN_Start(void);                                               // start periodic transmission of EGT and Speed sensor data
-  void nECU_CAN_WriteToBuffer(uint8_t frameNumber, uint8_t *TxData_Frame); // copy input data to corresponding frame buffer
-  void nECU_CAN_Stop(void);                                                // stop all CAN code, with timing
+  void nECU_CAN_Start(void);                                                     // start periodic transmission of EGT and Speed sensor data
+  void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame); // copy input data to corresponding frame buffer
+  void nECU_CAN_Stop(void);                                                      // stop all CAN code, with timing
   // Communication functions
-  void nECU_CAN_TimerEvent(TIM_HandleTypeDef *htim);   // funtion called after periodic interrupt from timing timers
-  void nECU_CAN_InitFrame(uint8_t frameNumber);        // initialize header for selected frame
-  uint8_t nECU_CAN_TransmitFrame(uint8_t frameNumber); // send selected frame over CAN
-  uint8_t nECU_CAN_IsBusy(void);                       // Check if any messages are pending
+  void nECU_CAN_CheckTime(void);                             // checks if it is time to send packet
+  void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID);        // initialize header for selected frame
+  uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID); // send selected frame over CAN
+  uint8_t nECU_CAN_IsBusy(void);                             // Check if any messages are pending
   // Diagnostic functions
   uint8_t nECU_CAN_GetStatus(void); // get current status of nECU CAN
   bool nECU_CAN_GetState(void);     // get data if can periperal buisy

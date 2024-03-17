@@ -36,17 +36,9 @@ void nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   nECU_CAN_InitFrame(nECU_Frame_Stock);
   nECU_CAN_RX_InitFrame();
 
-  F0_var.send_timing.htim = &CAN_LOW_PRIORITY_TIMER;
-  F1_var.send_timing.htim = &CAN_LOW_PRIORITY_TIMER;
-  F2_var.send_timing.htim = &CAN_HIGH_PRIORITY_TIMER;
-
-  nECU_tim_Init_struct(&(F0_var.send_timing));
-  nECU_tim_Init_struct(&(F1_var.send_timing));
-  nECU_tim_Init_struct(&(F2_var.send_timing));
-
-  nECU_tim_base_start(&(F0_var.send_timing));
-  nECU_tim_base_start(&(F1_var.send_timing));
-  nECU_tim_base_start(&(F2_var.send_timing));
+  nECU_TickTrack_Init(&(F0_var.timer));
+  nECU_TickTrack_Init(&(F1_var.timer));
+  nECU_TickTrack_Init(&(F2_var.timer));
 
   F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
   F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
@@ -79,22 +71,31 @@ void nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   HAL_CAN_Stop(&hcan1);
   nECU_CAN_RX_Stop();
-
-  nECU_tim_base_stop(&(F0_var.send_timing));
-  nECU_tim_base_stop(&(F1_var.send_timing));
-  nECU_tim_base_stop(&(F2_var.send_timing));
 }
 
 // Communication functions
-void nECU_CAN_TimerEvent(TIM_HandleTypeDef *htim) // funtion called after periodic interrupt from timing timers
+void nECU_CAN_CheckTime(void) // checks if it is time to send packet
 {
-  if (htim == &CAN_LOW_PRIORITY_TIMER) // Timing clock for normal priority CAN messages
+  // update times
+  nECU_TickTrack_Update(&(F0_var.timer));
+  nECU_TickTrack_Update(&(F1_var.timer));
+  nECU_TickTrack_Update(&(F2_var.timer));
+
+  // add time to elapsed
+  F0_var.timeElapsed += F0_var.timer.difference * F0_var.timer.convFactor;
+  F1_var.timeElapsed += F1_var.timer.difference * F1_var.timer.convFactor;
+  F2_var.timeElapsed += F2_var.timer.difference * F2_var.timer.convFactor;
+
+  // check if time is above threshold
+  if (F0_var.timeElapsed >= CAN_TX_FRAME0_TIME)
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Speed);
-    nECU_CAN_TransmitFrame(nECU_Frame_EGT);
-    nECU_LoopCounter_Clear(&main_loop);
   }
-  if (htim == &CAN_HIGH_PRIORITY_TIMER) // Timing clock for high priority CAN messages
+  if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME)
+  {
+    nECU_CAN_TransmitFrame(nECU_Frame_EGT);
+  }
+  if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME)
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Stock);
   }

@@ -10,6 +10,8 @@
 nECU_Knock Knock;
 extern IGF_Handle IGF;
 
+static bool Knock_Initialized = false;
+
 /* Knock detection */
 void nECU_Knock_Init(void) // initialize and start
 {
@@ -20,10 +22,8 @@ void nECU_Knock_Init(void) // initialize and start
     // RPM reference
     nECU_IGF_Init();
 
-    // start regression timer
-    Knock.regres.htim = &KNOCK_REGRES_TIMER;
-    nECU_tim_Init_struct(&Knock.regres);
-    HAL_TIM_Base_Start_IT(Knock.regres.htim);
+    // regression timer
+    nECU_TickTrack_Init(&(Knock.regres));
 
     // initialize threshold table
     const float inTable1[FFT_THRESH_TABLE_LEN] = {1000, 2000, 3000, 4000, 5000};          // RPM for mapping threshold values
@@ -37,53 +37,63 @@ void nECU_Knock_Init(void) // initialize and start
     float SamplingFreq = TIM_CLOCK / ((KNOCK_ADC_SAMPLING_TIMER.Init.Prescaler + 1) * (KNOCK_ADC_SAMPLING_TIMER.Init.Period + 1));
     Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * FFT_LENGTH) / (SamplingFreq)) * 2) - 1;
     arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH);
+
+    // set initialized flag
+    Knock_Initialized = true;
 }
 void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 {
-    for (uint16_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
+    if (Knock_Initialized == true)
     {
-        Knock.fft.BufIn[Knock.fft.Index] = (float)input_buffer[i];
-        Knock.fft.Index++;
-        if (Knock.fft.Index == FFT_LENGTH) // if buffer full perform FFT
+        for (uint16_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
         {
-            arm_rfft_fast_f32(&(Knock.fft.Handler), Knock.fft.BufIn, Knock.fft.BufOut, 0);
-            Knock.fft.flag = true;
-            Knock.fft.Index = 0;
+            Knock.fft.BufIn[Knock.fft.Index] = (float)input_buffer[i];
+            Knock.fft.Index++;
+            if (Knock.fft.Index == FFT_LENGTH) // if buffer full perform FFT
+            {
+                arm_rfft_fast_f32(&(Knock.fft.Handler), Knock.fft.BufIn, Knock.fft.BufOut, 0);
+                Knock.fft.flag = true;
+                Knock.fft.Index = 0;
+            }
         }
-    }
-    if (Knock.fft.flag = true)
-    {
-        nECU_Knock_DetectMagn();
-        Knock.fft.flag = false;
+        if (Knock.fft.flag = true)
+        {
+            nECU_Knock_DetectMagn();
+            Knock.fft.flag = false;
+        }
     }
 }
 void nECU_Knock_UpdatePeriodic(void) // function to perform time critical knock routines, call at regression timer interrupt
 {
-    /* should be called every time timer time elapsed */
-    if (Knock.LevelWaiting == true && *(Knock.CycleDoneFlag) == true)
+    if (Knock_Initialized == true)
     {
-        Knock.LevelWaiting = false;     // reset flag
-        *(Knock.CycleDoneFlag) = false; // reset flag
-
-        Knock.RetardPerc += KNOCK_STEP * Knock.Level;
-
-        if (Knock.RetardPerc > 100) // if boundry reached
+        nECU_TickTrack_Update(&(Knock.regres));
+        /* should be called every time timer time elapsed */
+        if (Knock.LevelWaiting == true && *(Knock.CycleDoneFlag) == true)
         {
-            Knock.RetardPerc = 100;
+            Knock.LevelWaiting = false;     // reset flag
+            *(Knock.CycleDoneFlag) = false; // reset flag
+
+            Knock.RetardPerc += KNOCK_STEP * Knock.Level;
+
+            if (Knock.RetardPerc > 100) // if boundry reached
+            {
+                Knock.RetardPerc = 100;
+            }
+
+            Knock.Level = 0; // reset level
         }
-
-        Knock.Level = 0; // reset level
-    }
-    else if (Knock.RetardPerc > 0)
-    {
-        Knock.RetardPerc -= (Knock.regres.period * KNOCK_BETA) / 1000.0f;
-
-        if (Knock.RetardPerc < 0)
+        else if (Knock.RetardPerc > 0)
         {
-            Knock.RetardPerc = 0;
-        }
+            Knock.RetardPerc -= (Knock.regres.difference * Knock.regres.convFactor * KNOCK_BETA) / 1000.0f;
 
-        Knock.RetardOut = (uint8_t)Knock.RetardPerc;
+            if (Knock.RetardPerc < 0)
+            {
+                Knock.RetardPerc = 0;
+            }
+
+            Knock.RetardOut = (uint8_t)Knock.RetardPerc;
+        }
     }
 }
 void nECU_Knock_DetectMagn(void) // function to detect knock based on ADC input
@@ -116,7 +126,7 @@ void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of knock ran
 }
 void nECU_Knock_DeInit(void) // stop
 {
-    HAL_TIM_Base_Stop_IT(Knock.regres.htim);
+    Knock_Initialized = false;
 }
 uint8_t *nECU_Knock_GetPointer(void) // returns pointer to knock retard percentage
 {

@@ -121,6 +121,7 @@ void EGT_TemperatureTo10bit(MAX31855 *inst) // function to convert temperature v
 
 void EGT_Periodic(void) // periodic function to be called every main loop execution
 {
+    nECU_Delay_Update(&(EGT_variables.startup_Delay));
     if (EGT_working == false || *EGT_initialized == false)
     {
         return;
