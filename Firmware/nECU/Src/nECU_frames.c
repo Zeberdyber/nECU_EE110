@@ -15,6 +15,10 @@ Frame2_struct F2_var;
 
 extern nECU_LoopCounter main_loop;
 
+static bool F0_Initialized = false, F0_Working = false;
+static bool F1_Initialized = false, F1_Working = false;
+static bool F2_Initialized = false, F2_Working = false;
+
 /* Frame 0 */
 void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *pAntilag, bool *pTractionOFF, bool *pClearEngineCode, uint16_t *pLunchControlLevel) // initialization of data structure
 {
@@ -34,6 +38,9 @@ void Frame0_Init(bool *pTachoShow1, bool *pTachoShow2, bool *pTachoShow3, bool *
     F0_var.Fan_ON = nECU_stock_GPIO_getPointer(INPUT_FAN_ON_ID);
     F0_var.Lights_ON = nECU_stock_GPIO_getPointer(INPUT_LIGHTS_ON_ID);
     F0_var.IgnitionKey = nECU_Immo_getPointer();
+
+    F0_Initialized = true;
+    F0_Working = true;
 }
 void Frame0_Update(void) // update variables for frame 0
 {
@@ -65,6 +72,11 @@ void Frame0_Update(void) // update variables for frame 0
 }
 void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
+    if (F0_Working == false)
+    {
+        return;
+    }
+
     Frame0_Update();
     uint8_t TxFrame[8];
     Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, F0_var.Speed_FL);
@@ -98,6 +110,9 @@ void Frame1_Init(uint8_t *pTachoVal1, uint8_t *pTachoVal2, uint8_t *pTachoVal3, 
     F1_var.TachoVal2 = pTachoVal2;
     F1_var.TachoVal3 = pTachoVal3;
     F1_var.TuneSelector = pTuneSelector;
+
+    F1_Initialized = true;
+    F1_Working = true;
 }
 void Frame1_Update(void) // update variables for frame 1
 {
@@ -105,6 +120,11 @@ void Frame1_Update(void) // update variables for frame 1
 }
 void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
+    if (F1_Working == false)
+    {
+        return;
+    }
+
     Frame1_Update();
     uint8_t TxFrame[8];
     Frame1_ComposeWord(&TxFrame[0], F1_var.TachoVal1, F1_var.EGT1);
@@ -134,6 +154,9 @@ void Frame2_Init(uint8_t *pBackpressure, uint8_t *pOX_Val, uint16_t *pMAP_Stock_
     F2_var.MAP_Stock_10bit = pMAP_Stock_10bit;
     F2_var.Knock = pKnock;
     F2_var.VSS = pVSS;
+
+    F2_Initialized = true;
+    F2_Working = true;
 }
 void Frame2_Update(void) // update variables for frame 2
 {
@@ -141,6 +164,11 @@ void Frame2_Update(void) // update variables for frame 2
 }
 void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
+    if (F2_Working == false)
+    {
+        return;
+    }
+
     Frame2_Update();
     uint8_t TxFrame[8];
     union Int16ToBytes Converter; // create memory union

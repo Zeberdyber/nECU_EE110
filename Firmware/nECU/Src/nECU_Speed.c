@@ -10,6 +10,7 @@
 // internal variables
 static Speed_Sensor Speed_Sens_1, Speed_Sens_2, Speed_Sens_3, Speed_Sens_4;
 static CalibrateRoutine calibrateRoutine;
+static bool calibrateRoutine_Initialized = false;
 // initialized flags
 static bool SS1_Initialized = false, SS2_Initialized = false, SS3_Initialized = false, SS4_Initialized = false;
 // external import
@@ -166,7 +167,7 @@ void Speed_SensorUpdate(Speed_Sensor *Sensor) // update one sensors data
 
     Speed_ADCToSpeed(Sensor);
     Speed_CorrectToCalib(Sensor);
-    if (calibrateRoutine.initialized == true) // do only when calibrating
+    if (calibrateRoutine_Initialized == true) // do only when calibrating
     {
         Speed_AverageCalc(Sensor);
     }
@@ -212,13 +213,13 @@ void Speed_CalibrateSingle(Speed_Sensor *Sensor) // function to generate calibra
 }
 void Speed_CalibrateAll(void) // function to calibrate speed sensors (periodic function)
 {
-    if (calibrateRoutine.initialized == false)
+    if (calibrateRoutine_Initialized == false)
     {
         Speed_AverageInit(&Speed_Sens_1);
         Speed_AverageInit(&Speed_Sens_2);
         Speed_AverageInit(&Speed_Sens_3);
         Speed_AverageInit(&Speed_Sens_4);
-        calibrateRoutine.initialized = true;
+        calibrateRoutine_Initialized = true;
     }
     else
     {
@@ -253,7 +254,7 @@ void Speed_CalibrateInit(void) // initialize calibration structure
 {
     // calibration structure initialization to default values
     calibrateRoutine.active = false;
-    calibrateRoutine.initialized = false;
+    calibrateRoutine_Initialized = false;
     calibrateRoutine.averageReady[0] = false;
     calibrateRoutine.averageReady[1] = false;
     calibrateRoutine.averageReady[2] = false;

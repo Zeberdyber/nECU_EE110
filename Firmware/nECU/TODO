@@ -1,105 +1,76 @@
-[ ] Bugs
-    [ ] Tacho display bug (occasionnaly value is displayed twice)
-    [ ] filtering of VSS (low speed correction)
-    [ ] frequency readout (RPM) fix and test functions
-    [ ] Buttons sporadic not working, double click faulty
-
-[ ] Optimization
-    [ ] Knock sensing (after UART added)
-
-[ ] Scheduled
-    [ ] Onboard UART
-    [ ] External AI (analog input) in code integration with proper scaling settings
-    [ ] Immobilizer communication
-
-[ ] fault detection (as a seperate file) - set flags for repeted fault
-    [ ] add flags
-        X - over temp
-        - can:
-            > timeout
-            > error
-            > other?
-        - spi:
-            X > error
-        - flash:
-            X > save error
-            X > erase error
-            X > read error
-        - igf:
-            > missfire
-            > no signal
-            > other?
-        - buttons:
-            > other?
-        - egt:
-            X > data frame error
-            X > ic over temp
-            X > sensor error
-        - VSS:
-            > input ripple
-            > over speed
-        - SpeedSens:
-            > abnormal sensor
-            > data error
-    [X] Debug message que
-
-[ ] UART
-    [ ] UART variables as a struct
-    [ ] UART knock raw data functions labeled
-    [ ] UART sending data live
-
-
-[ ] Tests for each file functions
-    [ ] timer interrupt automatic tests functions
-
-[ ] static flags of initialized
-
-[ ] maybe dont calculate difference for each watchdog (waste of time),
-    calculate once and update all
-
-[ ] timer watchdogs
-    [ ] IC (button inputs, ...) // How to do them????
-
-[ ] button input click/doubleclick/hold bugfix
-[ ] button input nECU_tim_IC_Callback() usage
-
-[???] Debug file data structure
-
-[ ] VSS tests
-    [ ] input ripple test
-
-[ ] EGT retest after new functions added
-
-[ ] working flag for each module
-    done on EGT
-[ ] Skip interrupts and update routines if not "working"
-    done on EGT
-
 [X] EGT start delay (due to extern ADC startup time)
     [ ] set startup time from datasheet
 
-[X] reduce interrupt count
-    [-] CAN1 RX0 {not possible}
-    [X] CAN1 SCE
-    [X] TIM1 and TIM10
-    [-] TIM3 {input capture, not possible}
-    [-] TIM4 {input capture, not possible}
-    [-] SPI1 {not possible, faster with interrupt}
-    [X] USART1 (immobilizer)
-    [X] TIM8 and TIM13
-    [X] TIM6
-    [X] TIM7
-    [X] DMA2
-        [-] stream 0 (ADC1)
-        [X] stream 1 (immobilizer) 
-        [-] stream 3 (ADC2)
-        [-] stream 7 (ADC3)
+[ ] develop:
+    [ ] static flags:
+        [ ] initialized and working:
+            [X] ADCs
+            [X] Buttons
+            [X] CAN
+            [ ] debug
+            [X] EGT
+            [X] frames
+            [ ] Knock
+            [X] menu
+            [ ] Speed
+            [ ] spi
+            [ ] stock
+            [ ] table
+            [ ] tim
+            [ ] UART
+        [ ] don't do routines when not working:
+            [X] ADCs
+            [X] Buttons
+            [X] CAN
+            [ ] debug
+            [X] EGT
+            [X] frames
+            [ ] Knock
+            [X] menu
+            [ ] Speed
+            [ ] spi
+            [ ] stock
+            [ ] table
+            [ ] tim
+            [ ] UART
+    [ ] fault detection - set flags for repeted fault
+        [ ] add flags
+            - can:
+                > timeout
+                > error
+                > other?
+            - igf:
+                > missfire
+                > no signal
+                > other?
+            - buttons:
+                > other?
+            - VSS:
+                > input ripple
+                > over speed
+            - SpeedSens:
+                > abnormal sensor
+            > data error    
 
-[X] CAN messages to tick track
-[X] button animation to tick track
-[X] Knock regres to tick track
+[ ] test:
+    [ ] interrupt changes:
+        [ ] knock sampling (TIM8 interrupt removed)
+        [ ] knock regression (TIM11 deleted, tick track)
+        [ ] CAN message timing (TIM6 and TIM7 deleted, tick track)
+        [ ] button animations (TIM1 interrupt removed, tick track)
+    [ ] hardware test:
+        [ ] VSS input ripple
+        [ ] EGT retest after new functions added (SPI as interrupt and new que)
+        [ ] Tacho display bug (occasionnaly value is displayed twice)
+        [ ] filtering of VSS (low speed correction)
+        [ ] frequency readout (RPM) fix and test functions
+        [ ] Buttons sporadic not working, double click faulty
 
-[ ] test: knock sampling
-[ ] test: knock regression
-[ ] test: CAN message timing
-[ ] test: button animations
+[ ] optimization:
+    [ ] Knock sensing (will be done after UART added)
+
+[ ] scheduled:
+    [ ] Onboard UART
+    [ ] External AI (analog input) in code integration with proper scaling settings
+    [ ] Immobilizer communication
+    [ ] watchdogs

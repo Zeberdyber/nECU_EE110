@@ -17,6 +17,10 @@ nECU_InternalTemp MCU_temperature;
 uint16_t *ADC_MAP, *ADC_BackPressure, *ADC_OX, *ADC_AI1, *ADC_AI2, *ADC_AI3, *ADC_InternalTemp, *ADC_VREF;
 uint16_t *ADC_V1, *ADC_V2, *ADC_V3, *ADC_V4;
 
+static bool ADC1_Initialized = false, ADC1_Working = false;
+static bool ADC2_Initialized = false, ADC2_Working = false;
+static bool ADC3_Initialized = false, ADC3_Working = false;
+
 /* Interrupt functions */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
@@ -102,9 +106,11 @@ void ADC1_START(void)
   adc1_data.status.callback_half = false;
   adc1_data.status.callback_full = false;
   adc1_data.status.overflow = false;
-  adc1_data.status.working = true;
 
   nECU_InternalTemp_Init();
+
+  ADC1_Working = true;
+  ADC1_Initialized = true;
 }
 void ADC2_START(void)
 {
@@ -118,10 +124,12 @@ void ADC2_START(void)
   adc2_data.status.callback_half = false;
   adc2_data.status.callback_full = false;
   adc2_data.status.overflow = false;
-  adc2_data.status.working = true;
+  ADC2_Working = true;
+  ADC2_Initialized = true;
 }
 void ADC3_START(void)
 {
+  adc3_data.UART_transmission = nECU_UART_KnockTx();
   adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
   HAL_TIM_Base_Start(adc3_data.samplingTimer);
   HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t));
@@ -129,56 +137,56 @@ void ADC3_START(void)
   adc3_data.status.callback_half = false;
   adc3_data.status.callback_full = false;
   adc3_data.status.overflow = false;
-  adc3_data.status.working = true;
+  ADC3_Working = true;
+  ADC3_Initialized = true;
 }
 /* Stop functions */
 void ADC_STOP_ALL(void)
 {
-  if (adc1_data.status.working == true)
+  if (ADC1_Working == true)
   {
     ADC1_STOP();
   }
-  if (adc2_data.status.working == true)
+  if (ADC2_Working == true)
   {
     ADC2_STOP();
   }
-  if (adc3_data.status.working == true)
+  if (ADC3_Working == true)
   {
     ADC3_STOP();
   }
 }
 void ADC1_STOP(void)
 {
-  adc3_data.UART_transmission = nECU_UART_KnockTx();
   HAL_ADC_Stop_DMA(&GENERAL_ADC);
   nECU_ADC1_Routine(); // finish routine if flags pending
-  adc1_data.status.working = false;
+  ADC1_Working = false;
 }
 void ADC2_STOP(void)
 {
   HAL_ADC_Stop_DMA(&SPEED_ADC);
   nECU_ADC2_Routine(); // finish routine if flags pending
-  adc2_data.status.working = false;
+  ADC2_Working = false;
 }
 void ADC3_STOP(void)
 {
   HAL_TIM_Base_Stop(adc3_data.samplingTimer);
   HAL_ADC_Stop_DMA(&KNOCK_ADC);
-  adc2_data.status.working = false;
+  ADC3_Working = false;
 }
 /* ADC Rutines */
 void nECU_ADC_All_Routine(void)
 {
   /* Remember that all ADC are working simoutainously, all callbacks will be at the same time */
-  if (adc1_data.status.working == true)
+  if (ADC1_Working == true)
   {
     nECU_ADC1_Routine();
   }
-  if (adc2_data.status.working == true)
+  if (ADC2_Working == true)
   {
     nECU_ADC2_Routine();
   }
-  if (adc2_data.status.working == true)
+  if (ADC2_Working == true)
   {
     nECU_ADC3_Routine();
   }

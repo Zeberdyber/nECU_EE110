@@ -101,7 +101,6 @@ typedef struct
 /* ADCs */
 typedef struct
 {
-    bool working;                                // flag to indicate ADC status
     bool callback_half, callback_full, overflow; // callback flags to indicate DMA buffer states
 } nECU_ADC_Status;
 typedef struct
@@ -360,7 +359,6 @@ typedef struct
     uint16_t LunchControlLevel, TuneSelector;
     // internal variables
     uint16_t MenuLevel;
-    bool initialized;
 } ButtonMenu;
 
 /* Speed */
@@ -390,7 +388,6 @@ typedef struct
 typedef struct
 {
     bool active;          // routine is running
-    bool initialized;     // properly initialized ready to collect data
     bool averageReady[4]; // flags indicating end of data collection on each sensor
 } CalibrateRoutine;
 

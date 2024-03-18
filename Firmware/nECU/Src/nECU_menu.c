@@ -11,7 +11,8 @@
 ButtonMenu Menu;
 
 TachoValue Tacho1, Tacho2, Tacho3;
-bool TachoInitialized = false; // flag indicating structures initialization
+static bool Tacho_Initialized = false; // flag indicating structures initialization
+static bool Menu_Initialized = false, Menu_Working = false;
 
 /* Button logic */
 void Button_Menu_Init(void) // initialize button menu
@@ -22,12 +23,19 @@ void Button_Menu_Init(void) // initialize button menu
   Menu.MenuLevel = 0;
   Menu.TractionOFF = false;
   Menu.TuneSelector = 0;
-  Menu.initialized = true;
   ButtonLight_BreathAllOnce();
   nECU_readUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
+
+  Menu_Initialized = true;
+  Menu_Working = true;
 }
 void Button_Menu(void) // update function
 {
+  if (Menu_Working == false)
+  {
+    return;
+  }
+
   Button_ClickType RedType = ButtonInput_GetType(RED_BUTTON_ID);
   Button_ClickType OrangeType = ButtonInput_GetType(ORANGE_BUTTON_ID);
   Button_ClickType GreenType = ButtonInput_GetType(GREEN_BUTTON_ID);
@@ -193,7 +201,7 @@ void TachoValue_Clear_ShowPending(Tacho_ID ID) // clear pending flag for selecte
 }
 void TachoValue_Update_All(void) // update all TachoValue structures
 {
-  if (TachoInitialized == false)
+  if (Tacho_Initialized == false)
   {
     TachoValue_Init_All();
   }
@@ -206,7 +214,7 @@ void TachoValue_Init_All(void) // initialize tachometer value structures
   TachoValue_Init_Single(&Tacho1, Button_Menu_getPointer_TuneSelector(), 10);
   TachoValue_Init_Single(&Tacho2, Button_Menu_getPointer_LunchControlLevel(), 10);
   TachoValue_Init_Single(&Tacho3, &Menu.MenuLevel, 10);
-  TachoInitialized = true;
+  Tacho_Initialized = true;
 }
 /* TachoValue internal functions */
 void TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier) // initialize single structure

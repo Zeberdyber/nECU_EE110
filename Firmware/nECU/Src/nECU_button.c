@@ -11,17 +11,27 @@ Button Red;
 Button Orange;
 Button Green;
 
+static bool Red_Initialized = false, Red_Working = false;
+static bool Orange_Initialized = false, Orange_Working = false;
+static bool Green_Initialized = false, Green_Working = false;
+
 /* All button functions */
 void Button_Start(void)
 {
   ButtonLight_Init(&Red.light, 1, &BUTTON_OUTPUT_TIMER);
   ButtonInput_Init(&Red.input, 1, &BUTTON_INPUT_TIMER);
+  Red_Initialized = true;
+  Red_Working = true;
 
   ButtonLight_Init(&Orange.light, 2, &BUTTON_OUTPUT_TIMER);
   ButtonInput_Init(&Orange.input, 2, &BUTTON_INPUT_TIMER);
+  Orange_Initialized = true;
+  Orange_Working = true;
 
   ButtonLight_Init(&Green.light, 3, &BUTTON_OUTPUT_TIMER);
   ButtonInput_Init(&Green.input, 3, &BUTTON_INPUT_TIMER);
+  Green_Initialized = true;
+  Green_Working = true;
 }
 void Button_Stop(void)
 {
@@ -34,6 +44,10 @@ void Button_Stop(void)
   ButtonInput_Stop(&Red.input);
   ButtonInput_Stop(&Orange.input);
   ButtonInput_Stop(&Green.input);
+
+  Red_Working = false;
+  Orange_Working = false;
+  Green_Working = false;
 }
 
 /* BUTTON LIGHT BEGIN */
@@ -190,22 +204,39 @@ void ButtonLight_Set_Mode(ButtonLight *Light, ButtonLight_Mode Mode) // setup mo
 }
 void ButtonLight_UpdateAll(void) // function to launch updates for all buttons
 {
-  ButtonLight_TimeTrack(); // update times
-  ButtonLight_Update(&Red.light);
-  ButtonLight_Update(&Orange.light);
-  ButtonLight_Update(&Green.light);
+  ButtonLight_TimeTrack_All(); // update times
+  if (Red_Working == true)
+  {
+    ButtonLight_Update(&Red.light);
+  }
+  if (Orange_Working == true)
+  {
+    ButtonLight_Update(&Orange.light);
+  }
+  if (Green_Working == true)
+  {
+    ButtonLight_Update(&Green.light);
+  }
 }
-void ButtonLight_TimeTrack(void) // funtion called to update time passed
+void ButtonLight_TimeTrack(ButtonLight *Light) // funtion called to update time passed
 {
-  // update trackers
-  nECU_TickTrack_Update(&(Red.light.TimeTracker));
-  nECU_TickTrack_Update(&(Orange.light.TimeTracker));
-  nECU_TickTrack_Update(&(Green.light.TimeTracker));
-
-  // add to time passed
-  Red.light.Time += Red.light.TimeTracker.difference * Red.light.TimeTracker.convFactor;
-  Orange.light.Time += Orange.light.TimeTracker.difference * Orange.light.TimeTracker.convFactor;
-  Green.light.Time += Green.light.TimeTracker.difference * Green.light.TimeTracker.convFactor;
+  nECU_TickTrack_Update(&(Light->TimeTracker));                                 // update tracker
+  Light->Time += Light->TimeTracker.difference * Light->TimeTracker.convFactor; // add to time elapsed
+}
+void ButtonLight_TimeTrack_All(void) // function called to update time in all buttons
+{
+  if (Red_Working == true)
+  {
+    ButtonLight_TimeTrack(&(Red.light));
+  }
+  if (Orange_Working == true)
+  {
+    ButtonLight_TimeTrack(&(Orange.light));
+  }
+  if (Green_Working == true)
+  {
+    ButtonLight_TimeTrack(&(Green.light));
+  }
 }
 void ButtonLight_Stop(ButtonLight *Light) // stops PWM for seected button
 {
@@ -254,15 +285,24 @@ void ButtonInput_Identify(TIM_HandleTypeDef *htim) // function to identify to wh
 {
   if (htim->Channel == Red.input.Channel_IC)
   {
-    ButtonInput_InterruptRoutine(&Red.input);
+    if (Red_Working == true)
+    {
+      ButtonInput_InterruptRoutine(&Red.input);
+    }
   }
   else if (htim->Channel == Orange.input.Channel_IC)
   {
-    ButtonInput_InterruptRoutine(&Orange.input);
+    if (Orange_Working == true)
+    {
+      ButtonInput_InterruptRoutine(&Orange.input);
+    }
   }
   else if (htim->Channel == Green.input.Channel_IC)
   {
-    ButtonInput_InterruptRoutine(&Green.input);
+    if (Green_Working == true)
+    {
+      ButtonInput_InterruptRoutine(&Green.input);
+    }
   }
 }
 void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called after input capture callback (updates button structure)

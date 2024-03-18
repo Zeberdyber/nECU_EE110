@@ -9,7 +9,6 @@
 #include "nECU_can.h"
 
 /* General variables */
-bool CAN_Running = false;
 uint8_t CAN_Code_Error = 0; // error in user code ex: no valid solution for given input
 
 /* RX variables */
@@ -28,6 +27,8 @@ extern Frame0_struct F0_var;
 extern Frame1_struct F1_var;
 extern Frame2_struct F2_var;
 
+static bool CAN_Initialized = false, CAN_Working = false;
+
 // General functions
 void nECU_CAN_Start(void) // start periodic transmission of data accroding to the timers
 {
@@ -43,6 +44,7 @@ void nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
   F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
   F2_var.can_data.Mailbox = CAN_TX_MAILBOX2;
+  CAN_Initialized = true;
 }
 void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
 {
@@ -71,6 +73,7 @@ void nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   HAL_CAN_Stop(&hcan1);
   nECU_CAN_RX_Stop();
+  CAN_Working = false;
 }
 
 // Communication functions
@@ -128,19 +131,19 @@ void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for sele
   pFrame->Header.RTR = CAN_RTR_DATA;
   pFrame->Header.DLC = 8; // 8 bytes in length
 
-  if (!CAN_Running) // If not running start the peripheral
+  if (!CAN_Working) // If not running start the peripheral
   {
     if (HAL_CAN_Start(&hcan1) == HAL_OK)
     {
-      CAN_Running = true;
+      CAN_Working = true;
     }
   }
 }
 uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame over CAN
 {
-  if (!CAN_Running && HAL_CAN_Start(&hcan1) == 0) // If not running start the peripheral
+  if (!CAN_Working && HAL_CAN_Start(&hcan1) == 0) // If not running start the peripheral
   {
-    CAN_Running = true;
+    CAN_Working = true;
   }
   else
   {
