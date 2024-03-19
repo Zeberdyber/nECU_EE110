@@ -92,53 +92,63 @@ void ADC_START_ALL(void)
 }
 void ADC1_START(void)
 {
-  ADC_MAP = &adc1_data.out_buffer[0];
-  ADC_BackPressure = &adc1_data.out_buffer[1];
-  ADC_OX = &adc1_data.out_buffer[2];
-  ADC_AI1 = &adc1_data.out_buffer[3];
-  ADC_AI2 = &adc1_data.out_buffer[4];
-  ADC_AI3 = &adc1_data.out_buffer[5];
-  ADC_InternalTemp = &adc1_data.out_buffer[6];
-  ADC_VREF = &adc1_data.out_buffer[7];
-
-  HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.in_buffer, sizeof(adc1_data.in_buffer) / sizeof(uint16_t));
-
-  adc1_data.status.callback_half = false;
-  adc1_data.status.callback_full = false;
-  adc1_data.status.overflow = false;
-
-  nECU_InternalTemp_Init();
-
-  ADC1_Working = true;
-  ADC1_Initialized = true;
+  if (ADC1_Initialized == false)
+  {
+    ADC_MAP = &adc1_data.out_buffer[0];
+    ADC_BackPressure = &adc1_data.out_buffer[1];
+    ADC_OX = &adc1_data.out_buffer[2];
+    ADC_AI1 = &adc1_data.out_buffer[3];
+    ADC_AI2 = &adc1_data.out_buffer[4];
+    ADC_AI3 = &adc1_data.out_buffer[5];
+    ADC_InternalTemp = &adc1_data.out_buffer[6];
+    ADC_VREF = &adc1_data.out_buffer[7];
+    ADC1_Initialized = true;
+  }
+  if (ADC2_Working == false)
+  {
+    adc1_data.status.callback_half = false;
+    adc1_data.status.callback_full = false;
+    adc1_data.status.overflow = false;
+    HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.in_buffer, sizeof(adc1_data.in_buffer) / sizeof(uint16_t));
+    ADC1_Working = true;
+  }
 }
 void ADC2_START(void)
 {
-  ADC_V1 = &adc2_data.out_buffer[0];
-  ADC_V2 = &adc2_data.out_buffer[1];
-  ADC_V3 = &adc2_data.out_buffer[2];
-  ADC_V4 = &adc2_data.out_buffer[3];
-
-  HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.in_buffer, sizeof(adc2_data.in_buffer) / sizeof(uint16_t));
-
-  adc2_data.status.callback_half = false;
-  adc2_data.status.callback_full = false;
-  adc2_data.status.overflow = false;
-  ADC2_Working = true;
-  ADC2_Initialized = true;
+  if (ADC2_Initialized == false)
+  {
+    ADC_V1 = &adc2_data.out_buffer[0];
+    ADC_V2 = &adc2_data.out_buffer[1];
+    ADC_V3 = &adc2_data.out_buffer[2];
+    ADC_V4 = &adc2_data.out_buffer[3];
+    ADC2_Initialized = true;
+  }
+  if (ADC2_Working == false)
+  {
+    adc2_data.status.callback_half = false;
+    adc2_data.status.callback_full = false;
+    adc2_data.status.overflow = false;
+    HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.in_buffer, sizeof(adc2_data.in_buffer) / sizeof(uint16_t));
+    ADC2_Working = true;
+  }
 }
 void ADC3_START(void)
 {
-  adc3_data.UART_transmission = nECU_UART_KnockTx();
-  adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
-  HAL_TIM_Base_Start(adc3_data.samplingTimer);
-  HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t));
-
-  adc3_data.status.callback_half = false;
-  adc3_data.status.callback_full = false;
-  adc3_data.status.overflow = false;
-  ADC3_Working = true;
-  ADC3_Initialized = true;
+  if (ADC3_Initialized == false)
+  {
+    adc3_data.UART_transmission = nECU_UART_KnockTx();
+    adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
+    ADC3_Initialized = true;
+  }
+  if (ADC3_Working == false)
+  {
+    adc3_data.status.callback_half = false;
+    adc3_data.status.callback_full = false;
+    adc3_data.status.overflow = false;
+    HAL_TIM_Base_Start(adc3_data.samplingTimer);
+    HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t));
+    ADC3_Working = true;
+  }
 }
 /* Stop functions */
 void ADC_STOP_ALL(void)

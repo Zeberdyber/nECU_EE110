@@ -203,7 +203,7 @@ void TachoValue_Update_All(void) // update all TachoValue structures
 {
   if (Tacho_Initialized == false)
   {
-    TachoValue_Init_All();
+    return;
   }
   TachoValue_Update_Single(&Tacho1);
   TachoValue_Update_Single(&Tacho2);

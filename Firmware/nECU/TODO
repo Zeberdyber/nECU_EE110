@@ -10,14 +10,14 @@
             [ ] debug
             [X] EGT
             [X] frames
-            [ ] Knock
+            [X] Knock
             [X] menu
-            [ ] Speed
-            [ ] spi
-            [ ] stock
-            [ ] table
-            [ ] tim
-            [ ] UART
+            [X] Speed
+            [-] spi
+            [X] stock
+            [-] table
+            [-] tim
+            [-] UART
         [ ] don't do routines when not working:
             [X] ADCs
             [X] Buttons
@@ -25,14 +25,14 @@
             [ ] debug
             [X] EGT
             [X] frames
-            [ ] Knock
+            [X] Knock
             [X] menu
-            [ ] Speed
-            [ ] spi
-            [ ] stock
-            [ ] table
-            [ ] tim
-            [ ] UART
+            [X] Speed
+            [-] spi
+            [X] stock
+            [-] table
+            [-] tim
+            [-] UART {obselete, not used at all, stored for legacy}
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
             - can:

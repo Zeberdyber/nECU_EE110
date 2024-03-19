@@ -9,30 +9,40 @@
 #include "nECU_debug.h"
 
 OnBoardLED LED_L, LED_R;
-bool LED_Initialized = false; // flag to triger initialization
 static nECU_Debug dbg_data;
-static bool debug_que_initialized = false;
+static nECU_LoopCounter main_loop;
+
+static bool LED_Initialized = false,
+            mainLoop_Initialized = false,
+            debug_que_initialized = false;
 
 /* On board LEDs */
 void OnBoard_LED_Init(void) // initialize structures for on board LEDs
 {
-    uint32_t delay = (ONBOARD_LED_MS_PER_BLINK / 2);
-    /* Left LED */
-    LED_L.LEDPin.GPIO_Pin = LED1_Pin;
-    LED_L.LEDPin.GPIOx = LED1_GPIO_Port;
-    nECU_Delay_Set(&LED_L.delay, &delay);
-    LED_L.blinkPrev = false;
+    if (LED_Initialized == false)
+    {
+        uint32_t delay = (ONBOARD_LED_MS_PER_BLINK / 2);
+        /* Left LED */
+        LED_L.LEDPin.GPIO_Pin = LED1_Pin;
+        LED_L.LEDPin.GPIOx = LED1_GPIO_Port;
+        nECU_Delay_Set(&LED_L.delay, &delay);
+        LED_L.blinkPrev = false;
 
-    /* Right LED */
-    LED_R.LEDPin.GPIO_Pin = LED2_Pin;
-    LED_R.LEDPin.GPIOx = LED2_GPIO_Port;
-    nECU_Delay_Set(&LED_R.delay, &delay);
-    LED_R.blinkPrev = false;
+        /* Right LED */
+        LED_R.LEDPin.GPIO_Pin = LED2_Pin;
+        LED_R.LEDPin.GPIOx = LED2_GPIO_Port;
+        nECU_Delay_Set(&LED_R.delay, &delay);
+        LED_R.blinkPrev = false;
 
-    LED_Initialized = true;
+        LED_Initialized = true;
+    }
 }
 void OnBoard_LED_UpdateSingle(OnBoardLED *inst) // function to perform logic behind blinking times and update to GPIO
 {
+    if (LED_Initialized == false)
+    {
+        return;
+    }
     nECU_Delay_Update(&inst->delay);
     if (inst->blinking == true)
     {
@@ -59,7 +69,7 @@ void OnBoard_LED_Update(void) // update on board LEDs states
 {
     if (LED_Initialized == false)
     {
-        OnBoard_LED_Init();
+        return;
     }
 
     // LED_L.LEDPin.State = nECU_CAN_GetError();
@@ -75,7 +85,7 @@ void nECU_LED_FlipState(OnBoardLED *inst) // simple function for debugging code
 {
     if (LED_Initialized == false)
     {
-        OnBoard_LED_Init();
+        return;
     }
 
     HAL_GPIO_TogglePin(inst->LEDPin.GPIOx, inst->LEDPin.GPIO_Pin);
@@ -84,18 +94,30 @@ void nECU_LED_SetState(OnBoardLED *inst, GPIO_PinState state) // set state to se
 {
     if (LED_Initialized == false)
     {
-        OnBoard_LED_Init();
+        return;
     }
     inst->LEDPin.State = state;
     HAL_GPIO_WritePin(inst->LEDPin.GPIOx, inst->LEDPin.GPIO_Pin, inst->LEDPin.State);
 }
 
-void nECU_Fault_Missfire(void) // routine after missfire was detected
+/* Used to track how many times main loop is done between CAN frames */
+void nECU_mainLoop_Init(void)
 {
-    nECU_LED_FlipState(&LED_L);
+    nECU_LoopCounter_Init(&main_loop);
+}
+void nECU_mainLoop_Update(void)
+{
+    nECU_LoopCounter_Update(&main_loop);
+}
+void nECU_mainLoop_Reset(void)
+{
+    nECU_LoopCounter_Clear(&main_loop);
+}
+uint16_t *nECU_mainLoop_getValue(void) // returns pointer to current value
+{
+    return (uint16_t *)main_loop.counter;
 }
 
-/* Used to track how many times main loop is done between CAN frames */
 void nECU_LoopCounter_Init(nECU_LoopCounter *inst) // Initialize structure
 {
     inst->counter = 0;
@@ -222,17 +244,17 @@ bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature) // checks if passed t
     }
     return false;
 }
-void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst) // check EGT ICs for error flags
+void nECU_Debug_EGTsensor_error(EGT_Sensor_ID ID) // check EGT ICs for error flags
 {
     for (uint8_t i = 0; i < 4; i++)
     {
-        if (inst->EGT_IC[i]) // if error detected set message
-        {
-            nECU_Debug_Message_Set(&(inst->TC_invalid), (float)*inst->EGT_IC[i], nECU_ERROR_EGT_TC_EGT1_ID + i);
-        }
+        // if (inst->EGT_IC[i]) // if error detected set message
+        // {
+        //     nECU_Debug_Message_Set(&(inst->TC_invalid), (float)*inst->EGT_IC[i], nECU_ERROR_EGT_TC_EGT1_ID + i);
+        // }
     }
 }
-void nECU_Debug_EGTcomm_error(EGT_Sensor_ID ID) // to be called when error occurs
+void nECU_Debug_EGTSPIcomm_error(EGT_Sensor_ID ID) // to be called when SPI error occurs
 {
     nECU_Debug_error_mesage temporary;
     nECU_Debug_Message_Init(&temporary);

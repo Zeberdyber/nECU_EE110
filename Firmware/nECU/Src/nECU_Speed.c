@@ -12,7 +12,10 @@ static Speed_Sensor Speed_Sens_1, Speed_Sens_2, Speed_Sens_3, Speed_Sens_4;
 static CalibrateRoutine calibrateRoutine;
 static bool calibrateRoutine_Initialized = false;
 // initialized flags
-static bool SS1_Initialized = false, SS2_Initialized = false, SS3_Initialized = false, SS4_Initialized = false;
+static bool SS1_Initialized = false, SS1_Working = false;
+static bool SS2_Initialized = false, SS2_Working = false;
+static bool SS3_Initialized = false, SS3_Working = false;
+static bool SS4_Initialized = false, SS4_Working = false;
 // external import
 extern uint16_t *ADC_V1, *ADC_V2, *ADC_V3, *ADC_V4; // ADC variables
 
@@ -103,47 +106,58 @@ void Speed_AverageInit(Speed_Sensor *Sensor) // Initialize averaging structure
 /* General functions */
 void Speed_Start(void) // function to start Speed function set
 {
-    // Setup sensor objects input
-    Speed_Sens_1.InputData = ADC_V1;
-    Speed_Sens_2.InputData = ADC_V2;
-    Speed_Sens_3.InputData = ADC_V3;
-    Speed_Sens_4.InputData = ADC_V4;
+    if (SS1_Initialized == false || SS2_Initialized == false || SS3_Initialized == false || SS4_Initialized == false)
+    {
+        // Setup sensor objects input
+        Speed_Sens_1.InputData = ADC_V1;
+        Speed_Sens_2.InputData = ADC_V2;
+        Speed_Sens_3.InputData = ADC_V3;
+        Speed_Sens_4.InputData = ADC_V4;
 
-    // // Read calibraion from flash
-    nECU_readSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
+        // // Read calibraion from flash
+        nECU_readSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
 
-    // // Setup base parameters before first can recived frame
-    Speed_Sens_1.WheelSetup = nECU_CAN_getWheelSetupPointer();
-    Speed_Sens_2.WheelSetup = nECU_CAN_getWheelSetupPointer();
-    Speed_Sens_3.WheelSetup = nECU_CAN_getWheelSetupPointer();
-    Speed_Sens_4.WheelSetup = nECU_CAN_getWheelSetupPointer();
+        // // Setup base parameters before first can recived frame
+        Speed_Sens_1.WheelSetup = nECU_CAN_getWheelSetupPointer();
+        Speed_Sens_2.WheelSetup = nECU_CAN_getWheelSetupPointer();
+        Speed_Sens_3.WheelSetup = nECU_CAN_getWheelSetupPointer();
+        Speed_Sens_4.WheelSetup = nECU_CAN_getWheelSetupPointer();
 
-    // other init
-    Speed_Sens_1.SpeedData = 0;
-    Speed_Sens_2.SpeedData = 0;
-    Speed_Sens_3.SpeedData = 0;
-    Speed_Sens_4.SpeedData = 0;
+        // other init
+        Speed_Sens_1.SpeedData = 0;
+        Speed_Sens_2.SpeedData = 0;
+        Speed_Sens_3.SpeedData = 0;
+        Speed_Sens_4.SpeedData = 0;
 
-    SS1_Initialized = true;
-    SS2_Initialized = true;
-    SS3_Initialized = true;
-    SS4_Initialized = true;
+        SS1_Initialized = true;
+        SS2_Initialized = true;
+        SS3_Initialized = true;
+        SS4_Initialized = true;
+    }
+    if (SS1_Working == false || SS2_Working == false || SS3_Working == false || SS4_Working == false)
+    {
+        ADC2_START();
+        SS1_Working = true;
+        SS2_Working = true;
+        SS3_Working = true;
+        SS4_Working = true;
+    }
 }
 void Speed_Update(void) // perform update of all sensors
 {
-    if (SS1_Initialized == true)
+    if (SS1_Working == true)
     {
         Speed_SensorUpdate(&Speed_Sens_1);
     }
-    if (SS2_Initialized == true)
+    if (SS2_Working == true)
     {
         Speed_SensorUpdate(&Speed_Sens_2);
     }
-    if (SS3_Initialized == true)
+    if (SS3_Working == true)
     {
         Speed_SensorUpdate(&Speed_Sens_3);
     }
-    if (SS4_Initialized == true)
+    if (SS4_Working == true)
     {
         Speed_SensorUpdate(&Speed_Sens_4);
     }
@@ -213,6 +227,11 @@ void Speed_CalibrateSingle(Speed_Sensor *Sensor) // function to generate calibra
 }
 void Speed_CalibrateAll(void) // function to calibrate speed sensors (periodic function)
 {
+    if (SS1_Working == false || SS2_Working == false || SS3_Working == false || SS4_Working == false)
+    {
+        return;
+    }
+
     if (calibrateRoutine_Initialized == false)
     {
         Speed_AverageInit(&Speed_Sens_1);
@@ -263,13 +282,24 @@ void Speed_CalibrateInit(void) // initialize calibration structure
 void Speed_CalibrateStart(void) // start calibration process
 {
     Speed_CalibrateInit();
+
+    if (SS1_Working == false || SS2_Working == false || SS3_Working == false || SS4_Working == false)
+    {
+        return;
+    }
+
     calibrateRoutine.active = true;
 }
 
 /* Periodic functions */
 void Speed_TimingEvent(void) // function to be called periodicaly with desired data update rate
 {
-    if (calibrateRoutine.active)
+    if (SS1_Working == false || SS2_Working == false || SS3_Working == false || SS4_Working == false)
+    {
+        return;
+    }
+
+    if (calibrateRoutine.active && calibrateRoutine_Initialized)
     {
         Speed_CalibrateAll();
     }

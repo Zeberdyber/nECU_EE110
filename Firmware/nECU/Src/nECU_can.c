@@ -22,7 +22,6 @@ CAN_FilterTypeDef CoolantFilter;
 /* CAN flags */
 bool Rx_Data_Frame0_Pending = false;
 
-extern nECU_LoopCounter main_loop;
 extern Frame0_struct F0_var;
 extern Frame1_struct F1_var;
 extern Frame2_struct F2_var;
@@ -32,25 +31,32 @@ static bool CAN_Initialized = false, CAN_Working = false;
 // General functions
 void nECU_CAN_Start(void) // start periodic transmission of data accroding to the timers
 {
-  nECU_CAN_InitFrame(nECU_Frame_Speed);
-  nECU_CAN_InitFrame(nECU_Frame_EGT);
-  nECU_CAN_InitFrame(nECU_Frame_Stock);
-  nECU_CAN_RX_InitFrame();
+  if (CAN_Initialized == false)
+  {
+    nECU_CAN_InitFrame(nECU_Frame_Speed);
+    nECU_CAN_InitFrame(nECU_Frame_EGT);
+    nECU_CAN_InitFrame(nECU_Frame_Stock);
+    nECU_CAN_RX_InitFrame();
 
-  nECU_TickTrack_Init(&(F0_var.timer));
-  F0_var.timeElapsed = 0;
-  nECU_TickTrack_Init(&(F1_var.timer));
-  F1_var.timeElapsed = 0;
-  nECU_TickTrack_Init(&(F2_var.timer));
-  F2_var.timeElapsed = 0;
+    nECU_TickTrack_Init(&(F0_var.timer));
+    F0_var.timeElapsed = 0;
+    nECU_TickTrack_Init(&(F1_var.timer));
+    F1_var.timeElapsed = 0;
+    nECU_TickTrack_Init(&(F2_var.timer));
+    F2_var.timeElapsed = 0;
 
-  F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
-  F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
-  F2_var.can_data.Mailbox = CAN_TX_MAILBOX2;
-  CAN_Initialized = true;
+    F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
+    F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
+    F2_var.can_data.Mailbox = CAN_TX_MAILBOX2;
+    CAN_Initialized = true;
+  }
 }
 void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
 {
+  if (CAN_Initialized == false)
+  {
+    return;
+  }
   nECU_CAN_TxFrame *pFrame;
   switch (frameID)
   {
@@ -82,6 +88,11 @@ void nECU_CAN_Stop(void) // stop all CAN code, with timing
 // Communication functions
 void nECU_CAN_CheckTime(void) // checks if it is time to send packet
 {
+  if (CAN_Initialized == false)
+  {
+    return;
+  }
+
   // update times
   nECU_TickTrack_Update(&(F0_var.timer));
   nECU_TickTrack_Update(&(F1_var.timer));
@@ -93,25 +104,29 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
   F2_var.timeElapsed += F2_var.timer.difference * F2_var.timer.convFactor;
 
   // check if time is above threshold
-  if (F0_var.timeElapsed >= CAN_TX_FRAME0_TIME)
+  if (F0_var.timeElapsed >= CAN_TX_FRAME0_TIME && Frame0_Working())
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Speed);
     F0_var.timeElapsed = 0;
   }
-  if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME)
+  if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME && Frame1_Working)
   {
     nECU_CAN_TransmitFrame(nECU_Frame_EGT);
     F1_var.timeElapsed = 0;
   }
-  if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME)
+  if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME && Frame2_Working)
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Stock);
     F2_var.timeElapsed = 0;
-    nECU_LoopCounter_Clear(&main_loop);
+    nECU_mainLoop_Reset();
   }
 }
 void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for selected frame
 {
+  if (CAN_Initialized == false)
+  {
+    return;
+  }
   nECU_CAN_TxFrame *pFrame;
 
   switch (frameID)
@@ -148,6 +163,10 @@ void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for sele
 }
 uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame over CAN
 {
+  if (CAN_Initialized == false)
+  {
+    return 1;
+  }
   if (!CAN_Working && HAL_CAN_Start(&hcan1) == 0) // If not running start the peripheral
   {
     CAN_Working = true;

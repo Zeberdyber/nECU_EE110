@@ -307,6 +307,7 @@ typedef struct
     uint16_t *MAP_Stock_10bit;
     uint8_t *Knock;
     uint8_t *VSS;
+    uint16_t *loop_count;
 } Frame2_struct;
 
 /* Knock */
@@ -461,14 +462,14 @@ typedef struct
 /* Debug develop */
 typedef enum
 {
-    // internal temperature
+    // internal temperature out of spec
     nECU_ERROR_DEVICE_TEMP_MCU_ID = 1,
     nECU_ERROR_DEVICE_TEMP_EGT1_ID = 2,
     nECU_ERROR_DEVICE_TEMP_EGT2_ID = 3,
     nECU_ERROR_DEVICE_TEMP_EGT3_ID = 4,
     nECU_ERROR_DEVICE_TEMP_EGT4_ID = 5,
 
-    // thermocouple over temperature
+    // thermocouple over temperature (over defined threshold)
     nECU_ERROR_EGT_OVERTEMP_EGT1_ID = 6,
     nECU_ERROR_EGT_OVERTEMP_EGT2_ID = 7,
     nECU_ERROR_EGT_OVERTEMP_EGT3_ID = 8,
@@ -480,7 +481,7 @@ typedef enum
     nECU_ERROR_EGT_SPI_EGT3_ID = 12,
     nECU_ERROR_EGT_SPI_EGT4_ID = 13,
 
-    // thermocouple connection
+    // thermocouple connection (TC sensor not connected, shorted etc)
     nECU_ERROR_EGT_TC_EGT1_ID = 14,
     nECU_ERROR_EGT_TC_EGT2_ID = 15,
     nECU_ERROR_EGT_TC_EGT3_ID = 16,

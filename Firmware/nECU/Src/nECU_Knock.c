@@ -7,43 +7,52 @@
 
 #include "nECU_Knock.h"
 
-nECU_Knock Knock;
+nECU_Knock Knock = {0};
 extern IGF_Handle IGF;
 
-static bool Knock_Initialized = false;
+static bool Knock_Initialized = false, Knock_Working = false;
 
 /* Knock detection */
 void nECU_Knock_Init(void) // initialize and start
 {
-    Knock.RetardPerc = 0; // initial value
-    Knock.LevelWaiting = false;
-    Knock.CycleDoneFlag = nECU_Knock_Delay_DoneFlag();
+    if (Knock_Initialized == false)
+    {
+        Knock.RetardPerc = 0; // initial value
+        Knock.LevelWaiting = false;
+        Knock.CycleDoneFlag = nECU_Knock_Delay_DoneFlag();
 
-    // RPM reference
-    nECU_IGF_Init();
+        // regression timer
+        nECU_TickTrack_Init(&(Knock.regres));
 
-    // regression timer
-    nECU_TickTrack_Init(&(Knock.regres));
+        // initialize threshold table
+        const float inTable1[FFT_THRESH_TABLE_LEN] = {1000, 2000, 3000, 4000, 5000};          // RPM for mapping threshold values
+        const float inTable2[FFT_THRESH_TABLE_LEN] = {28000, 125000, 300000, 450000, 400000}; // Min Knock threashold
+        const float inTable3[FFT_THRESH_TABLE_LEN] = {50000, 150000, 400000, 550000, 500000}; // Max Knock threashold
+        nECU_Table_Set(&(Knock.thresholdMap), inTable1, inTable2, inTable3, FFT_THRESH_TABLE_LEN);
 
-    // initialize threshold table
-    const float inTable1[FFT_THRESH_TABLE_LEN] = {1000, 2000, 3000, 4000, 5000};          // RPM for mapping threshold values
-    const float inTable2[FFT_THRESH_TABLE_LEN] = {28000, 125000, 300000, 450000, 400000}; // Min Knock threashold
-    const float inTable3[FFT_THRESH_TABLE_LEN] = {50000, 150000, 400000, 550000, 500000}; // Max Knock threashold
-    nECU_Table_Set(&(Knock.thresholdMap), inTable1, inTable2, inTable3, FFT_THRESH_TABLE_LEN);
+        // initialize FFT module
+        Knock.fft.Index = 0;
+        Knock.fft.flag = false;
+        float SamplingFreq = TIM_CLOCK / ((KNOCK_ADC_SAMPLING_TIMER.Init.Prescaler + 1) * (KNOCK_ADC_SAMPLING_TIMER.Init.Period + 1));
+        Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * FFT_LENGTH) / (SamplingFreq)) * 2) - 1;
+        arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH);
 
-    // initialize FFT module
-    Knock.fft.Index = 0;
-    Knock.fft.flag = false;
-    float SamplingFreq = TIM_CLOCK / ((KNOCK_ADC_SAMPLING_TIMER.Init.Prescaler + 1) * (KNOCK_ADC_SAMPLING_TIMER.Init.Period + 1));
-    Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * FFT_LENGTH) / (SamplingFreq)) * 2) - 1;
-    arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH);
-
-    // set initialized flag
-    Knock_Initialized = true;
+        // set initialized flag
+        Knock_Initialized = true;
+    }
+    if (Knock_Working == false && Knock_Initialized == true)
+    {
+        // ADC start
+        ADC3_START();
+        // RPM reference
+        nECU_IGF_Init();
+        // set working flag
+        Knock_Working = true;
+    }
 }
 void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 {
-    if (Knock_Initialized == true)
+    if (Knock_Working == true)
     {
         for (uint16_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
         {
@@ -65,7 +74,7 @@ void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 }
 void nECU_Knock_UpdatePeriodic(void) // function to perform time critical knock routines, call at regression timer interrupt
 {
-    if (Knock_Initialized == true)
+    if (Knock_Working == true)
     {
         nECU_TickTrack_Update(&(Knock.regres));
         /* should be called every time timer time elapsed */

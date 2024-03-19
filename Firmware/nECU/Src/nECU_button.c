@@ -18,19 +18,26 @@ static bool Green_Initialized = false, Green_Working = false;
 /* All button functions */
 void Button_Start(void)
 {
-  ButtonLight_Init(&Red.light, 1, &BUTTON_OUTPUT_TIMER);
-  ButtonInput_Init(&Red.input, 1, &BUTTON_INPUT_TIMER);
-  Red_Initialized = true;
+  if (Red_Initialized == false || Red_Working == false)
+  {
+    ButtonLight_Init(&Red.light, 1, &BUTTON_OUTPUT_TIMER);
+    ButtonInput_Init(&Red.input, 1, &BUTTON_INPUT_TIMER);
+    Red_Initialized = true;
+  }
   Red_Working = true;
-
-  ButtonLight_Init(&Orange.light, 2, &BUTTON_OUTPUT_TIMER);
-  ButtonInput_Init(&Orange.input, 2, &BUTTON_INPUT_TIMER);
-  Orange_Initialized = true;
+  if (Orange_Initialized == false || Orange_Working == false)
+  {
+    ButtonLight_Init(&Orange.light, 2, &BUTTON_OUTPUT_TIMER);
+    ButtonInput_Init(&Orange.input, 2, &BUTTON_INPUT_TIMER);
+    Orange_Initialized = true;
+  }
   Orange_Working = true;
-
-  ButtonLight_Init(&Green.light, 3, &BUTTON_OUTPUT_TIMER);
-  ButtonInput_Init(&Green.input, 3, &BUTTON_INPUT_TIMER);
-  Green_Initialized = true;
+  if (Green_Initialized == false || Green_Working == false)
+  {
+    ButtonLight_Init(&Green.light, 3, &BUTTON_OUTPUT_TIMER);
+    ButtonInput_Init(&Green.input, 3, &BUTTON_INPUT_TIMER);
+    Green_Initialized = true;
+  }
   Green_Working = true;
 }
 void Button_Stop(void)

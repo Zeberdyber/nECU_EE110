@@ -6,7 +6,7 @@
  */
 #include "nECU_spi.h"
 
-bool egt_peripheral_working;
+static bool egt_peripheral_Initialized = false, egt_peripheral_Working = false; // not used, nothing to initialize
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) // called when successfully recived data
 {

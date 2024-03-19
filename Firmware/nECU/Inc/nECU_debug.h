@@ -32,8 +32,10 @@ extern "C"
     void nECU_LED_FlipState(OnBoardLED *inst);                     // simple function for debugging code
     void nECU_LED_SetState(OnBoardLED *inst, GPIO_PinState state); // set state to selected LED
 
-    /* Fault detection */
-    void nECU_Fault_Missfire(void); // routine after missfire was detected
+    void nECU_mainLoop_Init(void);
+    void nECU_mainLoop_Update(void);
+    void nECU_mainLoop_Reset(void);
+    uint16_t *nECU_mainLoop_getValue(void); // returns pointer to current value
 
     void nECU_LoopCounter_Init(nECU_LoopCounter *inst);   // Initialize structure
     void nECU_LoopCounter_Update(nECU_LoopCounter *inst); // Increment counter, get total time
@@ -50,8 +52,8 @@ extern "C"
     bool nECU_Debug_IntTemp_CheckSingle(int16_t *temperature);            // checks if passed temperature is in defined bounds
     void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst);             // check if TCs did not exceed fault value
     bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature);           // checks if passed temperature is in defined bound
-    void nECU_Debug_EGTcomm_Check(nECU_Debug_EGT_Comm *inst);             // check EGT ICs for error flags
-    void nECU_Debug_EGTcomm_error(EGT_Sensor_ID ID);                      // to be called when error occurs
+    void nECU_Debug_EGTsensor_error(EGT_Sensor_ID ID);                    // to be called when TC sensor error occurs
+    void nECU_Debug_EGTSPIcomm_error(EGT_Sensor_ID ID);                   // to be called when SPI error occurs
     void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read); // indicate error from flash functions
 
     void nECU_Debug_Init_Que(void);                              // initializes que

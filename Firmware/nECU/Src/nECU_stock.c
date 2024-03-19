@@ -16,7 +16,11 @@ IGF_Handle IGF;
 static stock_GPIO stk_in;
 
 // initialized flags
-static bool MAP_Initialized = false, BackPressure_Initialized = false, OX_Initialized = false, VSS_Initialized = false, IGF_Initialized = false;
+static bool MAP_Initialized = false, MAP_Working = false,
+            BackPressure_Initialized = false, BackPressure_Working = false,
+            OX_Initialized = false, OX_Working = false,
+            VSS_Initialized = false, VSS_Working = false,
+            IGF_Initialized = false, IGF_Working = false;
 // external import
 extern uint16_t *ADC_MAP, *ADC_BackPressure, *ADC_OX;
 
@@ -71,20 +75,27 @@ uint16_t *nECU_MAP_GetPointer(void) // returns pointer to resulting data
 }
 void nECU_MAP_Init(void) // initialize MAP structure
 {
-    MAP.calibrationData.ADC_MeasuredMin = MAP_ADC_CALIB_MIN;
-    MAP.calibrationData.ADC_MeasuredMax = MAP_ADC_CALIB_MAX;
-    MAP.calibrationData.OUT_MeasuredMax = MAP_kPA_CALIB_MAX;
-    MAP.calibrationData.OUT_MeasuredMin = MAP_kPA_CALIB_MIN;
-    nECU_calculateLinearCalibration(&MAP.calibrationData);
-    MAP.decimalPoint = MAP_DECIMAL_POINT;
-    MAP.ADC_input = ADC_MAP;
-    MAP_Initialized = true;
+    if (MAP_Initialized == false)
+    {
+        MAP.calibrationData.ADC_MeasuredMin = MAP_ADC_CALIB_MIN;
+        MAP.calibrationData.ADC_MeasuredMax = MAP_ADC_CALIB_MAX;
+        MAP.calibrationData.OUT_MeasuredMax = MAP_kPA_CALIB_MAX;
+        MAP.calibrationData.OUT_MeasuredMin = MAP_kPA_CALIB_MIN;
+        nECU_calculateLinearCalibration(&MAP.calibrationData);
+        MAP.decimalPoint = MAP_DECIMAL_POINT;
+        MAP.ADC_input = ADC_MAP;
+        MAP_Initialized = true;
+    }
+    if (MAP_Working == false && MAP_Initialized == true)
+    {
+        ADC1_START();
+        MAP_Working = true;
+    }
 }
 void nECU_MAP_Update(void) // update MAP structure
 {
     if (MAP_Initialized == false)
     {
-        nECU_MAP_Init();
         return;
     }
     MAP.outputFloat = nECU_getLinearSensor(MAP.ADC_input, &MAP.calibrationData);
@@ -97,20 +108,27 @@ uint8_t *nECU_BackPressure_GetPointer(void) // returns pointer to resulting data
 }
 void nECU_BackPressure_Init(void) // initialize BackPressure structure
 {
-    BackPressure.calibrationData.ADC_MeasuredMin = BACKPRESSURE_ADC_CALIB_MIN;
-    BackPressure.calibrationData.ADC_MeasuredMax = BACKPRESSURE_ADC_CALIB_MAX;
-    BackPressure.calibrationData.OUT_MeasuredMax = BACKPRESSURE_kPA_CALIB_MAX;
-    BackPressure.calibrationData.OUT_MeasuredMin = BACKPRESSURE_kPA_CALIB_MIN;
-    nECU_calculateLinearCalibration(&BackPressure.calibrationData);
-    BackPressure.decimalPoint = BACKPRESSURE_DECIMAL_POINT;
-    BackPressure.ADC_input = ADC_BackPressure;
-    BackPressure_Initialized = true;
+    if (BackPressure_Initialized == false)
+    {
+        BackPressure.calibrationData.ADC_MeasuredMin = BACKPRESSURE_ADC_CALIB_MIN;
+        BackPressure.calibrationData.ADC_MeasuredMax = BACKPRESSURE_ADC_CALIB_MAX;
+        BackPressure.calibrationData.OUT_MeasuredMax = BACKPRESSURE_kPA_CALIB_MAX;
+        BackPressure.calibrationData.OUT_MeasuredMin = BACKPRESSURE_kPA_CALIB_MIN;
+        nECU_calculateLinearCalibration(&BackPressure.calibrationData);
+        BackPressure.decimalPoint = BACKPRESSURE_DECIMAL_POINT;
+        BackPressure.ADC_input = ADC_BackPressure;
+        BackPressure_Initialized = true;
+    }
+    if (BackPressure_Working == false && BackPressure_Initialized == true)
+    {
+        ADC1_START();
+        BackPressure_Working = true;
+    }
 }
 void nECU_BackPressure_Update(void) // update BackPressure structure
 {
     if (BackPressure_Initialized == false)
     {
-        nECU_BackPressure_Init();
         return;
     }
     BackPressure.outputFloat = nECU_getLinearSensor(BackPressure.ADC_input, &BackPressure.calibrationData);
@@ -123,39 +141,47 @@ uint8_t *nECU_OX_GetPointer(void) // returns pointer to resulting data
 }
 void nECU_OX_Init(void) // initialize narrowband lambda structure
 {
-    /* Sensor */
-    OX.sensor.calibrationData.ADC_MeasuredMax = VoltsToADC(OXYGEN_VOLTAGE_CALIB_MAX);
-    OX.sensor.calibrationData.ADC_MeasuredMin = VoltsToADC(OXYGEN_VOLTAGE_CALIB_MIN);
-    OX.sensor.calibrationData.OUT_MeasuredMax = OXYGEN_VOLTAGE_MAX;
-    OX.sensor.calibrationData.OUT_MeasuredMin = OXYGEN_VOLTAGE_MIN;
-    nECU_calculateLinearCalibration(&OX.sensor.calibrationData);
-    OX.sensor.decimalPoint = OXYGEN_DECIMAL_POINT;
-    OX.sensor.ADC_input = ADC_OX;
-    /* Heater */
-    // timer configuration
-    OX.Heater.htim = &OX_HEATER_TIMER;
-    nECU_tim_Init_struct(&(OX.Heater));
-    OX.Heater.Channel_Count = 1;
-    OX.Heater.Channel_List[0] = TIM_CHANNEL_1;
-    nECU_tim_PWM_start(&(OX.Heater));
-    // variables configuration
-    OX.Heater_Infill = 0;
-    OX.Coolant = nECU_CAN_getCoolantPointer();
-    OX.Infill_max = OXYGEN_HEATER_MAX;
-    OX.Infill_min = OXYGEN_HEATER_MIN;
-    OX.Coolant_max = OXYGEN_COOLANT_MAX;
-    OX.Coolant_min = OXYGEN_COOLANT_MIN;
+    if (OX_Initialized == false)
+    {
+        /* Sensor */
+        OX.sensor.calibrationData.ADC_MeasuredMax = VoltsToADC(OXYGEN_VOLTAGE_CALIB_MAX);
+        OX.sensor.calibrationData.ADC_MeasuredMin = VoltsToADC(OXYGEN_VOLTAGE_CALIB_MIN);
+        OX.sensor.calibrationData.OUT_MeasuredMax = OXYGEN_VOLTAGE_MAX;
+        OX.sensor.calibrationData.OUT_MeasuredMin = OXYGEN_VOLTAGE_MIN;
+        nECU_calculateLinearCalibration(&OX.sensor.calibrationData);
+        OX.sensor.decimalPoint = OXYGEN_DECIMAL_POINT;
+        OX.sensor.ADC_input = ADC_OX;
+        /* Heater */
+        // timer configuration
+        OX.Heater.htim = &OX_HEATER_TIMER;
+        nECU_tim_Init_struct(&(OX.Heater));
+        OX.Heater.Channel_Count = 1;
+        OX.Heater.Channel_List[0] = TIM_CHANNEL_1;
+        // variables configuration
+        OX.Heater_Infill = 0;
+        OX.Coolant = nECU_CAN_getCoolantPointer();
+        OX.Infill_max = OXYGEN_HEATER_MAX;
+        OX.Infill_min = OXYGEN_HEATER_MIN;
+        OX.Coolant_max = OXYGEN_COOLANT_MAX;
+        OX.Coolant_min = OXYGEN_COOLANT_MIN;
 
-    OX_Initialized = true;
+        OX_Initialized = true;
+    }
+    if (OX_Working == false && OX_Initialized == true)
+    {
+        nECU_tim_PWM_start(&(OX.Heater));
+        ADC1_START();
+        OX_Working = true;
+    }
 }
 void nECU_OX_Update(void) // update narrowband lambda structure
 {
     /* Sensor update */
-    if (OX_Initialized == false)
+    if (OX_Initialized == false || OX_Working == false)
     {
-        nECU_OX_Init();
         return;
     }
+
     OX.sensor.outputFloat = nECU_getLinearSensor(OX.sensor.ADC_input, &OX.sensor.calibrationData);
     OX.sensor.output8bit = nECU_FloatToUint8_t(OX.sensor.outputFloat, OX.sensor.decimalPoint, 8);
 
@@ -183,19 +209,25 @@ uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
 }
 void nECU_VSS_Init(void) // initialize VSS structure
 {
-    VSS.ic.previous_CCR = 0;
-    VSS.tim.htim = &FREQ_INPUT_TIMER;
-    nECU_tim_Init_struct(&VSS.tim);
-    VSS.tim.Channel_Count = 1;
-    VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
-    nECU_tim_IC_start(&VSS.tim);
-    VSS_Initialized = true;
+    if (VSS_Initialized == false)
+    {
+        VSS.ic.previous_CCR = 0;
+        VSS.tim.htim = &FREQ_INPUT_TIMER;
+        nECU_tim_Init_struct(&VSS.tim);
+        VSS.tim.Channel_Count = 1;
+        VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
+        VSS_Initialized = true;
+    }
+    if (VSS_Working == false && VSS_Initialized == true)
+    {
+        nECU_tim_IC_start(&VSS.tim);
+        VSS_Working = true;
+    }
 }
 void nECU_VSS_Update(void) // update VSS structure
 {
-    if (VSS_Initialized == false) // check if initialized
+    if (VSS_Initialized == false || VSS_Working == false) // check if initialized
     {
-        nECU_VSS_Init();
         return;
     }
 
@@ -234,19 +266,25 @@ void nECU_VSS_DeInit(void) // deinitialize VSS structure
 /* IGF - Ignition feedback */
 void nECU_IGF_Init(void) // initialize and start
 {
-    IGF.ic.previous_CCR = 0;
-    IGF.tim.htim = &FREQ_INPUT_TIMER;
-    nECU_tim_Init_struct(&IGF.tim);
-    IGF.tim.Channel_Count = 1;
-    IGF.tim.Channel_List[0] = TIM_CHANNEL_1;
-    nECU_tim_IC_start(&IGF.tim);
-    IGF_Initialized = true;
+    if (IGF_Initialized == false)
+    {
+        IGF.ic.previous_CCR = 0;
+        IGF.tim.htim = &FREQ_INPUT_TIMER;
+        nECU_tim_Init_struct(&IGF.tim);
+        IGF.tim.Channel_Count = 1;
+        IGF.tim.Channel_List[0] = TIM_CHANNEL_1;
+        IGF_Initialized = true;
+    }
+    if (IGF_Working == false && IGF_Initialized == true)
+    {
+        nECU_tim_IC_start(&IGF.tim);
+        IGF_Working = true;
+    }
 }
 void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
 {
-    if (IGF_Initialized == false) // check if initialized
+    if (IGF_Initialized == false || IGF_Working == false) // check if initialized
     {
-        nECU_IGF_Init();
         return;
     }
 
@@ -264,7 +302,7 @@ void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
     rpm_rate *= IGF.ic.frequency;
     if (rpm_rate > IGF_MAX_RPM_RATE)
     {
-        nECU_Fault_Missfire();
+        // nECU_Fault_Missfire();
     }
     IGF.RPM = RPM; // save current RPM
 }
@@ -343,4 +381,5 @@ void nECU_Stock_Update(void) // function to update structures
     nECU_OX_Update();
     nECU_VSS_Update();
     nECU_IGF_Calc();
+    nECU_stock_GPIO_update();
 }
