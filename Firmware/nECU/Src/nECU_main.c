@@ -39,6 +39,7 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     nECU_UART_RXStartPC();
     nECU_Knock_Init();
     nECU_LoopCounter_Init(&main_loop);
+    nECU_Debug_Init_Que();
     Initialized = true;
 }
 void nECU_main(void) // main rutine of the program

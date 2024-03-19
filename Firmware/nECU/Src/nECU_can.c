@@ -38,8 +38,11 @@ void nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   nECU_CAN_RX_InitFrame();
 
   nECU_TickTrack_Init(&(F0_var.timer));
+  F0_var.timeElapsed = 0;
   nECU_TickTrack_Init(&(F1_var.timer));
+  F1_var.timeElapsed = 0;
   nECU_TickTrack_Init(&(F2_var.timer));
+  F2_var.timeElapsed = 0;
 
   F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
   F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
@@ -93,14 +96,18 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
   if (F0_var.timeElapsed >= CAN_TX_FRAME0_TIME)
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Speed);
+    F0_var.timeElapsed = 0;
   }
   if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME)
   {
     nECU_CAN_TransmitFrame(nECU_Frame_EGT);
+    F1_var.timeElapsed = 0;
   }
   if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME)
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Stock);
+    F2_var.timeElapsed = 0;
+    nECU_LoopCounter_Clear(&main_loop);
   }
 }
 void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for selected frame

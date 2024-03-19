@@ -54,13 +54,13 @@
 
 [ ] test:
     [ ] interrupt changes:
-        [ ] knock sampling (TIM8 interrupt removed)
-        [ ] knock regression (TIM11 deleted, tick track)
-        [ ] CAN message timing (TIM6 and TIM7 deleted, tick track)
+        [X] knock sampling (TIM8 interrupt removed)
+        [X] knock regression (TIM11 deleted, tick track)
+        [X] CAN message timing (TIM6 and TIM7 deleted, tick track)
         [ ] button animations (TIM1 interrupt removed, tick track)
     [ ] hardware test:
         [ ] VSS input ripple
-        [ ] EGT retest after new functions added (SPI as interrupt and new que)
+        [X] EGT retest after new functions added (SPI as interrupt and new que)
         [ ] Tacho display bug (occasionnaly value is displayed twice)
         [ ] filtering of VSS (low speed correction)
         [ ] frequency readout (RPM) fix and test functions

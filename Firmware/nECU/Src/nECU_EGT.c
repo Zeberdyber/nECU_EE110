@@ -79,7 +79,7 @@ void EGT_Start(void) // start the routines
 }
 void EGT_Stop(void) // stop the routines
 {
-    EGT_working = true;
+    EGT_working = false;
 }
 void EGT_ConvertAll(void) // convert data if pending
 {
@@ -133,7 +133,7 @@ void EGT_Periodic(void) // periodic function to be called every main loop execut
         {
             EGT_SPI_startNext();
         }
-        else if (EGT_variables.EGT_CurrentSensor > 4) // do if all sensors were done
+        else if (EGT_variables.EGT_CurrentSensor >= 4) // do if all sensors were done
         {
             EGT_ConvertAll();
             EGT_variables.EGT_CurrentSensor = 0;
@@ -173,7 +173,7 @@ void EGT_SPI_Callback(bool error) // callback from SPI_TX end callback
     // Pull pin high to stop transmission
     HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, SET);
 
-    if (error = true) // if error
+    if (error == true) // if error
     {
         EGT_variables.EGT_CurrentObj->comm_fail++;
         if (EGT_variables.EGT_CurrentObj->comm_fail > EGT_COMM_FAIL_MAX) // if fail threshold reached
