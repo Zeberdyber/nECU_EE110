@@ -100,11 +100,8 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
-  MX_TIM6_Init();
-  MX_TIM7_Init();
   MX_TIM8_Init();
   MX_TIM10_Init();
-  MX_TIM11_Init();
   MX_CAN1_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();

@@ -87,6 +87,7 @@ typedef struct
 {
     uint32_t previousTick; // tick registered on previous callback
     uint32_t difference;   // difference between updates of structure
+    uint8_t convFactor;    // do: difference*convFactor = to get time in ms
 } nECU_TickTrack;
 typedef struct
 {
@@ -100,7 +101,6 @@ typedef struct
 /* ADCs */
 typedef struct
 {
-    bool working;                                // flag to indicate ADC status
     bool callback_half, callback_full, overflow; // callback flags to indicate DMA buffer states
 } nECU_ADC_Status;
 typedef struct
@@ -124,9 +124,8 @@ typedef struct
 } nECU_ADC3;
 typedef struct
 {
-    uint16_t *ADC_data;      // pointer to ADC data
-    int16_t temperature;     // output data (real_tem*100)
-    nECU_Delay Update_Delay; // used to provide minimum spacing between temperature calculation
+    uint16_t *ADC_data;  // pointer to ADC data
+    int16_t temperature; // output data (real_tem*100)
 } nECU_InternalTemp;
 
 /* Buttons */
@@ -178,6 +177,7 @@ typedef struct
     ButtonLight_Mode Mode;      // Modes according to typedef
     ButtonLight_Mode ModePrev;  // Previous state of Mode
     float Time;                 // internal time for resting animation in ms
+    nECU_TickTrack TimeTracker; // tracks time using systick
 } ButtonLight;
 typedef struct
 {
@@ -234,6 +234,7 @@ typedef struct
     MAX31855 TC1, TC2, TC3, TC4; // sensor structures
     MAX31855 *EGT_CurrentObj;    // current object pointer (for sensor asking loop)
     uint8_t EGT_CurrentSensor;   // number of current sensor (for sensor asking loop)
+    nECU_Delay startup_Delay;    // used as a delay to prevent spi communication until ICs turn on properly
 } nECU_EGT;
 
 /* Flash */
@@ -271,7 +272,8 @@ typedef enum
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_Timer send_timing;    // timer structure
+    nECU_TickTrack timer;      // used to track timing between frames
+    uint16_t timeElapsed;      // time passed since previous frame
 
     bool LunchControl1, LunchControl2, LunchControl3, RollingLunch; // flags from decoding
 
@@ -285,7 +287,8 @@ typedef struct
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_Timer send_timing;    // timer structure
+    nECU_TickTrack timer;      // used to track timing between frames
+    uint16_t timeElapsed;      // time passed since previous frame
 
     // outside variables
     uint16_t *EGT1, *EGT2, *EGT3, *EGT4;
@@ -295,13 +298,15 @@ typedef struct
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_Timer send_timing;    // timer structure
+    nECU_TickTrack timer;      // used to track timing between frames
+    uint16_t timeElapsed;      // time passed since previous frame
 
     // outside variables
     uint8_t *Backpressure, *OX_Val;
     uint16_t *MAP_Stock_10bit;
     uint8_t *Knock;
     uint8_t *VSS;
+    uint32_t *loop_count;
 } Frame2_struct;
 
 /* Knock */
@@ -328,7 +333,7 @@ typedef struct
     Knock_FFT fft;
 
     // regression
-    nECU_Timer regres;
+    nECU_TickTrack regres;
 } nECU_Knock;
 
 /* Menu */
@@ -354,7 +359,6 @@ typedef struct
     uint16_t LunchControlLevel, TuneSelector;
     // internal variables
     uint16_t MenuLevel;
-    bool initialized;
 } ButtonMenu;
 
 /* Speed */
@@ -384,7 +388,6 @@ typedef struct
 typedef struct
 {
     bool active;          // routine is running
-    bool initialized;     // properly initialized ready to collect data
     bool averageReady[4]; // flags indicating end of data collection on each sensor
 } CalibrateRoutine;
 
@@ -458,14 +461,14 @@ typedef struct
 /* Debug develop */
 typedef enum
 {
-    // internal temperature
+    // internal temperature out of spec
     nECU_ERROR_DEVICE_TEMP_MCU_ID = 1,
     nECU_ERROR_DEVICE_TEMP_EGT1_ID = 2,
     nECU_ERROR_DEVICE_TEMP_EGT2_ID = 3,
     nECU_ERROR_DEVICE_TEMP_EGT3_ID = 4,
     nECU_ERROR_DEVICE_TEMP_EGT4_ID = 5,
 
-    // thermocouple over temperature
+    // thermocouple over temperature (over defined threshold)
     nECU_ERROR_EGT_OVERTEMP_EGT1_ID = 6,
     nECU_ERROR_EGT_OVERTEMP_EGT2_ID = 7,
     nECU_ERROR_EGT_OVERTEMP_EGT3_ID = 8,
@@ -477,7 +480,7 @@ typedef enum
     nECU_ERROR_EGT_SPI_EGT3_ID = 12,
     nECU_ERROR_EGT_SPI_EGT4_ID = 13,
 
-    // thermocouple connection
+    // thermocouple connection (TC sensor not connected, shorted etc)
     nECU_ERROR_EGT_TC_EGT1_ID = 14,
     nECU_ERROR_EGT_TC_EGT2_ID = 15,
     nECU_ERROR_EGT_TC_EGT3_ID = 16,
@@ -491,6 +494,10 @@ typedef enum
     nECU_ERROR_FLASH_DEBUG_QUE_SAVE_ID = 22,
     nECU_ERROR_FLASH_DEBUG_QUE_READ_ID = 23,
     nECU_ERROR_FLASH_ERASE_ID = 24,
+
+    // communication
+    nECU_ERROR_CAN_ID = 25,
+    nECU_ERROR_SPI_ID = 26,
 
     nECU_ERROR_NONE
 } nECU_Error_ID;
@@ -511,21 +518,18 @@ typedef struct
 
 typedef struct
 {
-    int16_t *MCU;                             // internal temperature of MCU
-    int16_t *EGT_IC[4];                       // internal temperature of EGT ICs
-    nECU_Debug_error_mesage over_temperature; // error message
-} nECU_Debug_IC_temp;                         // error due to over/under temperature of ICs
+    int16_t *MCU;       // internal temperature of MCU
+    int16_t *EGT_IC[4]; // internal temperature of EGT ICs
+} nECU_Debug_IC_temp;   // error due to over/under temperature of ICs
 
 typedef struct
 {
-    EGT_Error_Code *EGT_IC[4];          // error code from recived frame
-    nECU_Debug_error_mesage TC_invalid; // error message
-} nECU_Debug_EGT_Comm;                  // error got from communication with EGT IC
+    EGT_Error_Code *EGT_IC[4]; // error code from recived frame
+} nECU_Debug_EGT_Comm;         // error got from communication with EGT IC
 typedef struct
 {
-    uint16_t *EGT_IC[4];                      // temperature of thermocouples
-    nECU_Debug_error_mesage over_temperature; // error message
-} nECU_Debug_EGT_Temp;                        // error due to over temperature of thermocouple
+    uint16_t *EGT_IC[4]; // temperature of thermocouples
+} nECU_Debug_EGT_Temp;   // error due to over temperature of thermocouple
 typedef struct
 {
     nECU_Debug_error_mesage messages[DEBUG_QUE_LEN]; // que

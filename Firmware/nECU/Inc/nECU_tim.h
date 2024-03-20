@@ -26,11 +26,8 @@ extern "C"
 #define OX_HEATER_TIMER htim2
 #define BUTTON_INPUT_TIMER htim3
 #define FREQ_INPUT_TIMER htim4
-#define CAN_LOW_PRIORITY_TIMER htim6
-#define CAN_HIGH_PRIORITY_TIMER htim7
 #define KNOCK_ADC_SAMPLING_TIMER htim8
 #define FRAME_TIMER htim10
-#define KNOCK_REGRES_TIMER htim11
 
 #define FLASH_SAVE_DELAY_TIME 5000 // time to wait for before save happens in ms
 
@@ -61,8 +58,10 @@ extern "C"
   void nECU_Knock_Delay_Start(float *rpm); // start non-blocking delay for knock
 
   /* Delay for internal temperature update */
-  bool *nECU_InternalTemp_Delay_DoneFlag(void); // return flag if internal temperature updates is due
-  void nECU_InternalTemp_Delay_Start(void);     // start non-blocking delay for internal temperature updates
+  bool *nECU_InternalTemp_Delay_DoneFlag(void);        // return flag if internal temperature updates is due
+  void nECU_InternalTemp_Delay_Start(void);            // start non-blocking delay for internal temperature updates
+  bool *nECU_InternalTemp_StartupDelay_DoneFlag(void); // return flag if internal temperature is operational after restart
+  void nECU_InternalTemp_StartupDelay_Start(void);     // start non-blocking delay for internal temperature startup
 
   /* general nECU timer functions */
   nECU_TIM_State nECU_tim_PWM_start(nECU_Timer *tim);  // function to start PWM on selected timer

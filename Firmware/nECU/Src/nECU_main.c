@@ -9,63 +9,43 @@
 
 #include "nECU_main.h"
 
-uint16_t blank16bit = 0;
-uint8_t blank8bit = 0;
-
-nECU_LoopCounter main_loop;
-
-bool Initialized = false;
-extern bool Knock_UART_Transmission;
-
 /* General code */
 void nECU_Start(void) // start executing program (mostly in main loop, some in background with interrupts)
 {
     // nECU_systest_run();
     // nECU_codetest_run();
 
-    nECU_FLASH_getAllMemory();
-    ADC_START_ALL();
-    nECU_Stock_Start();
-    Speed_Start();
-    EGT_Start();
-    Button_Start();
-    TachoValue_Init_All();
-    Frame0_Init(TachoValue_Get_ShowPointer(TACHO_SHOW_1), TachoValue_Get_ShowPointer(TACHO_SHOW_2), TachoValue_Get_ShowPointer(TACHO_SHOW_3), Button_Menu_getPointer_Antilag(), Button_Menu_getPointer_TractionOFF(), Button_Menu_getPointer_ClearEngineCode(), Button_Menu_getPointer_LunchControlLevel());
-    Frame1_Init(TachoValue_Get_OutputPointer(TACHO_SHOW_1), TachoValue_Get_OutputPointer(TACHO_SHOW_2), TachoValue_Get_OutputPointer(TACHO_SHOW_3), Button_Menu_getPointer_TuneSelector());
-    Frame2_Init(nECU_BackPressure_GetPointer(), nECU_OX_GetPointer(), nECU_MAP_GetPointer(), nECU_Knock_GetPointer(), nECU_VSS_GetPointer()); // missing knock and OX data filled with blanks
+    // nECU_FLASH_getAllMemory();
+    // Button_Start();
+
+    Frame0_Init();
+    Frame1_Init();
+    Frame2_Init();
     nECU_CAN_Start();
-    Button_Menu_Init();
-    OnBoard_LED_Init();
-    nECU_UART_RXStartPC();
-    nECU_Knock_Init();
-    nECU_LoopCounter_Init(&main_loop);
-    Initialized = true;
+    nECU_Debug_Start();
+
+    // OnBoard_LED_Init();
 }
 void nECU_main(void) // main rutine of the program
 {
-    if (Initialized == true)
-    {
-        // Speed_Update();
+    // call periodic functions
+    nECU_Knock_UpdatePeriodic();
+    EGT_Periodic();
+    nECU_ADC_All_Routine();
+    Button_Menu();
+    nECU_Delay_UpdateAll();
+    ButtonLight_UpdateAll();
 
-        /* High prioryty [time critical] */
-        nECU_ADC_All_Routine();
-        Button_Menu();
-        Frame0_PrepareBuffer();
-        Frame1_PrepareBuffer();
-        Frame2_PrepareBuffer();
-        TachoValue_Update_All();
-        ButtonLight_UpdateAll();
-        // /* Low priority [non-critical] */
-        nECU_Stock_Update();
-        EGT_Periodic();
-        // OnBoard_LED_Update();
-        nECU_Delay_UpdateAll();
-    }
-    if (*nECU_UART_KnockTx() == true)
-    {
-        nECU_ADC_All_Routine();
-    }
-    nECU_LoopCounter_Update(&main_loop);
+    // update all variables for CAN transmission
+    Frame0_PrepareBuffer();
+    Frame1_PrepareBuffer();
+    Frame2_PrepareBuffer();
+
+    // checks if its time to send packet
+    nECU_CAN_CheckTime();
+
+    // OnBoard_LED_Update();
+    nECU_Debug_Periodic();
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {
@@ -73,7 +53,5 @@ void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
     nECU_Stock_Stop();
     Button_Stop();
     nECU_CAN_Stop();
-    nECU_UART_RXStopPC();
     nECU_Knock_DeInit();
-    Initialized = false;
 }

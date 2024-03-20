@@ -46,7 +46,8 @@ extern "C"
   void ButtonLight_Set_Breathe(ButtonLight *Light, uint8_t Speed, uint16_t Count);     // setup breathing animation
   void ButtonLight_Set_Mode(ButtonLight *Light, ButtonLight_Mode Mode);                // setup mode (animation type)
   void ButtonLight_UpdateAll(void);                                                    // function to launch updates for all buttons
-  void ButtonLight_TimingEvent(void);                                                  // funtion called after pulse finished interrupt from PWM timer
+  void ButtonLight_TimeTrack(ButtonLight *Light);                                      // funtion called to update time passed
+  void ButtonLight_TimeTrack_All(void);                                                // function called to update time in all buttons
   void ButtonLight_Stop(ButtonLight *Light);                                           // stops button code
 
   /* Input functions */
