@@ -59,6 +59,8 @@ extern "C"
     void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst);   // check if TCs did not exceed fault value
     bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature); // checks if passed temperature is in defined bound
     void nECU_Debug_EGTsensor_error(nECU_Debug_EGT_Comm *inst); // to be called when TC sensor error occurs
+    void nECU_Debug_CAN_Check(void);                            // checks if CAN have any error pending
+    void nECU_Debug_SPI_Check(void);                            // checks if SPI have any error pending
 
     /* Functions to call directly from other files */
     void nECU_Debug_EGTSPIcomm_error(EGT_Sensor_ID ID);                   // to be called when SPI error occurs

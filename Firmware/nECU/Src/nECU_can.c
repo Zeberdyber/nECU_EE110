@@ -89,6 +89,10 @@ void nECU_CAN_Stop(void) // stop all CAN code, with timing
   nECU_CAN_RX_Stop();
   CAN_Working = false;
 }
+bool nECU_CAN_Working(void) // returns if CAN is ON
+{
+  return CAN_Working;
+}
 
 // Communication functions
 void nECU_CAN_CheckTime(void) // checks if it is time to send packet

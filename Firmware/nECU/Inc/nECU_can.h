@@ -34,6 +34,7 @@ extern "C"
   void nECU_CAN_Start(void);                                                     // start periodic transmission of EGT and Speed sensor data
   void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame); // copy input data to corresponding frame buffer
   void nECU_CAN_Stop(void);                                                      // stop all CAN code, with timing
+  bool nECU_CAN_Working(void);                                                   // returns if CAN is ON
   // Communication functions
   void nECU_CAN_CheckTime(void);                             // checks if it is time to send packet
   void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID);        // initialize header for selected frame

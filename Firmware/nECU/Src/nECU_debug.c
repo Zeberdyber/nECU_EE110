@@ -202,6 +202,8 @@ void nECU_Debug_Periodic(void) // checks states of variables
         nECU_Debug_IntTemp_Check(&(dbg_data.device_temperature));
         nECU_Debug_EGTTemp_Check(&(dbg_data.egt_temperature));
         nECU_Debug_EGTsensor_error(&(dbg_data.egt_communication));
+        nECU_Debug_CAN_Check();
+        nECU_Debug_SPI_Check();
     }
 }
 
@@ -274,6 +276,34 @@ void nECU_Debug_EGTsensor_error(nECU_Debug_EGT_Comm *inst) // check EGT ICs for 
             nECU_Debug_error_mesage temp;
             nECU_Debug_Message_Init(&temp);
             nECU_Debug_Message_Set(&temp, (float)*inst->EGT_IC[i], nECU_ERROR_EGT_TC_EGT1_ID + i);
+        }
+    }
+}
+void nECU_Debug_CAN_Check(void) // checks if CAN have any error pending
+{
+    if (nECU_CAN_Working() == true)
+    {
+        uint32_t error = HAL_CAN_GetError(&hcan1);
+        if (error > HAL_CAN_ERROR_NONE)
+        {
+            HAL_CAN_ResetError(&hcan1);
+            nECU_Debug_error_mesage temp;
+            nECU_Debug_Message_Init(&temp);
+            nECU_Debug_Message_Set(&temp, error, nECU_ERROR_CAN_ID);
+        }
+    }
+}
+void nECU_Debug_SPI_Check(void) // checks if SPI have any error pending
+{
+    if (HAL_SPI_GetState(&SPI_PERIPHERAL_EGT) == HAL_SPI_STATE_ERROR)
+    {
+        uint32_t error = HAL_SPI_GetError(&SPI_PERIPHERAL_EGT);
+        if (error > HAL_SPI_ERROR_NONE)
+        {
+            SPI_PERIPHERAL_EGT.ErrorCode = HAL_SPI_ERROR_NONE; // resets error
+            nECU_Debug_error_mesage temp;
+            nECU_Debug_Message_Init(&temp);
+            nECU_Debug_Message_Set(&temp, error, nECU_ERROR_SPI_ID);
         }
     }
 }

@@ -1,15 +1,9 @@
 [ ] develop:
-    [X] static flags:
-        [X] initialized and working:
-            [X] debug
-        [X] don't do routines when not working:
-            [X] debug
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
-            - can:
-                > timeout
-                > error
-                > other?
+            X can:
+                X timeout
+                X error
             - igf:
                 > missfire
                 > no signal
@@ -33,6 +27,11 @@
         [ ] frequency readout (RPM) fix and test functions
         [ ] Buttons sporadic not working, double click faulty
 
+[ ] on road:
+    [ ] MAP calibration
+    [ ] OX calibration
+    [ ] VSS calibration
+    
 [ ] scheduled:
     [ ] Immobilizer communication
     [ ] Onboard UART

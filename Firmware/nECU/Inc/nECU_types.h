@@ -495,6 +495,10 @@ typedef enum
     nECU_ERROR_FLASH_DEBUG_QUE_READ_ID = 23,
     nECU_ERROR_FLASH_ERASE_ID = 24,
 
+    // communication
+    nECU_ERROR_CAN_ID = 25,
+    nECU_ERROR_SPI_ID = 26,
+
     nECU_ERROR_NONE
 } nECU_Error_ID;
 typedef enum
