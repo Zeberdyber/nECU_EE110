@@ -9,7 +9,7 @@
 
 static nECU_Delay Flash_save_delay;
 static nECU_Delay Knock_rotation_delay;
-extern nECU_InternalTemp MCU_temperature;
+static nECU_Delay MCU_temperature_Startup, MCU_temperature_Update;
 
 static nECU_tim_Watchdog Button_Out_Watchdog, Ox_Out_Watchdog;
 
@@ -76,6 +76,7 @@ void nECU_Delay_Start(nECU_Delay *inst) // start non-blocking delay
 }
 void nECU_Delay_Set(nECU_Delay *inst, uint32_t *delay) // preset the non-blocking delay
 {
+  nECU_TickTrack_Init(&(inst->timeTrack));
   inst->timeSet = *delay * inst->timeTrack.convFactor;
 }
 void nECU_Delay_Update(nECU_Delay *inst) // update current state of non-blocking delay
@@ -103,7 +104,8 @@ void nECU_Delay_UpdateAll(void) // update all created non-blocking delays
 {
   nECU_Delay_Update(&Flash_save_delay);
   nECU_Delay_Update(&Knock_rotation_delay);
-  nECU_Delay_Update(&(MCU_temperature.Update_Delay));
+  nECU_Delay_Update(&MCU_temperature_Update);
+  nECU_Delay_Update(&MCU_temperature_Startup);
 }
 
 /* Flash save user setting delay */
@@ -133,13 +135,23 @@ void nECU_Knock_Delay_Start(float *rpm) // start non-blocking delay for knock
 /* Delay for internal temperature update */
 bool *nECU_InternalTemp_Delay_DoneFlag(void) // return flag if internal temperature updates is due
 {
-  return nECU_Delay_DoneFlag(&(MCU_temperature.Update_Delay));
+  return nECU_Delay_DoneFlag(&MCU_temperature_Update);
 }
 void nECU_InternalTemp_Delay_Start(void) // start non-blocking delay for internal temperature updates
 {
   uint32_t delay = INTERNAL_TEMP_UPDATE_DELAY;
-  nECU_Delay_Set(&(MCU_temperature.Update_Delay), &delay);
-  nECU_Delay_Start(&(MCU_temperature.Update_Delay));
+  nECU_Delay_Set(&MCU_temperature_Update, &delay);
+  nECU_Delay_Start(&MCU_temperature_Update);
+}
+bool *nECU_InternalTemp_StartupDelay_DoneFlag(void) // return flag if internal temperature is operational after restart
+{
+  return nECU_Delay_DoneFlag(&MCU_temperature_Startup);
+}
+void nECU_InternalTemp_StartupDelay_Start(void) // start non-blocking delay for internal temperature startup
+{
+  uint32_t delay = INTERNAL_TEMP_STARTUP_DELAY;
+  nECU_Delay_Set(&MCU_temperature_Startup, &delay);
+  nECU_Delay_Start(&MCU_temperature_Startup);
 }
 
 /* general nECU timer functions */

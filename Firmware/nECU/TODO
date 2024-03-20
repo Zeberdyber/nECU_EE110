@@ -1,12 +1,9 @@
-[X] EGT start delay (due to extern ADC startup time)
-    [X] set startup time from datasheet
-
 [ ] develop:
-    [ ] static flags:
-        [ ] initialized and working:
-            [ ] debug
-        [ ] don't do routines when not working:
-            [ ] debug
+    [X] static flags:
+        [X] initialized and working:
+            [X] debug
+        [X] don't do routines when not working:
+            [X] debug
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
             - can:
@@ -24,7 +21,7 @@
                 > over speed
             - SpeedSens:
                 > abnormal sensor
-            > data error    
+                > data error    
 
 [ ] test:
     [ ] interrupt changes:
@@ -35,13 +32,12 @@
         [ ] filtering of VSS (low speed correction)
         [ ] frequency readout (RPM) fix and test functions
         [ ] Buttons sporadic not working, double click faulty
-    [X] init scheme
+
+[ ] scheduled:
+    [ ] Immobilizer communication
+    [ ] Onboard UART
+    [ ] External AI (analog input) in code integration with proper scaling settings
+    [ ] watchdogs
 
 [ ] optimization:
     [ ] Knock sensing (will be done after UART added)
-
-[ ] scheduled:
-    [ ] Onboard UART
-    [ ] External AI (analog input) in code integration with proper scaling settings
-    [ ] Immobilizer communication
-    [ ] watchdogs

@@ -22,9 +22,9 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     Frame1_Init();
     Frame2_Init();
     nECU_CAN_Start();
+    nECU_Debug_Start();
 
     // OnBoard_LED_Init();
-    // nECU_Debug_Init_Que();
 }
 void nECU_main(void) // main rutine of the program
 {
@@ -45,7 +45,7 @@ void nECU_main(void) // main rutine of the program
     nECU_CAN_CheckTime();
 
     // OnBoard_LED_Update();
-    // add debug funcion call
+    nECU_Debug_Periodic();
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {

@@ -58,8 +58,10 @@ extern "C"
   void nECU_Knock_Delay_Start(float *rpm); // start non-blocking delay for knock
 
   /* Delay for internal temperature update */
-  bool *nECU_InternalTemp_Delay_DoneFlag(void); // return flag if internal temperature updates is due
-  void nECU_InternalTemp_Delay_Start(void);     // start non-blocking delay for internal temperature updates
+  bool *nECU_InternalTemp_Delay_DoneFlag(void);        // return flag if internal temperature updates is due
+  void nECU_InternalTemp_Delay_Start(void);            // start non-blocking delay for internal temperature updates
+  bool *nECU_InternalTemp_StartupDelay_DoneFlag(void); // return flag if internal temperature is operational after restart
+  void nECU_InternalTemp_StartupDelay_Start(void);     // start non-blocking delay for internal temperature startup
 
   /* general nECU timer functions */
   nECU_TIM_State nECU_tim_PWM_start(nECU_Timer *tim);  // function to start PWM on selected timer

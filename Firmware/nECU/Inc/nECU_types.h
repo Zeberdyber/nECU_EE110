@@ -124,9 +124,8 @@ typedef struct
 } nECU_ADC3;
 typedef struct
 {
-    uint16_t *ADC_data;      // pointer to ADC data
-    int16_t temperature;     // output data (real_tem*100)
-    nECU_Delay Update_Delay; // used to provide minimum spacing between temperature calculation
+    uint16_t *ADC_data;  // pointer to ADC data
+    int16_t temperature; // output data (real_tem*100)
 } nECU_InternalTemp;
 
 /* Buttons */
@@ -515,21 +514,18 @@ typedef struct
 
 typedef struct
 {
-    int16_t *MCU;                             // internal temperature of MCU
-    int16_t *EGT_IC[4];                       // internal temperature of EGT ICs
-    nECU_Debug_error_mesage over_temperature; // error message
-} nECU_Debug_IC_temp;                         // error due to over/under temperature of ICs
+    int16_t *MCU;       // internal temperature of MCU
+    int16_t *EGT_IC[4]; // internal temperature of EGT ICs
+} nECU_Debug_IC_temp;   // error due to over/under temperature of ICs
 
 typedef struct
 {
-    EGT_Error_Code *EGT_IC[4];          // error code from recived frame
-    nECU_Debug_error_mesage TC_invalid; // error message
-} nECU_Debug_EGT_Comm;                  // error got from communication with EGT IC
+    EGT_Error_Code *EGT_IC[4]; // error code from recived frame
+} nECU_Debug_EGT_Comm;         // error got from communication with EGT IC
 typedef struct
 {
-    uint16_t *EGT_IC[4];                      // temperature of thermocouples
-    nECU_Debug_error_mesage over_temperature; // error message
-} nECU_Debug_EGT_Temp;                        // error due to over temperature of thermocouple
+    uint16_t *EGT_IC[4]; // temperature of thermocouples
+} nECU_Debug_EGT_Temp;   // error due to over temperature of thermocouple
 typedef struct
 {
     nECU_Debug_error_mesage messages[DEBUG_QUE_LEN]; // que

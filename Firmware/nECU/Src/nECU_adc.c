@@ -13,9 +13,10 @@ nECU_ADC2 adc2_data;
 nECU_ADC3 adc3_data;
 nECU_InternalTemp MCU_temperature;
 
-static bool ADC1_Initialized = false, ADC1_Working = false;
-static bool ADC2_Initialized = false, ADC2_Working = false;
-static bool ADC3_Initialized = false, ADC3_Working = false;
+static bool ADC1_Initialized = false, ADC1_Working = false,
+            ADC2_Initialized = false, ADC2_Working = false,
+            ADC3_Initialized = false, ADC3_Working = false,
+            MCU_temp_Initialized = false, MCU_temp_Working = false;
 
 /* Interrupt functions */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
@@ -286,20 +287,39 @@ uint16_t VoltsToADC(float Voltage)
 /* Internal Temperatre (MCU) */
 void nECU_InternalTemp_Init(void) // initialize structure
 {
-  MCU_temperature.ADC_data = getPointer_InternalTemp_ADC();
-  MCU_temperature.temperature = 0;
-  nECU_InternalTemp_Delay_Start();
+  if (MCU_temp_Initialized == false)
+  {
+    MCU_temperature.ADC_data = getPointer_InternalTemp_ADC();
+    MCU_temperature.temperature = 0;
+    MCU_temp_Initialized = true;
+  }
+  if (MCU_temp_Working == false && MCU_temp_Initialized == true)
+  {
+    nECU_InternalTemp_Delay_Start();
+    nECU_InternalTemp_StartupDelay_Start();
+    ADC1_START();
+    MCU_temp_Working = true;
+  }
 }
 void nECU_InternalTemp_Callback(void) // run when conversion ended
 {
-  if (MCU_temperature.Update_Delay.done == true)
+  if (MCU_temp_Working == false || *nECU_InternalTemp_StartupDelay_DoneFlag() == false)
   {
-    nECU_InternalTemp_Update();                        // calculate value
-    nECU_Delay_Start(&(MCU_temperature.Update_Delay)); // reset delay function
+    return;
+  }
+  if (*nECU_InternalTemp_Delay_DoneFlag() == true)
+  {
+    nECU_InternalTemp_Update(); // calculate value
+    nECU_InternalTemp_Delay_Start();
   }
 }
 void nECU_InternalTemp_Update(void) // perform update of output variables
 {
+  if (MCU_temp_Working == false)
+  {
+    return;
+  }
+
   // convert to temperature
   float Temperature = ADCToVolts(*MCU_temperature.ADC_data);
   Temperature -= (float)INTERNAL_TEMP_V25;

@@ -14,7 +14,8 @@ static nECU_LoopCounter main_loop;
 
 static bool LED_Initialized = false,
             mainLoop_Initialized = false,
-            debug_que_initialized = false;
+            debug_Initialized = false, debug_Working = false,
+            debug_que_Initialized = false;
 
 /* On board LEDs */
 void OnBoard_LED_Init(void) // initialize structures for on board LEDs
@@ -157,21 +158,22 @@ void nECU_TickTrack_Update(nECU_TickTrack *inst) // callback to get difference
     inst->previousTick = tickNow;
 }
 
-void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst) // zeros value inside of structure
+/* Debug main functions */
+void nECU_Debug_Start(void) // starts up debugging functions
 {
-    inst->error_flag = false;
-    inst->ID = 0;
-    inst->value_at_flag = 0.0;
-}
-void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Error_ID ID) // sets error values
-{
-    inst->error_flag = true;
-    inst->value_at_flag = value;
-    inst->ID = ID;
-    // HERE ADD QUE PUSH
-    nECU_Debug_Que_Write(inst);
-}
+    if (debug_Initialized == false)
+    {
+        nECU_Debug_Init_Struct();
+        nECU_Debug_Init_Que();
+        nECU_InternalTemp_Init();
+        debug_Initialized = true;
+    }
 
+    if (debug_Working == false && debug_Initialized == true)
+    {
+        debug_Working = true;
+    }
+}
 void nECU_Debug_Init_Struct(void) // set values to variables in structure
 {
     /* Device temperature */
@@ -180,36 +182,48 @@ void nECU_Debug_Init_Struct(void) // set values to variables in structure
     dbg_data.device_temperature.EGT_IC[1] = EGT_GetTemperatureInternalPointer(EGT_CYL2);
     dbg_data.device_temperature.EGT_IC[2] = EGT_GetTemperatureInternalPointer(EGT_CYL3);
     dbg_data.device_temperature.EGT_IC[3] = EGT_GetTemperatureInternalPointer(EGT_CYL4);
-    nECU_Debug_Message_Init(&(dbg_data.device_temperature.over_temperature));
 
     /* EGT temperature (thermocuple temperature) */
     dbg_data.egt_temperature.EGT_IC[0] = EGT_GetTemperaturePointer(EGT_CYL1);
     dbg_data.egt_temperature.EGT_IC[1] = EGT_GetTemperaturePointer(EGT_CYL2);
     dbg_data.egt_temperature.EGT_IC[2] = EGT_GetTemperaturePointer(EGT_CYL3);
     dbg_data.egt_temperature.EGT_IC[3] = EGT_GetTemperaturePointer(EGT_CYL4);
-    nECU_Debug_Message_Init(&(dbg_data.egt_temperature.over_temperature));
 
     /* EGT communication */
     dbg_data.egt_communication.EGT_IC[0] = EGT_GetErrorState(EGT_CYL1);
     dbg_data.egt_communication.EGT_IC[1] = EGT_GetErrorState(EGT_CYL2);
     dbg_data.egt_communication.EGT_IC[2] = EGT_GetErrorState(EGT_CYL3);
     dbg_data.egt_communication.EGT_IC[3] = EGT_GetErrorState(EGT_CYL4);
-
-    // IMPLEMENT ERROR DETECTION OF SPI COMMUNICATION FOR EACH SENSOR
-
-    nECU_Debug_Message_Init(&(dbg_data.egt_communication.TC_invalid));
 }
+void nECU_Debug_Periodic(void) // checks states of variables
+{
+    if (debug_Working == true)
+    {
+        nECU_Debug_IntTemp_Check(&(dbg_data.device_temperature));
+        nECU_Debug_EGTTemp_Check(&(dbg_data.egt_temperature));
+        nECU_Debug_EGTsensor_error(&(dbg_data.egt_communication));
+    }
+}
+
+/* Check states routines */
 void nECU_Debug_IntTemp_Check(nECU_Debug_IC_temp *inst) // check for errors of device temperature
 {
-    if (nECU_Debug_IntTemp_CheckSingle(inst->MCU)) // check main IC
+    if (*nECU_InternalTemp_StartupDelay_DoneFlag() == true) // do after startup delay is done
     {
-        nECU_Debug_Message_Set(&(inst->over_temperature), *(inst->MCU), nECU_ERROR_DEVICE_TEMP_MCU_ID);
+        if (nECU_Debug_IntTemp_CheckSingle(inst->MCU)) // check main IC
+        {
+            nECU_Debug_error_mesage temp;
+            nECU_Debug_Message_Init(&temp);
+            nECU_Debug_Message_Set(&temp, *(inst->MCU), nECU_ERROR_DEVICE_TEMP_MCU_ID);
+        }
     }
     for (uint8_t i = 0; i < 4; i++) // check all EGT devices
     {
         if (nECU_Debug_IntTemp_CheckSingle(inst->EGT_IC[i]))
         {
-            nECU_Debug_Message_Set(&(inst->over_temperature), *(inst->EGT_IC[i]), nECU_ERROR_DEVICE_TEMP_EGT1_ID + i);
+            nECU_Debug_error_mesage temp;
+            nECU_Debug_Message_Init(&temp);
+            nECU_Debug_Message_Set(&temp, *(inst->EGT_IC[i]), nECU_ERROR_DEVICE_TEMP_EGT1_ID + i);
         }
     }
 }
@@ -232,7 +246,9 @@ void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst) // check if TCs did not
     {
         if (nECU_Debug_EGTTemp_CheckSingle(inst->EGT_IC[i]))
         {
-            nECU_Debug_Message_Set(&(inst->over_temperature), *(inst->EGT_IC[i]), nECU_ERROR_EGT_TC_EGT1_ID + i);
+            nECU_Debug_error_mesage temp;
+            nECU_Debug_Message_Init(&temp);
+            nECU_Debug_Message_Set(&temp, *(inst->EGT_IC[i]), nECU_ERROR_EGT_TC_EGT1_ID + i);
         }
     }
 }
@@ -244,16 +260,25 @@ bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature) // checks if passed t
     }
     return false;
 }
-void nECU_Debug_EGTsensor_error(EGT_Sensor_ID ID) // check EGT ICs for error flags
+void nECU_Debug_EGTsensor_error(nECU_Debug_EGT_Comm *inst) // check EGT ICs for error flags
 {
+    if (BENCH_MODE == true)
+    {
+        return;
+    }
+
     for (uint8_t i = 0; i < 4; i++)
     {
-        // if (inst->EGT_IC[i]) // if error detected set message
-        // {
-        //     nECU_Debug_Message_Set(&(inst->TC_invalid), (float)*inst->EGT_IC[i], nECU_ERROR_EGT_TC_EGT1_ID + i);
-        // }
+        if (inst->EGT_IC[i]) // if error detected set message
+        {
+            nECU_Debug_error_mesage temp;
+            nECU_Debug_Message_Init(&temp);
+            nECU_Debug_Message_Set(&temp, (float)*inst->EGT_IC[i], nECU_ERROR_EGT_TC_EGT1_ID + i);
+        }
     }
 }
+
+/* Functions to call directly from other files */
 void nECU_Debug_EGTSPIcomm_error(EGT_Sensor_ID ID) // to be called when SPI error occurs
 {
     nECU_Debug_error_mesage temporary;
@@ -287,6 +312,7 @@ void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read) // indicate
     nECU_Debug_Message_Set(&temporary, (float)HAL_GetTick(), id);
 }
 
+/* Debug que and messages */
 void nECU_Debug_Init_Que(void) // initializes que
 {
     dbg_data.error_que.counter.preset = sizeof(dbg_data.error_que.messages) / sizeof(nECU_Debug_error_mesage); // calculate length of que
@@ -296,11 +322,11 @@ void nECU_Debug_Init_Que(void) // initializes que
     {
         nECU_Debug_Message_Init(&(dbg_data.error_que.messages[que_index])); // clear each
     }
-    debug_que_initialized = true;
+    debug_que_Initialized = true;
 }
 void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to debug que
 {
-    if (debug_que_initialized == false)
+    if (debug_que_Initialized == false)
     {
         return;
     }
@@ -320,7 +346,7 @@ void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to de
 }
 void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message) // read newest message from debug que
 {
-    if (debug_que_initialized == false)
+    if (debug_que_Initialized == false)
     {
         return;
     }
@@ -336,4 +362,18 @@ void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message) // read newest messag
 
     dbg_data.error_que.counter.value--;
     dbg_data.error_que.message_count--;
+}
+void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst) // zeros value inside of structure
+{
+    inst->error_flag = false;
+    inst->ID = 0;
+    inst->value_at_flag = 0.0;
+}
+void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Error_ID ID) // sets error values
+{
+    inst->error_flag = true;
+    inst->value_at_flag = value;
+    inst->ID = ID;
+    // HERE ADD QUE PUSH
+    nECU_Debug_Que_Write(inst);
 }

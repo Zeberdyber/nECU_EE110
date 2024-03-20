@@ -263,7 +263,7 @@ void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and d
         if (inst->in_buffer[2] & 0x80) // negative sign
             inst->InternalTemp = -inst->InternalTemp;
 
-        inst->IC_Temperature = inst->InternalTemp; // float to int16_t
+        inst->IC_Temperature = inst->InternalTemp * INTERNAL_TEMP_MULTIPLIER; // float to int16_t
     }
 
     inst->data_Pending = 0;
