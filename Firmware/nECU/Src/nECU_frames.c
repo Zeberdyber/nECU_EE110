@@ -98,7 +98,7 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame0_ComposeWord(&TxFrame[2], F0_var.ClearEngineCode, F0_var.TachoShow3, F0_var.TachoShow2, F0_var.TachoShow1, F0_var.Speed_FR);
     Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl3, &F0_var.LunchControl2, &F0_var.LunchControl1, F0_var.Speed_RL);
     Frame0_ComposeWord(&TxFrame[6], &ZeroBool, &ZeroBool, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed_RR);
-    nECU_CAN_WriteToBuffer(0, TxFrame);
+    nECU_CAN_WriteToBuffer(nECU_Frame_Speed, TxFrame);
     *F0_var.ClearEngineCode = false;
 }
 void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4, uint16_t *Val12Bit) // function to create word for use in frame 0
@@ -163,7 +163,7 @@ void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame1_ComposeWord(&TxFrame[2], F1_var.TachoVal2, F1_var.EGT2);
     Frame1_ComposeWord(&TxFrame[4], F1_var.TachoVal3, F1_var.EGT3);
     Frame1_ComposeWord(&TxFrame[6], (uint8_t *)F1_var.TuneSelector, F1_var.EGT4);
-    nECU_CAN_WriteToBuffer(1, TxFrame);
+    nECU_CAN_WriteToBuffer(nECU_Frame_EGT, TxFrame);
     TachoValue_Clear_ShowPending(TACHO_SHOW_1);
     TachoValue_Clear_ShowPending(TACHO_SHOW_2);
     TachoValue_Clear_ShowPending(TACHO_SHOW_3);
@@ -234,10 +234,10 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     TxFrame[3] = *F2_var.Backpressure;
     TxFrame[4] = *F2_var.Knock;
     TxFrame[5] = *F2_var.VSS;
-    Converter.UintValue = *F2_var.loop_count;
+    Converter.UintValue = (uint16_t)*F2_var.loop_count;
     TxFrame[6] = Converter.byteArray[1]; // spare
     TxFrame[7] = Converter.byteArray[0]; // spare
-    nECU_CAN_WriteToBuffer(2, TxFrame);
+    nECU_CAN_WriteToBuffer(nECU_Frame_Stock, TxFrame);
 }
 bool Frame2_Working(void) // return if frame is operational
 {

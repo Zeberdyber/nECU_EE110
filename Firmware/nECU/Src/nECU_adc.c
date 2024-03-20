@@ -13,10 +13,6 @@ nECU_ADC2 adc2_data;
 nECU_ADC3 adc3_data;
 nECU_InternalTemp MCU_temperature;
 
-// output variables
-uint16_t *ADC_MAP, *ADC_BackPressure, *ADC_OX, *ADC_AI1, *ADC_AI2, *ADC_AI3, *ADC_InternalTemp, *ADC_VREF;
-uint16_t *ADC_V1, *ADC_V2, *ADC_V3, *ADC_V4;
-
 static bool ADC1_Initialized = false, ADC1_Working = false;
 static bool ADC2_Initialized = false, ADC2_Working = false;
 static bool ADC3_Initialized = false, ADC3_Working = false;
@@ -94,17 +90,13 @@ void ADC1_START(void)
 {
   if (ADC1_Initialized == false)
   {
-    ADC_MAP = &adc1_data.out_buffer[0];
-    ADC_BackPressure = &adc1_data.out_buffer[1];
-    ADC_OX = &adc1_data.out_buffer[2];
-    ADC_AI1 = &adc1_data.out_buffer[3];
-    ADC_AI2 = &adc1_data.out_buffer[4];
-    ADC_AI3 = &adc1_data.out_buffer[5];
-    ADC_InternalTemp = &adc1_data.out_buffer[6];
-    ADC_VREF = &adc1_data.out_buffer[7];
+    &adc1_data.out_buffer[3]; // add in future Analog input support
+    &adc1_data.out_buffer[4]; // add in future Analog input support
+    &adc1_data.out_buffer[5]; // add in future Analog input support
+    &adc1_data.out_buffer[7]; // VREF data
     ADC1_Initialized = true;
   }
-  if (ADC2_Working == false)
+  if (ADC1_Working == false)
   {
     adc1_data.status.callback_half = false;
     adc1_data.status.callback_full = false;
@@ -117,10 +109,6 @@ void ADC2_START(void)
 {
   if (ADC2_Initialized == false)
   {
-    ADC_V1 = &adc2_data.out_buffer[0];
-    ADC_V2 = &adc2_data.out_buffer[1];
-    ADC_V3 = &adc2_data.out_buffer[2];
-    ADC_V4 = &adc2_data.out_buffer[3];
     ADC2_Initialized = true;
   }
   if (ADC2_Working == false)
@@ -261,6 +249,28 @@ void nECU_ADC3_Routine(void)
   }
 }
 
+/* pointer get functions */
+uint16_t *getPointer_MAP_ADC(void)
+{
+  return &adc1_data.out_buffer[0];
+}
+uint16_t *getPointer_Backpressure_ADC(void)
+{
+  return &adc1_data.out_buffer[1];
+}
+uint16_t *getPointer_OX_ADC(void)
+{
+  return &adc1_data.out_buffer[2];
+}
+uint16_t *getPointer_InternalTemp_ADC(void)
+{
+  return &adc1_data.out_buffer[6];
+}
+uint16_t *getPointer_SpeedSens_ADC(Speed_Sensor_ID ID)
+{
+  return &adc2_data.out_buffer[0 + ID];
+}
+
 /* Conversion functions */
 float ADCToVolts(uint16_t ADCValue)
 {
@@ -276,7 +286,7 @@ uint16_t VoltsToADC(float Voltage)
 /* Internal Temperatre (MCU) */
 void nECU_InternalTemp_Init(void) // initialize structure
 {
-  MCU_temperature.ADC_data = ADC_InternalTemp;
+  MCU_temperature.ADC_data = getPointer_InternalTemp_ADC();
   MCU_temperature.temperature = 0;
   nECU_InternalTemp_Delay_Start();
 }

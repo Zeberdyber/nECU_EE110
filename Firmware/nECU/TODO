@@ -1,38 +1,12 @@
 [X] EGT start delay (due to extern ADC startup time)
-    [ ] set startup time from datasheet
+    [X] set startup time from datasheet
 
 [ ] develop:
     [ ] static flags:
         [ ] initialized and working:
-            [X] ADCs
-            [X] Buttons
-            [X] CAN
             [ ] debug
-            [X] EGT
-            [X] frames
-            [X] Knock
-            [X] menu
-            [X] Speed
-            [-] spi
-            [X] stock
-            [-] table
-            [-] tim
-            [-] UART
         [ ] don't do routines when not working:
-            [X] ADCs
-            [X] Buttons
-            [X] CAN
             [ ] debug
-            [X] EGT
-            [X] frames
-            [X] Knock
-            [X] menu
-            [X] Speed
-            [-] spi
-            [X] stock
-            [-] table
-            [-] tim
-            [-] UART {obselete, not used at all, stored for legacy}
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
             - can:
@@ -54,17 +28,14 @@
 
 [ ] test:
     [ ] interrupt changes:
-        [X] knock sampling (TIM8 interrupt removed)
-        [X] knock regression (TIM11 deleted, tick track)
-        [X] CAN message timing (TIM6 and TIM7 deleted, tick track)
         [ ] button animations (TIM1 interrupt removed, tick track)
     [ ] hardware test:
         [ ] VSS input ripple
-        [X] EGT retest after new functions added (SPI as interrupt and new que)
         [ ] Tacho display bug (occasionnaly value is displayed twice)
         [ ] filtering of VSS (low speed correction)
         [ ] frequency readout (RPM) fix and test functions
         [ ] Buttons sporadic not working, double click faulty
+    [X] init scheme
 
 [ ] optimization:
     [ ] Knock sensing (will be done after UART added)

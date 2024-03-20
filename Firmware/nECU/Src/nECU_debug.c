@@ -113,9 +113,9 @@ void nECU_mainLoop_Reset(void)
 {
     nECU_LoopCounter_Clear(&main_loop);
 }
-uint16_t *nECU_mainLoop_getValue(void) // returns pointer to current value
+uint32_t *nECU_mainLoop_getValue(void) // returns pointer to current value
 {
-    return (uint16_t *)main_loop.counter;
+    return &(main_loop.counter);
 }
 
 void nECU_LoopCounter_Init(nECU_LoopCounter *inst) // Initialize structure

@@ -307,7 +307,7 @@ typedef struct
     uint16_t *MAP_Stock_10bit;
     uint8_t *Knock;
     uint8_t *VSS;
-    uint16_t *loop_count;
+    uint32_t *loop_count;
 } Frame2_struct;
 
 /* Knock */

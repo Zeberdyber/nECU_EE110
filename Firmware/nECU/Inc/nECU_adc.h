@@ -67,6 +67,12 @@ Time ADC1 {/8, 12bit, 8 channels, 480 cycles each}
   void nECU_ADC2_Routine(void);
   void nECU_ADC3_Routine(void);
 
+  uint16_t *getPointer_MAP_ADC(void);
+  uint16_t *getPointer_Backpressure_ADC(void);
+  uint16_t *getPointer_OX_ADC(void);
+  uint16_t *getPointer_InternalTemp_ADC(void);
+  uint16_t *getPointer_SpeedSens_ADC(Speed_Sensor_ID ID);
+
   /* Conversion functions */
   float ADCToVolts(uint16_t ADCValue);
   uint16_t VoltsToADC(float Voltage);

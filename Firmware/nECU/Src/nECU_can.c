@@ -50,6 +50,11 @@ void nECU_CAN_Start(void) // start periodic transmission of data accroding to th
     F2_var.can_data.Mailbox = CAN_TX_MAILBOX2;
     CAN_Initialized = true;
   }
+  if (CAN_Working == false && CAN_Initialized == true)
+  {
+    HAL_CAN_Start(&hcan1);
+    CAN_Working = true;
+  }
 }
 void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
 {
@@ -109,12 +114,12 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
     nECU_CAN_TransmitFrame(nECU_Frame_Speed);
     F0_var.timeElapsed = 0;
   }
-  if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME && Frame1_Working)
+  if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME && Frame1_Working())
   {
     nECU_CAN_TransmitFrame(nECU_Frame_EGT);
     F1_var.timeElapsed = 0;
   }
-  if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME && Frame2_Working)
+  if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME && Frame2_Working())
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Stock);
     F2_var.timeElapsed = 0;
@@ -123,10 +128,6 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
 }
 void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for selected frame
 {
-  if (CAN_Initialized == false)
-  {
-    return;
-  }
   nECU_CAN_TxFrame *pFrame;
 
   switch (frameID)
@@ -152,14 +153,6 @@ void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for sele
   pFrame->Header.IDE = CAN_ID_STD;
   pFrame->Header.RTR = CAN_RTR_DATA;
   pFrame->Header.DLC = 8; // 8 bytes in length
-
-  if (!CAN_Working) // If not running start the peripheral
-  {
-    if (HAL_CAN_Start(&hcan1) == HAL_OK)
-    {
-      CAN_Working = true;
-    }
-  }
 }
 uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame over CAN
 {
@@ -167,11 +160,7 @@ uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame
   {
     return 1;
   }
-  if (!CAN_Working && HAL_CAN_Start(&hcan1) == 0) // If not running start the peripheral
-  {
-    CAN_Working = true;
-  }
-  else
+  if (CAN_Working == true)
   {
     nECU_CAN_TxFrame *pFrame;
     switch (frameID)

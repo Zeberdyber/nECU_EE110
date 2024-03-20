@@ -25,7 +25,7 @@ extern "C"
 #define EGT_DECIMAL_POINT 0     // Specifies how many numbers should be after decimal point
 #define EGT_NEGATIVE_OFFSET 100 // How much to subtract from the result
 #define EGT_COMM_FAIL_MAX 15    // how many communication can fail befor error will be flagged
-#define EGT_STARTUP_DELAY 500   // time in ms for MAX31855 startup
+#define EGT_STARTUP_DELAY 250   // time in ms for MAX31855 startup
 
     /* Function Prototypes */
     MAX31855 *EGT_IdentifyID(EGT_Sensor_ID ID);                    // returns pointer to appropriete structure

@@ -16,8 +16,6 @@ static bool SS1_Initialized = false, SS1_Working = false;
 static bool SS2_Initialized = false, SS2_Working = false;
 static bool SS3_Initialized = false, SS3_Working = false;
 static bool SS4_Initialized = false, SS4_Working = false;
-// external import
-extern uint16_t *ADC_V1, *ADC_V2, *ADC_V3, *ADC_V4; // ADC variables
 
 /* Interface functions */
 uint16_t *Speed_GetSpeed(Speed_Sensor_ID ID) // get current speed
@@ -109,10 +107,10 @@ void Speed_Start(void) // function to start Speed function set
     if (SS1_Initialized == false || SS2_Initialized == false || SS3_Initialized == false || SS4_Initialized == false)
     {
         // Setup sensor objects input
-        Speed_Sens_1.InputData = ADC_V1;
-        Speed_Sens_2.InputData = ADC_V2;
-        Speed_Sens_3.InputData = ADC_V3;
-        Speed_Sens_4.InputData = ADC_V4;
+        Speed_Sens_1.InputData = getPointer_SpeedSens_ADC(SPEED_SENSOR_FRONT_LEFT);
+        Speed_Sens_2.InputData = getPointer_SpeedSens_ADC(SPEED_SENSOR_FRONT_RIGHT);
+        Speed_Sens_3.InputData = getPointer_SpeedSens_ADC(SPEED_SENSOR_REAR_LEFT);
+        Speed_Sens_4.InputData = getPointer_SpeedSens_ADC(SPEED_SENSOR_REAR_RIGHT);
 
         // // Read calibraion from flash
         nECU_readSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);

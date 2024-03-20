@@ -35,7 +35,7 @@ extern "C"
     void nECU_mainLoop_Init(void);
     void nECU_mainLoop_Update(void);
     void nECU_mainLoop_Reset(void);
-    uint16_t *nECU_mainLoop_getValue(void); // returns pointer to current value
+    uint32_t *nECU_mainLoop_getValue(void); // returns pointer to current value
 
     void nECU_LoopCounter_Init(nECU_LoopCounter *inst);   // Initialize structure
     void nECU_LoopCounter_Update(nECU_LoopCounter *inst); // Increment counter, get total time

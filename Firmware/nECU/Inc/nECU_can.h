@@ -25,9 +25,9 @@ extern "C"
 #define CAN_TX_FRAME2_ID 0x502     // CAN message ID for frame 2
 #define CAN_RX_WHEELSPEED_ID 0x400 // CAN message ID for Wheel Speed
 #define CAN_RX_COOLANT_ID 0x401    // CAN message ID for Coolant Temperature
-#define CAN_TX_FRAME0_TIME 100     // time in ms between frame send
-#define CAN_TX_FRAME1_TIME 100     // time in ms between frame send
-#define CAN_TX_FRAME2_TIME 100     // time in ms between frame send
+#define CAN_TX_FRAME0_TIME 10      // time in ms between frame send
+#define CAN_TX_FRAME1_TIME 10      // time in ms between frame send
+#define CAN_TX_FRAME2_TIME 10      // time in ms between frame send
 
   /* Function Prototypes */
   // General functions

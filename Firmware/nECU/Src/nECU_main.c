@@ -15,8 +15,8 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     // nECU_systest_run();
     // nECU_codetest_run();
 
-    nECU_FLASH_getAllMemory();
-    Button_Start();
+    // nECU_FLASH_getAllMemory();
+    // Button_Start();
 
     Frame0_Init();
     Frame1_Init();

@@ -21,8 +21,6 @@ static bool MAP_Initialized = false, MAP_Working = false,
             OX_Initialized = false, OX_Working = false,
             VSS_Initialized = false, VSS_Working = false,
             IGF_Initialized = false, IGF_Working = false;
-// external import
-extern uint16_t *ADC_MAP, *ADC_BackPressure, *ADC_OX;
 
 /* Analog sensors */
 void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst) // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
@@ -83,7 +81,7 @@ void nECU_MAP_Init(void) // initialize MAP structure
         MAP.calibrationData.OUT_MeasuredMin = MAP_kPA_CALIB_MIN;
         nECU_calculateLinearCalibration(&MAP.calibrationData);
         MAP.decimalPoint = MAP_DECIMAL_POINT;
-        MAP.ADC_input = ADC_MAP;
+        MAP.ADC_input = getPointer_MAP_ADC();
         MAP_Initialized = true;
     }
     if (MAP_Working == false && MAP_Initialized == true)
@@ -94,7 +92,7 @@ void nECU_MAP_Init(void) // initialize MAP structure
 }
 void nECU_MAP_Update(void) // update MAP structure
 {
-    if (MAP_Initialized == false)
+    if (MAP_Working == false)
     {
         return;
     }
@@ -116,7 +114,7 @@ void nECU_BackPressure_Init(void) // initialize BackPressure structure
         BackPressure.calibrationData.OUT_MeasuredMin = BACKPRESSURE_kPA_CALIB_MIN;
         nECU_calculateLinearCalibration(&BackPressure.calibrationData);
         BackPressure.decimalPoint = BACKPRESSURE_DECIMAL_POINT;
-        BackPressure.ADC_input = ADC_BackPressure;
+        BackPressure.ADC_input = getPointer_Backpressure_ADC();
         BackPressure_Initialized = true;
     }
     if (BackPressure_Working == false && BackPressure_Initialized == true)
@@ -127,7 +125,7 @@ void nECU_BackPressure_Init(void) // initialize BackPressure structure
 }
 void nECU_BackPressure_Update(void) // update BackPressure structure
 {
-    if (BackPressure_Initialized == false)
+    if (BackPressure_Working == false)
     {
         return;
     }
@@ -150,7 +148,7 @@ void nECU_OX_Init(void) // initialize narrowband lambda structure
         OX.sensor.calibrationData.OUT_MeasuredMin = OXYGEN_VOLTAGE_MIN;
         nECU_calculateLinearCalibration(&OX.sensor.calibrationData);
         OX.sensor.decimalPoint = OXYGEN_DECIMAL_POINT;
-        OX.sensor.ADC_input = ADC_OX;
+        OX.sensor.ADC_input = getPointer_OX_ADC();
         /* Heater */
         // timer configuration
         OX.Heater.htim = &OX_HEATER_TIMER;
