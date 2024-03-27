@@ -360,9 +360,6 @@ void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to de
     {
         return;
     }
-
-    dbg_data.error_que.counter.value++;
-    dbg_data.error_que.message_count++;
     if (dbg_data.error_que.counter.value == dbg_data.error_que.counter.preset) // check if reached maximum value
     {
         dbg_data.error_que.counter.value = 0;
@@ -371,8 +368,9 @@ void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to de
     {
         dbg_data.error_que.message_count = dbg_data.error_que.counter.preset;
     }
-
     memcpy(&(dbg_data.error_que.messages[dbg_data.error_que.counter.value]), message, sizeof(nECU_Debug_error_mesage)); // copy to que
+    dbg_data.error_que.counter.value++;
+    dbg_data.error_que.message_count++;
 }
 void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message) // read newest message from debug que
 {

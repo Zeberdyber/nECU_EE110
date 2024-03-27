@@ -23,9 +23,9 @@ extern "C"
 /* Definitions */
 #define FLASH_DATA_START_ADDRESS 0x080E0000                                                                  // address of sector 11 of flash memory
 #define FLASH_DATA_END_ADDRESS 0x080FFFFF                                                                    // end address of sector 11 of flash memory
-#define FLASH_DATA_SIZE 16                                                                                   // Size of memory sector in bytes
+#define FLASH_DATA_OFFSET_MULTIPLIER 4                                                                       // due to minimal allowed byte jump
 #define SPEED_DATA_OFFSET 0                                                                                  // offset where to start the speed calibration data in flash
-#define USER_SETTINGS_OFFSET (sizeof(nECU_SpeedCalibrationData) + SPEED_DATA_OFFSET)                         // offset where to start the user settings data in flash
+#define USER_SETTINGS_OFFSET 0                                                                               // offset where to start the user settings data in flash
 #define DEBUG_QUE_OFFSET (sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings) + SPEED_DATA_OFFSET) // offset where to start the debug que data in flash
 #define FLASH_MINIMUM_RUN_TIME 1000                                                                          // to allow debugger to work
 

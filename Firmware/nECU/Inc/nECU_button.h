@@ -21,19 +21,17 @@ extern "C"
 #include "tim.h"
 
 /* Definitions */
-#define TIM_CLOCK 84000000                  // in Hz from clock config
-#define BUTTON_LIGHT_MINIMUM_INFILL 8       // in %
-#define BUTTON_LIGHT_MAXIMUM_INFILL 95      // in %
-#define BUTTON_LIGHT_RESTING_BRIGHNESS 10   // in %
-#define BUTTON_LIGHT_TIME_TO_REST 10000     // in ms
-#define BUTTON_LIGHT_ANIMATION_PRESCALER 10 // how many PWM cycles to make until animation update
-#define BUTTON_LIGHT_BLINKING_SLOWDOWN 50   // slow down multiplier
-#define BUTTON_LIGHT_BREATHING_SPEEDUP 2    // speed up multiplier
+#define TIM_CLOCK 84000000                                           // in Hz from clock config
+#define BUTTON_LIGHT_MINIMUM_INFILL 8                                // in %
+#define BUTTON_LIGHT_MAXIMUM_INFILL 95                               // in %
+#define BUTTON_LIGHT_RESTING_BRIGHNESS (BUTTON_LIGHT_MINIMUM_INFILL) // in %
+#define BUTTON_LIGHT_TIME_TO_REST 5000                               // in ms
+#define BUTTON_LIGHT_BLINKING_SLOWDOWN 100                           // slow down multiplier
+#define BUTTON_LIGHT_BREATHING_SLOWDOWN 5                            // slow down multiplier
 
-#define BUTTON_INPUT_MINIMUM_PULSE_TIME 300 // minimum pulse time to be considered valid [ms]
-#define BUTTON_INPUT_HOLD_TIME 1500         // minimal pulse lenght to be consider holding [ms]
-#define BUTTON_INPUT_SINGLE_CLICK_TIME 500  // minimal pulse lenght for beeing single click [ms]
-#define BUTTON_INPUT_DOUBLE_CLICK_TIME 1400 // maximum time double click must be [ms]
+#define BUTTON_INPUT_MINIMUM_PULSE_TIME 30 // minimum pulse time to be considered valid [ms]
+#define BUTTON_INPUT_HOLD_TIME 750         // minimal pulse lenght to be consider holding [ms]
+#define BUTTON_INPUT_DOUBLE_CLICK_TIME 700 // maximum time double click must be [ms]
 
   /* Start/Stop functions */
   void Button_Start(void);

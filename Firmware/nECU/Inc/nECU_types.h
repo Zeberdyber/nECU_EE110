@@ -163,9 +163,9 @@ typedef struct
 } ButtonInput;
 typedef struct
 {
-    uint8_t speed;             // animation speed 0-100%
-    uint16_t count;            // number of animation cycles to do
-    uint16_t state, prevState; // current and previous state of animation
+    uint8_t speed;           // animation speed 0-100%
+    uint16_t count;          // number of animation cycles to do
+    int8_t state, prevState; // current and previous state of animation
 } Button_Animation;
 typedef struct
 {
@@ -248,6 +248,9 @@ typedef struct
 typedef struct
 {
     uint8_t boolByte1; // byte that holds states of user settings (combined boolean to bytes)
+    uint8_t boolByte2;
+    uint8_t boolByte3;
+    uint8_t boolByte4;
 } nECU_UserSettings;
 typedef struct
 {

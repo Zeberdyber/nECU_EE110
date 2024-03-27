@@ -25,10 +25,9 @@ void nECU_tests_error_display(OnBoardLED *inst) // on board LEDs display
 /* system tests */
 bool nECU_systest_Flash_SpeedCalibration(void) // test both read and write to flash memory
 {
-    nECU_FLASH_cleanFlashSector();
     float T1 = 1.0, T2 = 9.99, T3 = -0.0015, T4 = 181516.2;
     nECU_saveSpeedCalibration(&T1, &T2, &T3, &T4);
-    float R1, R2, R3, R4;
+    float R1 = 0.0, R2 = 0.0, R3 = 0.0, R4 = 0.0;
     nECU_readSpeedCalibration(&R1, &R2, &R3, &R4);
     if (R1 - T1 + R2 - T2 + R3 - T3 + R4 - T4 != 0)
     {
@@ -36,25 +35,31 @@ bool nECU_systest_Flash_SpeedCalibration(void) // test both read and write to fl
     }
     T1 = 1.0;
     nECU_saveSpeedCalibration(&T1, &T1, &T1, &T1);
-    return false;
-}
-bool nECU_systest_Flash_UserSettings(void) // test both read and write to flash memory
-{
-    bool d0, d1;
-    d0 = true;
-    d1 = false;
-    nECU_saveUserSettings(&d0, &d1);
-    nECU_readUserSettings(&d0, &d1);
-    if (d0 != true || d1 != false)
+    nECU_readSpeedCalibration(&R1, &R2, &R3, &R4);
+    if (R1 + R2 + R3 + R4 != T1 * 4)
     {
         return true;
     }
 
-    d0 = false;
-    d1 = true;
-    nECU_saveUserSettings(&d0, &d1);
-    nECU_readUserSettings(&d0, &d1);
-    if (d0 != false || d1 != true)
+    return false;
+}
+bool nECU_systest_Flash_UserSettings(void) // test both read and write to flash memory
+{
+    bool T0, T1, R0, R1;
+    T0 = true;
+    T1 = false;
+    nECU_saveUserSettings(&T0, &T1);
+    nECU_readUserSettings(&R0, &R1);
+    if (R0 != true || R1 != false)
+    {
+        return true;
+    }
+
+    T0 = false;
+    T1 = true;
+    nECU_saveUserSettings(&T0, &T1);
+    nECU_readUserSettings(&R0, &R1);
+    if (R0 != false || R1 != true)
     {
         return true;
     }
@@ -66,12 +71,15 @@ void nECU_systest_run(void) // run tests of type systest
     if (SYSTEST_DO_FLASH)
     {
         HAL_Delay(FLASH_MINIMUM_RUN_TIME);
-        if (nECU_systest_Flash_SpeedCalibration())
+        nECU_FLASH_cleanFlashSector();
+        HAL_Delay(FLASH_MINIMUM_RUN_TIME);
+        if (nECU_systest_Flash_UserSettings())
         {
-            nECU_systest_error();
+            // nECU_systest_error();
         }
 
-        if (nECU_systest_Flash_UserSettings())
+        HAL_Delay(FLASH_MINIMUM_RUN_TIME);
+        if (nECU_systest_Flash_SpeedCalibration())
         {
             nECU_systest_error();
         }

@@ -17,17 +17,23 @@ static bool Menu_Initialized = false, Menu_Working = false;
 /* Button logic */
 void Button_Menu_Init(void) // initialize button menu
 {
-  Menu.Antilag = false;
-  Menu.ClearEngineCode = false;
-  Menu.LunchControlLevel = 0;
-  Menu.MenuLevel = 0;
-  Menu.TractionOFF = false;
-  Menu.TuneSelector = 0;
-  ButtonLight_BreathAllOnce();
-  nECU_readUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
-
-  Menu_Initialized = true;
-  Menu_Working = true;
+  if (Menu_Initialized == false)
+  {
+    Menu.Antilag = false;
+    Menu.ClearEngineCode = false;
+    Menu.LunchControlLevel = 0;
+    Menu.MenuLevel = 0;
+    Menu.TractionOFF = false;
+    Menu.TuneSelector = 0;
+    nECU_readUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
+    Menu_Initialized = true;
+  }
+  if (Menu_Working == false && Menu_Initialized == true)
+  {
+    Button_Start();
+    ButtonLight_BreathAllOnce();
+    Menu_Working = true;
+  }
 }
 void Button_Menu(void) // update function
 {
@@ -35,6 +41,7 @@ void Button_Menu(void) // update function
   {
     return;
   }
+  ButtonLight_UpdateAll();
 
   Button_ClickType RedType = ButtonInput_GetType(RED_BUTTON_ID);
   Button_ClickType OrangeType = ButtonInput_GetType(ORANGE_BUTTON_ID);
@@ -120,8 +127,8 @@ void Button_Menu(void) // update function
   if (*flash_save_due == true)
   {
     *flash_save_due = false;
-    nECU_saveUserSettings(&(Menu.TractionOFF), &(Menu.TractionOFF));
-    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 5);
+    nECU_saveUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
+    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
   }
 }
 

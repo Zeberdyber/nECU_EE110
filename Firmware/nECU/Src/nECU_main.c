@@ -34,7 +34,6 @@ void nECU_main(void) // main rutine of the program
     nECU_ADC_All_Routine();
     Button_Menu();
     nECU_Delay_UpdateAll();
-    ButtonLight_UpdateAll();
 
     // update all variables for CAN transmission
     Frame0_PrepareBuffer();

@@ -127,35 +127,34 @@ void ButtonLight_Update(ButtonLight *Light) // periodic animation update functio
     }
     if (Light->Breathing.count > 0)
     {
-      Light->Breathing.state = ((uint16_t)(Light->Time * Light->Timer.period * BUTTON_LIGHT_BREATHING_SPEEDUP / Light->Breathing.speed) % 255) - 128;
+      Light->Breathing.state = ((uint8_t)(((Light->Time / BUTTON_LIGHT_BREATHING_SLOWDOWN) * Light->Breathing.speed) / 100) % 255) - INT8_MAX;
 
       if (Light->Breathing.state != Light->Breathing.prevState)
       {
-        if (Light->Breathing.state < 0 && Light->Breathing.prevState > 0)
+        if (Light->Breathing.state == 0 && Light->Breathing.prevState < 0)
         {
           Light->Breathing.count--;
         }
         Light->Breathing.prevState = Light->Breathing.state;
       }
-
-      if (Light->Breathing.state < 0)
+      if (Light->Breathing.state < 0) // flip the state
       {
         Light->Breathing.state = -Light->Breathing.state;
       }
 
-      Light->Brightness = (((BUTTON_LIGHT_MAXIMUM_INFILL - BUTTON_LIGHT_MINIMUM_INFILL) * Light->Breathing.state) / 128) + BUTTON_LIGHT_MINIMUM_INFILL;
+      Light->Brightness = (((BUTTON_LIGHT_MAXIMUM_INFILL - BUTTON_LIGHT_MINIMUM_INFILL) * (Light->Breathing.state + 1)) / INT8_MAX) + BUTTON_LIGHT_MINIMUM_INFILL;
     }
 
     if (Light->Blinking.count > 0)
     {
-      Light->Blinking.state = (uint32_t)(Light->Time * Light->Timer.period / (Light->Blinking.speed * BUTTON_LIGHT_BLINKING_SLOWDOWN)) % 2;
+      Light->Blinking.state = (uint8_t)((((Light->Time / BUTTON_LIGHT_BLINKING_SLOWDOWN) * Light->Blinking.speed) / 100)) % 2;
       if (Light->Blinking.state != Light->Blinking.prevState) // Execute only on positive edge
       {
-        Light->Blinking.prevState = Light->Blinking.state;
-        if (Light->Blinking.state == 1)
+        if (Light->Blinking.state == 0 && Light->Blinking.prevState == 1)
         {
           Light->Blinking.count--;
         }
+        Light->Blinking.prevState = Light->Blinking.state;
       }
       Light->Brightness = ((BUTTON_LIGHT_MAXIMUM_INFILL - BUTTON_LIGHT_MINIMUM_INFILL) * Light->Blinking.state) + BUTTON_LIGHT_MINIMUM_INFILL;
     }
@@ -164,6 +163,8 @@ void ButtonLight_Update(ButtonLight *Light) // periodic animation update functio
     {
       Light->Blinking.state = 0;
       Light->Blinking.prevState = 0;
+      Light->Breathing.state = 0;
+      Light->Breathing.prevState = 0;
       Light->Mode = BUTTON_MODE_GO_TO_REST;
     }
     break;
@@ -174,7 +175,7 @@ void ButtonLight_Update(ButtonLight *Light) // periodic animation update functio
     break;
   }
 
-  Light->CCR = Light->Brightness * (Light->Timer.htim->Init.Period / 100);
+  Light->CCR = (Light->Brightness / 100) * Light->Timer.htim->Init.Period;
 
   switch (Light->Timer.Channel_List[0])
   {
@@ -330,6 +331,7 @@ void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called a
   if (Difference < BUTTON_INPUT_MINIMUM_PULSE_TIME)
   {
     button->RisingCCR = CurrentCCR;
+    return;
   }
 
   button->buttonPin.State = HAL_GPIO_ReadPin(button->buttonPin.GPIOx, button->buttonPin.GPIO_Pin);
@@ -355,7 +357,7 @@ void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called a
       button->Type = CLICK_TYPE_HOLD;
       button->newType = true;
     }
-    else if (Difference < BUTTON_INPUT_DOUBLE_CLICK_TIME)
+    else if (Difference < BUTTON_INPUT_DOUBLE_CLICK_TIME && button->newType == false)
     {
       /* single click */
       button->Type = CLICK_TYPE_SINGLE_CLICK;
@@ -397,9 +399,9 @@ void ButtonInput_Stop(ButtonInput *button) // stop Input Capture for selected bu
 /* Animations */
 void ButtonLight_BreathAllOnce(void) // breath all button lights once
 {
-  ButtonLight_Set_Breathe(&Red.light, 100, 2);
-  ButtonLight_Set_Breathe(&Orange.light, 100, 2);
-  ButtonLight_Set_Breathe(&Green.light, 100, 2);
+  ButtonLight_Set_Breathe(&Red.light, 50, 2);
+  ButtonLight_Set_Breathe(&Orange.light, 50, 2);
+  ButtonLight_Set_Breathe(&Green.light, 50, 2);
 }
 void ButtonLight_BlinkAllOnce(void) // blink all button lights once
 {
@@ -430,13 +432,13 @@ void ButtonLight_BlinkOneOnce(Button_ID id) // blink selected button once
   switch (id)
   {
   case RED_BUTTON_ID:
-    ButtonLight_Set_Blink(&Red.light, 100, 1);
+    ButtonLight_Set_Blink(&Red.light, 50, 1);
     break;
   case ORANGE_BUTTON_ID:
-    ButtonLight_Set_Blink(&Orange.light, 100, 1);
+    ButtonLight_Set_Blink(&Orange.light, 50, 1);
     break;
   case GREEN_BUTTON_ID:
-    ButtonLight_Set_Blink(&Green.light, 100, 1);
+    ButtonLight_Set_Blink(&Green.light, 50, 1);
     break;
 
   default:

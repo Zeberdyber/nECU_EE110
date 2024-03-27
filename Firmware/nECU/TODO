@@ -1,9 +1,6 @@
 [ ] develop:
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
-            X can:
-                X timeout
-                X error
             - igf:
                 > missfire
                 > no signal
@@ -40,3 +37,13 @@
 
 [ ] optimization:
     [ ] Knock sensing (will be done after UART added)
+
+[ ] reverse engeneering:
+    [ ] Immobilizer communication type
+    [ ] Narrowband oxygen sensing
+
+[ ] TODOs over easter break:
+    [ ] ABS speed sensors testing
+        [ ] loom rewire
+    [ ] Immo communication
+    [ ] Oil pressure analog input
