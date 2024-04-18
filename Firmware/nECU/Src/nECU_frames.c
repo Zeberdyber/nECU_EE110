@@ -99,7 +99,6 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl3, &F0_var.LunchControl2, &F0_var.LunchControl1, F0_var.Speed_RL);
     Frame0_ComposeWord(&TxFrame[6], &ZeroBool, &ZeroBool, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed_RR);
     nECU_CAN_WriteToBuffer(nECU_Frame_Speed, TxFrame);
-    *F0_var.ClearEngineCode = false;
 }
 void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4, uint16_t *Val12Bit) // function to create word for use in frame 0
 {

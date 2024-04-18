@@ -240,6 +240,27 @@ void nECU_VSS_Update(void) // update VSS structure
     }
 
     VSS.Speed = (uint8_t)speed;
+    nECU_VSS_Validate();
+}
+void nECU_VSS_Validate(void) // checks if recived signal is correct
+{
+    if (VSS_Initialized == false || VSS_Working == false) // check if initialized
+    {
+        return;
+    }
+
+    if (VSS.Speed > VSS_MAX_SPEED && VSS.overspeed_error == false) // set error
+    {
+        nECU_Debug_error_mesage temp;
+        nECU_Debug_Message_Init(&temp);
+        nECU_Debug_Message_Set(&temp, VSS.Speed, nECU_ERROR_VSS_MAX);
+        VSS.overspeed_error = true; // to spit the error only once
+    }
+    else if (VSS.Speed < VSS_MAX_SPEED && VSS.overspeed_error == true)
+    {
+        VSS.overspeed_error = false; // to spit the error only once
+    }
+    // here add zero speed detectionAle
 }
 void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim) // detect if zero km/h -- !!! to be fixed
 {

@@ -424,6 +424,7 @@ typedef struct
     nECU_Timer tim;       // timer structure
     nECU_InputCapture ic; // input capture structure
     uint8_t Speed;        // resulting speed
+    bool overspeed_error; // flag to indicate speed reached maximal allowed
 } VSS_Handle;
 typedef struct
 {
@@ -501,6 +502,9 @@ typedef enum
     // communication
     nECU_ERROR_CAN_ID = 25,
     nECU_ERROR_SPI_ID = 26,
+
+    // VSS
+    nECU_ERROR_VSS_MAX = 27,
 
     nECU_ERROR_NONE
 } nECU_Error_ID;

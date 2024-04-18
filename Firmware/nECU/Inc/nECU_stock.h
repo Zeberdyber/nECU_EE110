@@ -31,8 +31,8 @@ extern "C"
 #define BACKPRESSURE_ADC_CALIB_MAX 3213 // maximum ADC value for maximum sensor value
 #define BACKPRESSURE_DECIMAL_POINT 0    // how many numbers after decimal point
 
-#define OXYGEN_VOLTAGE_CALIB_MIN 0.3 // minimum sensor value result, minimum voltage
-#define OXYGEN_VOLTAGE_CALIB_MAX 1.3 // maximum sensor value result, maximum voltage
+#define OXYGEN_VOLTAGE_CALIB_MIN 0.2 // minimum sensor value result, minimum voltage
+#define OXYGEN_VOLTAGE_CALIB_MAX 1.2 // maximum sensor value result, maximum voltage
 #define OXYGEN_VOLTAGE_MAX 1.0       // maximum voltage of lambda sensor
 #define OXYGEN_VOLTAGE_MIN 0.0       // minimum voltage of lambda sensor
 #define OXYGEN_HEATER_MAX 90         // maximum % infill of heater PWM
@@ -42,6 +42,7 @@ extern "C"
 #define OXYGEN_DECIMAL_POINT 2       // how many numbers after decimal point
 
 #define VSS_PULSES_PER_KM 4500 // number of pulses that will be recived for a kilometer traveled
+#define VSS_MAX_SPEED 220      // in km/h maximal speed that car can go
 
 #define IGF_MAX_RPM_RATE 3000 // rpm/s rate; used for missfire detection
 #define IGF_MAX_RPM 10000     // maximal rpm allowed
@@ -69,6 +70,7 @@ extern "C"
     uint8_t *nECU_VSS_GetPointer(void);                // returns pointer to resulting data
     void nECU_VSS_Init(void);                          // initialize VSS structure
     void nECU_VSS_Update(void);                        // update VSS structure
+    void nECU_VSS_Validate(void);                      // checks if recived signal is correct
     void nECU_VSS_DeInit(void);                        // deinitialize VSS structure
     void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim); // detect if zero km/h
     /* IGF - Ignition feedback */

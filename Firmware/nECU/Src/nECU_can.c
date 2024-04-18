@@ -117,6 +117,7 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Speed);
     F0_var.timeElapsed = 0;
+    *F0_var.ClearEngineCode = false;
   }
   if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME && Frame1_Working())
   {
