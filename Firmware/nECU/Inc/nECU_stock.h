@@ -19,10 +19,10 @@ extern "C"
 #include "nECU_Knock.h"
 
     /* Definitions */
-#define MAP_kPA_CALIB_MIN 320  // minimum sensor value result for minimum voltage
-#define MAP_kPA_CALIB_MAX 1000 // maximum sensor value result for maximum voltage
-#define MAP_ADC_CALIB_MIN 1300 // minimum ADC value for minimum sensor value
-#define MAP_ADC_CALIB_MAX 2950 // maximum ADC value for maximum sensor value
+#define MAP_kPA_CALIB_MIN 270  // minimum sensor value result for minimum voltage
+#define MAP_kPA_CALIB_MAX 1020 // maximum sensor value result for maximum voltage
+#define MAP_ADC_CALIB_MIN 1203 // minimum ADC value for minimum sensor value
+#define MAP_ADC_CALIB_MAX 3020 // maximum ADC value for maximum sensor value
 #define MAP_DECIMAL_POINT 0    // how many numbers after decimal point
 
 #define BACKPRESSURE_kPA_CALIB_MIN -20  // minimum sensor value result for minimum voltage

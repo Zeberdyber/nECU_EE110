@@ -20,7 +20,9 @@ extern "C"
 #include "nECU_can.h"
 #include "nECU_menu.h"
 #include "nECU_stock.h"
-    /* Definitions */
+/* Definitions */
+#define MAX_VAL_10BIT 1023    // maximal possible value for a 10bit uint
+#define FRAME_MAP_OFFSET -100 // offset to the value
 
     /* Function Prototypes */
     void Frame0_Init(void);                                                                               // initialization of data structure

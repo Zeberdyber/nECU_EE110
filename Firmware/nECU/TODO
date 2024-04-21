@@ -19,7 +19,7 @@
         [ ] frequency readout (RPM) fix and test functions
 
 [ ] on road:
-    [ ] MAP calibration
+    [X] MAP calibration
     [ ] OX calibration
     [ ] VSS calibration
     
@@ -41,3 +41,9 @@
         [ ] loom rewire
     [ ] Immo communication
     [ ] Oil pressure analog input
+
+[ ] Tests on bench:
+    [ ] IGF interrupts
+    [ ] IGF calculation
+    [ ] VSS interrupts
+    [ ] VSS calculation

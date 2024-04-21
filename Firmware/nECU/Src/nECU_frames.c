@@ -226,7 +226,11 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     uint8_t TxFrame[8];
     union Int16ToBytes Converter; // create memory union
 
-    Converter.UintValue = *F2_var.MAP_Stock_10bit;
+    Converter.UintValue = *F2_var.MAP_Stock_10bit + FRAME_MAP_OFFSET;
+    if (Converter.UintValue > MAX_VAL_10BIT) // round if out of bound
+    {
+        Converter.UintValue = MAX_VAL_10BIT;
+    }
     TxFrame[0] = Converter.byteArray[1] & 0x3; // 6bit value left;
     TxFrame[1] = Converter.byteArray[0];
     TxFrame[2] = *F2_var.OX_Val;
