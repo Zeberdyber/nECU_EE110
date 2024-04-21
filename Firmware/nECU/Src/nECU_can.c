@@ -7,6 +7,7 @@
  */
 
 #include "nECU_can.h"
+#include "nECU_tests.h"
 
 /* General variables */
 uint8_t CAN_Code_Error = 0; // error in user code ex: no valid solution for given input
@@ -255,6 +256,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) // interrupt cal
 {
   HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &CanRxFrame0, RxData_Frame0); // Receive CAN bus message to canRX buffer
   Rx_Data_Frame0_Pending = true;
+  nECU_IGF_Test();
 }
 uint8_t *nECU_CAN_getWheelSetupPointer(void) // get pointer to the recived data of wheel setup variable
 {

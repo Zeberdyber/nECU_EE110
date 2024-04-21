@@ -54,6 +54,9 @@ extern "C"
     void nECU_codetest_run(void);                  // run tests of type codetest
     void nECU_codetest_error(void);                // function to call when error detected
 
+    /* temporary tests */
+    void nECU_IGF_Test(void); // checks readout compared to CAN frame data
+
 #ifdef __cplusplus
 }
 #endif

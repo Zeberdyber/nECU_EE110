@@ -6,7 +6,6 @@
                 > no signal
             - VSS:
                 > input ripple
-                X over speed
             - SpeedSens:
                 > abnormal sensor
                 > data error    
@@ -14,14 +13,10 @@
         Does not work the second time, fix it :|
 
 [ ] test:
-    [X] interrupt changes:
-        [X] button animations (TIM1 interrupt removed, tick track)
     [ ] hardware test:
         [ ] VSS input ripple
-        [X] Tacho display bug (occasionnaly value is displayed twice)
         [ ] filtering of VSS (low speed correction)
         [ ] frequency readout (RPM) fix and test functions
-        [X] Buttons sporadic not working, double click faulty
 
 [ ] on road:
     [ ] MAP calibration
@@ -41,7 +36,7 @@
     [ ] Immobilizer communication type
     [ ] Narrowband oxygen sensing
 
-[ ] TODOs over easter break:
+[ ] TODOs over easter break (easter went by and none was done :-/ ):
     [ ] ABS speed sensors testing
         [ ] loom rewire
     [ ] Immo communication

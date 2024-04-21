@@ -226,3 +226,48 @@ void nECU_codetest_error(void) // function to call when error detected
 {
     nECU_tests_error_display(&CODETEST_INDICATOR);
 }
+
+/* temporary tests */
+#include "nECU_stock.h"
+#define IGF_test_max_difference 100 // in RPM
+extern IGF_Handle IGF;
+bool IGF_test_Initialized = false;
+uint8_t *IGF_test_CAN_RPM;
+uint8_t IGF_test_out_of_bounds = 0;
+void nECU_IGF_Test(void) // checks readout compared to CAN frame data
+{
+    // call this function only on CAN RX as latest data from CAN arrives
+    // use only to check code, then delete this function
+    if (IGF_test_Initialized == false)
+    {
+        IGF_test_CAN_RPM = nECU_CAN_getRPMPointer();
+        nECU_IGF_Init();
+        IGF_test_Initialized = true;
+    }
+    float CAN_RPM = *IGF_test_CAN_RPM * 20; // 20 is a divider value from MaxxECU config
+    float RPM_difference = 0;               // difference between RPM data
+
+    nECU_IGF_Calc();       // update value
+    if (CAN_RPM > IGF.RPM) // calculate difference
+    {
+        RPM_difference = CAN_RPM - IGF.RPM;
+    }
+    else
+    {
+        RPM_difference = IGF.RPM - CAN_RPM;
+    }
+
+    if (RPM_difference > IGF_test_max_difference)
+    {
+        IGF_test_out_of_bounds++;
+    }
+
+    if (IGF_test_out_of_bounds > 20)
+    {
+        IGF_test_out_of_bounds = 0;
+        while (ERROR_HALT)
+        {
+            HAL_Delay(1); // get stuck in the loop
+        }
+    }
+}
