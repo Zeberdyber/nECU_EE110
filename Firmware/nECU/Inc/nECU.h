@@ -12,6 +12,7 @@
 #include "nECU_adc.h"
 #include "nECU_button.h"
 #include "nECU_can.h"
+#include "nECU_data_processing.h"
 #include "nECU_debug.h"
 #include "nECU_EGT.h"
 #include "nECU_flash.h"

@@ -12,7 +12,8 @@ Oxygen_Handle OX;
 static stock_GPIO stk_in;
 
 // initialized flags
-static bool OX_Initialized = false, OX_Working = false;
+static bool OX_Initialized = false, OX_Working = false,
+            GPIO_Initialized = false, GPIO_Working = false;
 
 /* Oxygen Sensor */
 uint8_t *nECU_OX_GetPointer(void) // returns pointer to resulting data
@@ -85,17 +86,28 @@ void nECU_OX_PWM_Set(float *infill) // function to set PWM according to set infi
 /* GPIO inputs */
 void nECU_stock_GPIO_Init(void) // initialize structure variables
 {
-    stk_in.Cranking.GPIO_Pin = Cranking_Pin;
-    stk_in.Cranking.GPIOx = Cranking_GPIO_Port;
+    if (GPIO_Initialized == false)
+    {
+        stk_in.Cranking.GPIO_Pin = Cranking_Pin;
+        stk_in.Cranking.GPIOx = Cranking_GPIO_Port;
 
-    stk_in.Fan_ON.GPIO_Pin = Fan_ON_Pin;
-    stk_in.Fan_ON.GPIOx = Fan_ON_GPIO_Port;
+        stk_in.Fan_ON.GPIO_Pin = Fan_ON_Pin;
+        stk_in.Fan_ON.GPIOx = Fan_ON_GPIO_Port;
 
-    stk_in.Lights_ON.GPIO_Pin = Lights_ON_Pin;
-    stk_in.Lights_ON.GPIOx = Lights_ON_GPIO_Port;
+        stk_in.Lights_ON.GPIO_Pin = Lights_ON_Pin;
+        stk_in.Lights_ON.GPIOx = Lights_ON_GPIO_Port;
+    }
+    if (GPIO_Working == false && GPIO_Initialized == true)
+    {
+        GPIO_Working = true;
+    }
 }
 void nECU_stock_GPIO_update(void) // update structure variables
 {
+    if (GPIO_Initialized == false || GPIO_Working == false)
+    {
+        return;
+    }
     stk_in.Cranking.State = HAL_GPIO_ReadPin(stk_in.Cranking.GPIOx, stk_in.Cranking.GPIO_Pin);
     stk_in.Fan_ON.State = HAL_GPIO_ReadPin(stk_in.Fan_ON.GPIOx, stk_in.Fan_ON.GPIO_Pin);
     stk_in.Lights_ON.State = HAL_GPIO_ReadPin(stk_in.Lights_ON.GPIOx, stk_in.Lights_ON.GPIO_Pin);

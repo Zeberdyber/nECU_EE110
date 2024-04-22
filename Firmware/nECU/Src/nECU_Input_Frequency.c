@@ -102,6 +102,9 @@ void nECU_VSS_DeInit(void) // deinitialize VSS structure
         HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.tim.Channel_List[0]);
     }
 }
+void nECU_VSS_Smooth_Update(void) // call this function to smooth the output data
+{
+}
 /* IGF - Ignition feedback */
 void nECU_IGF_Init(void) // initialize and start
 {

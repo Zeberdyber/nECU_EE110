@@ -11,6 +11,7 @@
                 > data error    
     [ ] Flash saving
         Does not work the second time, fix it :|
+        Check return values of lock/unlock
     [ ] VSS filterring for stable data output - currently high ripple
         done with additional buffer, updated on CAN frame send
 

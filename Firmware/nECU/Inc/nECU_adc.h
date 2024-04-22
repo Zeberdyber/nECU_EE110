@@ -85,7 +85,6 @@ Time ADC1 {/8, 12bit, 8 channels, 480 cycles each}
   uint16_t *nECU_InternalTemp_getTemperature(void);                                                                             // return current temperature pointer (multiplied 100x)
   void nECU_ADC_AverageDMA(ADC_HandleTypeDef *hadc, uint16_t *inData, uint16_t inLength, uint16_t *outData, float smoothAlpha); // average out dma buffer
   void nECU_ADC_expSmooth(uint16_t *inBuf, uint16_t *outBuf, uint16_t inLength, float alpha);                                   // exponential smoothing algorithm
-  void nECU_expSmooth(uint16_t *in, uint16_t *out, float alpha);                                                                // exponential smoothing algorithm
 
 #ifdef __cplusplus
 }

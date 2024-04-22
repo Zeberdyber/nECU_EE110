@@ -365,8 +365,3 @@ void nECU_ADC_expSmooth(uint16_t *inBuf, uint16_t *outBuf, uint16_t inLength, fl
     outBuf[i] = (inBuf[i] * alpha) + (outBuf[i] * (1 - alpha));
   }
 }
-
-void nECU_expSmooth(uint16_t *in, uint16_t *out, float alpha) // exponential smoothing algorithm
-{
-  *out = (*in * alpha) + (*out * (1 - alpha));
-}
