@@ -11,15 +11,20 @@
                 > data error    
     [ ] Flash saving
         Does not work the second time, fix it :|
+    [ ] VSS filterring for stable data output - currently high ripple
+        done with additional buffer, updated on CAN frame send
+
+Current issues:
+    IGF signal does not fall to complete zero - no signal edge is detected
+    VSS output signal is about right although very messy
 
 [ ] test:
     [ ] hardware test:
-        [ ] VSS input ripple
+        [X] VSS input ripple - no tipple
         [ ] filtering of VSS (low speed correction)
-        [ ] frequency readout (RPM) fix and test functions
+        [ ] frequency readout (RPM) fix and test functions - missing level shifter?
 
 [ ] on road:
-    [X] MAP calibration
     [ ] OX calibration
     [ ] VSS calibration
     
@@ -42,8 +47,8 @@
     [ ] Immo communication
     [ ] Oil pressure analog input
 
-[ ] Tests on bench:
-    [ ] IGF interrupts
-    [ ] IGF calculation
-    [ ] VSS interrupts
-    [ ] VSS calculation
+[X] Tests on bench:
+    [X] IGF interrupts
+    [X] IGF calculation
+    [X] VSS interrupts
+    [X] VSS calculation

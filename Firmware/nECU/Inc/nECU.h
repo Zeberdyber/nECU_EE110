@@ -16,6 +16,8 @@
 #include "nECU_EGT.h"
 #include "nECU_flash.h"
 #include "nECU_frames.h"
+#include "nECU_Input_Analog.h"
+#include "nECU_Input_Frequency.h"
 #include "nECU_Knock.h"
 #include "nECU_main.h"
 #include "nECU_menu.h"

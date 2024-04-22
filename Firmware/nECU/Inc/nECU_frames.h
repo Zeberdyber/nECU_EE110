@@ -3,6 +3,7 @@
  * @file    nECU_frames.h
  * @brief   This file contains all the function prototypes for
  *          the nECU_frames.c file
+ *          Turned out to be main file for data updates and module startup :)
  */
 #ifndef _NECU_FRAMES_H_
 #define _NECU_FRAMES_H_
@@ -20,6 +21,9 @@ extern "C"
 #include "nECU_can.h"
 #include "nECU_menu.h"
 #include "nECU_stock.h"
+#include "nECU_Input_Analog.h"
+#include "nECU_Input_Frequency.h"
+
 /* Definitions */
 #define MAX_VAL_10BIT 1023    // maximal possible value for a 10bit uint
 #define FRAME_MAP_OFFSET -100 // offset to the value

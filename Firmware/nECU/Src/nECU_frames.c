@@ -212,7 +212,7 @@ void Frame2_Update(void) // update variables for frame 2
     nECU_BackPressure_Update();
     nECU_MAP_Update();
     nECU_OX_Update();
-    nECU_VSS_Update();
+
     nECU_mainLoop_Update();
 }
 void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission

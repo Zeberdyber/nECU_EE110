@@ -8,130 +8,12 @@
 #include "nECU_stock.h"
 
 // internal variables
-static AnalogSensor_Handle MAP;
-static AnalogSensor_Handle BackPressure;
 Oxygen_Handle OX;
-VSS_Handle VSS;
-IGF_Handle IGF;
 static stock_GPIO stk_in;
 
 // initialized flags
-static bool MAP_Initialized = false, MAP_Working = false,
-            BackPressure_Initialized = false, BackPressure_Working = false,
-            OX_Initialized = false, OX_Working = false,
-            VSS_Initialized = false, VSS_Working = false,
-            IGF_Initialized = false, IGF_Working = false;
+static bool OX_Initialized = false, OX_Working = false;
 
-/* Analog sensors */
-void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst) // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
-{
-    inst->factor = (float)(inst->OUT_MeasuredMax - inst->OUT_MeasuredMin) / (inst->ADC_MeasuredMax - inst->ADC_MeasuredMin);
-    inst->offset = (float)inst->OUT_MeasuredMax - (inst->factor * inst->ADC_MeasuredMax);
-}
-float nECU_getLinearSensor(uint16_t *ADC_Value, AnalogSensorCalibration *inst) // function to get result of linear sensor
-{
-    return *ADC_Value * inst->factor + inst->offset;
-}
-uint16_t nECU_FloatToUint16_t(float input, uint8_t decimalPoint, uint8_t bitCount) // convert float value to uint16_t value with correct decimal point and bit lenght
-{
-    uint16_t output;
-    for (uint8_t i = 0; i < decimalPoint; i++) // adjust decimal point
-    {
-        input *= 10;
-    }
-    output = (uint16_t)input;
-
-    uint16_t mask = 0;
-    for (uint8_t i = 0; i <= bitCount; i++) // form mask for bit count
-    {
-        mask = (mask << 1) + 1;
-    }
-
-    return output & mask;
-}
-uint8_t nECU_FloatToUint8_t(float input, uint8_t decimalPoint, uint8_t bitCount) // convert float value to uint8_t value with correct decimal point and bit lenght
-{
-    uint8_t output;
-    for (uint8_t i = 0; i < decimalPoint; i++) // adjust decimal point
-    {
-        input *= 10;
-    }
-    output = (uint16_t)input;
-
-    uint8_t mask = 0;
-    for (uint8_t i = 0; i <= bitCount; i++) // form mask for bit count
-    {
-        mask = (mask << 1) + 1;
-    }
-
-    return output & mask;
-}
-/* MAP */
-uint16_t *nECU_MAP_GetPointer(void) // returns pointer to resulting data
-{
-    return &MAP.output16bit;
-}
-void nECU_MAP_Init(void) // initialize MAP structure
-{
-    if (MAP_Initialized == false)
-    {
-        MAP.calibrationData.ADC_MeasuredMin = MAP_ADC_CALIB_MIN;
-        MAP.calibrationData.ADC_MeasuredMax = MAP_ADC_CALIB_MAX;
-        MAP.calibrationData.OUT_MeasuredMax = MAP_kPA_CALIB_MAX;
-        MAP.calibrationData.OUT_MeasuredMin = MAP_kPA_CALIB_MIN;
-        nECU_calculateLinearCalibration(&MAP.calibrationData);
-        MAP.decimalPoint = MAP_DECIMAL_POINT;
-        MAP.ADC_input = getPointer_MAP_ADC();
-        MAP_Initialized = true;
-    }
-    if (MAP_Working == false && MAP_Initialized == true)
-    {
-        ADC1_START();
-        MAP_Working = true;
-    }
-}
-void nECU_MAP_Update(void) // update MAP structure
-{
-    if (MAP_Working == false)
-    {
-        return;
-    }
-    MAP.outputFloat = nECU_getLinearSensor(MAP.ADC_input, &MAP.calibrationData);
-    MAP.output16bit = nECU_FloatToUint16_t(MAP.outputFloat, MAP_DECIMAL_POINT, 10);
-}
-/* BackPressure */
-uint8_t *nECU_BackPressure_GetPointer(void) // returns pointer to resulting data
-{
-    return &BackPressure.output8bit;
-}
-void nECU_BackPressure_Init(void) // initialize BackPressure structure
-{
-    if (BackPressure_Initialized == false)
-    {
-        BackPressure.calibrationData.ADC_MeasuredMin = BACKPRESSURE_ADC_CALIB_MIN;
-        BackPressure.calibrationData.ADC_MeasuredMax = BACKPRESSURE_ADC_CALIB_MAX;
-        BackPressure.calibrationData.OUT_MeasuredMax = BACKPRESSURE_kPA_CALIB_MAX;
-        BackPressure.calibrationData.OUT_MeasuredMin = BACKPRESSURE_kPA_CALIB_MIN;
-        nECU_calculateLinearCalibration(&BackPressure.calibrationData);
-        BackPressure.decimalPoint = BACKPRESSURE_DECIMAL_POINT;
-        BackPressure.ADC_input = getPointer_Backpressure_ADC();
-        BackPressure_Initialized = true;
-    }
-    if (BackPressure_Working == false && BackPressure_Initialized == true)
-    {
-        ADC1_START();
-        BackPressure_Working = true;
-    }
-}
-void nECU_BackPressure_Update(void) // update BackPressure structure
-{
-    if (BackPressure_Working == false)
-    {
-        return;
-    }
-    BackPressure.outputFloat = nECU_getLinearSensor(BackPressure.ADC_input, &BackPressure.calibrationData);
-    BackPressure.output8bit = nECU_FloatToUint8_t(BackPressure.outputFloat, BACKPRESSURE_DECIMAL_POINT, 8);
-}
 /* Oxygen Sensor */
 uint8_t *nECU_OX_GetPointer(void) // returns pointer to resulting data
 {
@@ -200,144 +82,6 @@ void nECU_OX_PWM_Set(float *infill) // function to set PWM according to set infi
 {
     OX.Heater.htim->Instance->CCR1 = (*infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 }
-/* VSS - Vehicle Speed Sensor */
-uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
-{
-    return &VSS.Speed;
-}
-void nECU_VSS_Init(void) // initialize VSS structure
-{
-    if (VSS_Initialized == false)
-    {
-        VSS.ic.previous_CCR = 0;
-        VSS.tim.htim = &FREQ_INPUT_TIMER;
-        nECU_tim_Init_struct(&VSS.tim);
-        VSS.tim.Channel_Count = 1;
-        VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
-        VSS_Initialized = true;
-    }
-    if (VSS_Working == false && VSS_Initialized == true)
-    {
-        nECU_tim_IC_start(&VSS.tim);
-        VSS_Working = true;
-    }
-}
-void nECU_VSS_Update(void) // update VSS structure
-{
-    if (VSS_Initialized == false || VSS_Working == false) // check if initialized
-    {
-        return;
-    }
-
-    float speed = (VSS.ic.frequency) * (3600.0f / VSS_PULSES_PER_KM); // 3600 for m/s to km/h
-    if (speed > (float)UINT8_MAX)
-    {
-        speed = UINT8_MAX;
-    }
-    else if (speed < 0)
-    {
-        speed = 0;
-    }
-
-    // data smoothing
-    uint16_t speed_old = VSS.Speed;
-    uint16_t speed_new = speed;
-    nECU_expSmooth(&speed_old, &speed_new, VSS_SMOOTH_ALPHA);
-
-    VSS.Speed = (uint8_t)speed_new;
-    nECU_VSS_Validate();
-}
-void nECU_VSS_Validate(void) // checks if recived signal is correct
-{
-    if (VSS_Initialized == false || VSS_Working == false) // check if initialized
-    {
-        return;
-    }
-
-    if (VSS.Speed > VSS_MAX_SPEED && VSS.overspeed_error == false) // set error
-    {
-        nECU_Debug_error_mesage temp;
-        nECU_Debug_Message_Init(&temp);
-        nECU_Debug_Message_Set(&temp, VSS.Speed, nECU_ERROR_VSS_MAX);
-        VSS.overspeed_error = true; // to spit the error only once
-    }
-    else if (VSS.Speed < VSS_MAX_SPEED && VSS.overspeed_error == true)
-    {
-        VSS.overspeed_error = false; // to spit the error only once
-    }
-    // here add zero speed detectionAle
-}
-void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim) // detect if zero km/h -- !!! to be fixed
-{
-    // float time = (TIM_CLOCK / (htim->Init.Prescaler + 1)) / (htim->Init.Period + 1);
-    // if (VSS.Speed != 0)
-    // {
-    //     VSS.watchdogCount++;
-    //     if ((VSS.watchdogCount / time) > (VSS.tim.htim->Init.Period / VSS.tim.refClock))
-    //     {
-    //         VSS.Speed = 0;
-    //     }
-    // }
-}
-void nECU_VSS_DeInit(void) // deinitialize VSS structure
-{
-    if (VSS_Initialized == true)
-    {
-        HAL_TIM_Base_Stop_IT(VSS.tim.htim);
-        HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.tim.Channel_List[0]);
-    }
-}
-/* IGF - Ignition feedback */
-void nECU_IGF_Init(void) // initialize and start
-{
-    if (IGF_Initialized == false)
-    {
-        IGF.ic.previous_CCR = 0;
-        IGF.tim.htim = &FREQ_INPUT_TIMER;
-        nECU_tim_Init_struct(&IGF.tim);
-        IGF.tim.Channel_Count = 1;
-        IGF.tim.Channel_List[0] = TIM_CHANNEL_1;
-        IGF_Initialized = true;
-    }
-    if (IGF_Working == false && IGF_Initialized == true)
-    {
-        nECU_tim_IC_start(&IGF.tim);
-        IGF_Working = true;
-    }
-}
-void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
-{
-    if (IGF_Initialized == false || IGF_Working == false) // check if initialized
-    {
-        return;
-    }
-
-    uint16_t RPM = IGF.ic.frequency * 120;
-    if (RPM > IGF_MAX_RPM)
-    {
-        return;
-    }
-
-    float rpm_rate = RPM - IGF.RPM;
-    if (rpm_rate < 0)
-    {
-        rpm_rate = -rpm_rate;
-    }
-    rpm_rate *= IGF.ic.frequency;
-    if (rpm_rate > IGF_MAX_RPM_RATE)
-    {
-        // nECU_Fault_Missfire();
-    }
-    IGF.RPM = RPM; // save current RPM
-}
-void nECU_IGF_DeInit(void) // stop
-{
-    if (IGF_Initialized == true)
-    {
-        HAL_TIM_Base_Stop_IT(IGF.tim.htim);
-        HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]);
-    }
-}
 /* GPIO inputs */
 void nECU_stock_GPIO_Init(void) // initialize structure variables
 {
@@ -387,23 +131,14 @@ bool *nECU_Immo_getPointer(void) // returns pointer to immobilizer valid
 /* General */
 void nECU_Stock_Start(void) // function to initialize all stock stuff
 {
-    nECU_MAP_Init();
-    nECU_BackPressure_Init();
     nECU_OX_Init();
-    nECU_VSS_Init();
-    nECU_IGF_Init();
 }
 void nECU_Stock_Stop(void) // function to deinitialize all stock stuff
 {
     nECU_OX_DeInit();
-    nECU_VSS_DeInit();
 }
 void nECU_Stock_Update(void) // function to update structures
 {
-    nECU_BackPressure_Update();
-    nECU_MAP_Update();
     nECU_OX_Update();
-    nECU_VSS_Update();
-    nECU_IGF_Calc();
     nECU_stock_GPIO_update();
 }

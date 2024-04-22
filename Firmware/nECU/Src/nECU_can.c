@@ -130,6 +130,7 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
     nECU_CAN_TransmitFrame(nECU_Frame_Stock);
     F2_var.timeElapsed = 0;
     nECU_mainLoop_Reset();
+    nECU_VSS_Update();
   }
 }
 void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for selected frame
