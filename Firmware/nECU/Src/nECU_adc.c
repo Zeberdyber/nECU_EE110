@@ -358,10 +358,15 @@ void nECU_ADC_AverageDMA(ADC_HandleTypeDef *hadc, uint16_t *inData, uint16_t inL
   }
   nECU_ADC_expSmooth(avgData, outData, numChannels, smoothAlpha);
 }
-void nECU_ADC_expSmooth(uint16_t *inBuf, uint16_t *outBuf, uint16_t inLength, float alpha) // exponential smoothing algorithm
+void nECU_ADC_expSmooth(uint16_t *inBuf, uint16_t *outBuf, uint16_t inLength, float alpha) // exponential smoothing algorithm for whole buffer
 {
   for (size_t i = 0; i < inLength; i++)
   {
     outBuf[i] = (inBuf[i] * alpha) + (outBuf[i] * (1 - alpha));
   }
+}
+
+void nECU_expSmooth(uint16_t *in, uint16_t *out, float alpha) // exponential smoothing algorithm
+{
+  *out = (*in * alpha) + (*out * (1 - alpha));
 }

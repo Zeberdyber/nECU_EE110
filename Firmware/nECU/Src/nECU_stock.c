@@ -239,7 +239,12 @@ void nECU_VSS_Update(void) // update VSS structure
         speed = 0;
     }
 
-    VSS.Speed = (uint8_t)speed;
+    // data smoothing
+    uint16_t speed_old = VSS.Speed;
+    uint16_t speed_new = speed;
+    nECU_expSmooth(&speed_old, &speed_new, VSS_SMOOTH_ALPHA);
+
+    VSS.Speed = (uint8_t)speed_new;
     nECU_VSS_Validate();
 }
 void nECU_VSS_Validate(void) // checks if recived signal is correct

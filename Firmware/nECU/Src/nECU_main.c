@@ -25,6 +25,8 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     nECU_Debug_Start();
 
     // OnBoard_LED_Init();
+
+    nECU_IGF_Init();
 }
 void nECU_main(void) // main rutine of the program
 {
@@ -45,6 +47,8 @@ void nECU_main(void) // main rutine of the program
 
     // OnBoard_LED_Update();
     nECU_Debug_Periodic();
+
+    nECU_IGF_Calc();
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {

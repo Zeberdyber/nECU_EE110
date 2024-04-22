@@ -255,7 +255,27 @@ void nECU_tim_Init_struct(nECU_Timer *tim) // initialize structure and precalcul
 
 void nECU_tim_IC_Callback(nECU_Timer *tim, nECU_InputCapture *ic) // callback function to calculate basic parameters
 {
-  uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(tim->htim, tim->htim->Channel);
+  uint32_t active_channel = 0;
+  switch (tim->htim->Channel) // find which channel called
+  {
+  case HAL_TIM_ACTIVE_CHANNEL_1:
+    active_channel = TIM_CHANNEL_1;
+    break;
+  case HAL_TIM_ACTIVE_CHANNEL_2:
+    active_channel = TIM_CHANNEL_2;
+    break;
+  case HAL_TIM_ACTIVE_CHANNEL_3:
+    active_channel = TIM_CHANNEL_3;
+    break;
+  case HAL_TIM_ACTIVE_CHANNEL_4:
+    active_channel = TIM_CHANNEL_4;
+    break;
+  default:
+    active_channel = TIM_CHANNEL_ALL;
+    break;
+  }
+
+  uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(tim->htim, active_channel);
 
   /* Calculate difference */
   uint16_t Difference = 0; // in miliseconds
