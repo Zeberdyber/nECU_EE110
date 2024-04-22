@@ -75,7 +75,7 @@ void nECU_systest_run(void) // run tests of type systest
         HAL_Delay(FLASH_MINIMUM_RUN_TIME);
         if (nECU_systest_Flash_UserSettings())
         {
-            // nECU_systest_error();
+            nECU_systest_error();
         }
 
         HAL_Delay(FLASH_MINIMUM_RUN_TIME);

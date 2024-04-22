@@ -9,9 +9,8 @@
             - SpeedSens:
                 > abnormal sensor
                 > data error    
-    [ ] Flash saving
-        Does not work the second time, fix it :|
-        Check return values of lock/unlock
+    [X] Flash saving
+        double saving was not working, moved to saving all data at once
     [ ] VSS filterring for stable data output - currently high ripple
         done with additional buffer, updated on CAN frame send
 
@@ -24,6 +23,7 @@ Current issues:
         [X] VSS input ripple - no tipple
         [ ] filtering of VSS (low speed correction)
         [ ] frequency readout (RPM) fix and test functions - missing level shifter?
+    [ ] user settings saving (from button menu)
 
 [ ] on road:
     [ ] OX calibration
