@@ -7,6 +7,7 @@
 
 #include "nECU_data_processing.h"
 
+/* Smoothing functions */
 void nECU_expSmooth(uint16_t *in, uint16_t *out, float alpha) // exponential smoothing algorithm
 {
     *out = (*in * alpha) + (*out * (1 - alpha));
@@ -18,7 +19,7 @@ void nECU_averageSmooth(uint16_t *Buffer, uint16_t *in, uint16_t *out, uint8_t d
     {
         Buffer[i] = Buffer[i + 1];
     }
-    Buffer[dataLen] = *in; // add new data to the buffer
+    Buffer[dataLen - 1] = *in; // add new data to the buffer
 
     uint32_t sum = 0;
     for (uint8_t i = 0; i < dataLen; i++) // sum all input data
@@ -85,7 +86,7 @@ bool nECU_expSmooth_test(void) // tests nECU_expSmooth() function
     B = 200;
     alpha = 0.8;
     nECU_expSmooth(&A, &B, alpha);
-    if (B != 220)
+    if (B != 120)
     {
         return false;
     }
@@ -97,7 +98,7 @@ bool nECU_averageSmooth_test(void) // tests nECU_averageSmooth() function
     uint8_t bufferLen = 10;
     for (uint8_t i = 0; i < 2 * 10; i += 2) // fills buffer with integers == {0,2,4,6,8,10,12,14,16,18}
     {
-        buffer[i] = i;
+        buffer[i / 2] = i;
     }
     uint16_t A, B;
     A = 0;
@@ -127,7 +128,7 @@ bool nECU_averageExpSmooth_test(void) // tests nECU_averageExpSmooth() function
     uint8_t bufferLen = 10;
     for (uint8_t i = 0; i < 2 * 10; i += 2) // fills buffer with integers == {0,2,4,6,8,10,12,14,16,18}
     {
-        buffer[i] = i;
+        buffer[i / 2] = i;
     }
     uint16_t A, B;
     float alpha = 0.5;
