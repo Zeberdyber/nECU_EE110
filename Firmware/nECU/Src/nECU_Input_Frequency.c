@@ -10,6 +10,8 @@
 // internal variables
 VSS_Handle VSS;
 IGF_Handle IGF;
+static uint16_t VSS_Smooth_buffer[VSS_SMOOTH_BUFFER_LENGTH] = {0};
+static nECU_Delay VSS_ZeroDetect;
 
 // initialized flags
 static bool VSS_Initialized = false, VSS_Working = false,
@@ -30,6 +32,8 @@ void nECU_VSS_Init(void) // initialize VSS structure
         VSS.tim.Channel_Count = 1;
         VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
         VSS_Initialized = true;
+        uint32_t zero_delay = ((VSS.tim.htim->Init.Period + 1) * (VSS.tim.period * 1000)) + 10; // time for the whole timer count up + 10ms (* 1000 for sec to ms conversion);
+        nECU_Delay_Set(&VSS_ZeroDetect, &zero_delay);
     }
     if (VSS_Working == false && VSS_Initialized == true)
     {
@@ -55,9 +59,8 @@ void nECU_VSS_Update(void) // update VSS structure
     }
 
     // data smoothing
-    uint16_t speed_old = VSS.Speed;
     uint16_t speed_new = speed;
-    nECU_expSmooth(&speed_old, &speed_new, VSS_SMOOTH_ALPHA);
+    nECU_averageExpSmooth(VSS_Smooth_buffer, (uint16_t *)&VSS.Speed, &speed_new, VSS_SMOOTH_BUFFER_LENGTH, VSS_SMOOTH_ALPHA);
 
     VSS.Speed = (uint8_t)speed_new;
     nECU_VSS_Validate();
@@ -75,25 +78,28 @@ void nECU_VSS_Validate(void) // checks if recived signal is correct
         nECU_Debug_Message_Init(&temp);
         nECU_Debug_Message_Set(&temp, VSS.Speed, nECU_ERROR_VSS_MAX);
         VSS.overspeed_error = true; // to spit the error only once
+        VSS.Speed = 0;
     }
     else if (VSS.Speed < VSS_MAX_SPEED && VSS.overspeed_error == true)
     {
         VSS.overspeed_error = false; // to spit the error only once
     }
-    // here add zero speed detectionAle
+    // zero speed detection
+    if (VSS.ic.newData == false) // drop if no new data
+    {
+        nECU_Delay_Update(&VSS_ZeroDetect);
+        if (VSS_ZeroDetect.done == true)
+        {
+            VSS.ic.frequency = 0;
+        }
+    }
+    else
+    {
+        nECU_Delay_Start(&VSS_ZeroDetect);
+        VSS.ic.newData = false;
+    }
 }
-void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim) // detect if zero km/h -- !!! to be fixed
-{
-    // float time = (TIM_CLOCK / (htim->Init.Prescaler + 1)) / (htim->Init.Period + 1);
-    // if (VSS.Speed != 0)
-    // {
-    //     VSS.watchdogCount++;
-    //     if ((VSS.watchdogCount / time) > (VSS.tim.htim->Init.Period / VSS.tim.refClock))
-    //     {
-    //         VSS.Speed = 0;
-    //     }
-    // }
-}
+
 void nECU_VSS_DeInit(void) // deinitialize VSS structure
 {
     if (VSS_Initialized == true)

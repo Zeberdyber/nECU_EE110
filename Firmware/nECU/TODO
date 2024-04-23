@@ -5,13 +5,11 @@
                 > missfire
                 > no signal
             - VSS:
-                > input ripple
+                (NO) input ripple
             - SpeedSens:
                 > abnormal sensor
-                > data error    
-    [X] Flash saving
-        double saving was not working, moved to saving all data at once
-    [ ] VSS filterring for stable data output - currently high ripple
+                > data error
+    [X] VSS filterring for stable data output - currently high ripple
         done with additional buffer, updated on CAN frame send
 
 Current issues:
@@ -21,9 +19,10 @@ Current issues:
 [ ] test:
     [ ] hardware test:
         [X] VSS input ripple - no tipple
-        [ ] filtering of VSS (low speed correction)
+        [X] filtering of VSS (low speed correction)
         [ ] frequency readout (RPM) fix and test functions - missing level shifter?
-    [ ] user settings saving (from button menu)
+    [X] user settings saving (from button menu) - working :D
+    [ ] Add pull down resistor (370R) and test IGF signal
 
 [ ] on road:
     [ ] OX calibration

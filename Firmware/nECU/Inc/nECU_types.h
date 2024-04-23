@@ -75,6 +75,7 @@ typedef struct
     uint32_t previous_CCR;    // memory of previous callback value
     uint32_t time_difference; // time in ms
     float frequency;          // of callbacks in Hz
+    bool newData;             // flag that new data have arrived
 } nECU_InputCapture;
 
 typedef struct

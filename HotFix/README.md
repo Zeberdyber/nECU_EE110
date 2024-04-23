@@ -23,3 +23,4 @@ Possible upgrades for future versions:
  - improve SNR of analog speed signal
  - UART from onboard debbuger
  - MaxxECU direct USB soldering
+ - Filtering on input lines on both IGF and VSS signals

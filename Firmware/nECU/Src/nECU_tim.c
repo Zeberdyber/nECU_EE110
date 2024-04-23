@@ -77,7 +77,7 @@ void nECU_Delay_Start(nECU_Delay *inst) // start non-blocking delay
 void nECU_Delay_Set(nECU_Delay *inst, uint32_t *delay) // preset the non-blocking delay
 {
   nECU_TickTrack_Init(&(inst->timeTrack));
-  inst->timeSet = *delay * inst->timeTrack.convFactor;
+  inst->timeSet = *delay / inst->timeTrack.convFactor;
 }
 void nECU_Delay_Update(nECU_Delay *inst) // update current state of non-blocking delay
 {
@@ -289,6 +289,7 @@ void nECU_tim_IC_Callback(nECU_Timer *tim, nECU_InputCapture *ic) // callback fu
   }
   ic->previous_CCR = CurrentCCR;
   ic->frequency = tim->refClock / Difference;
+  ic->newData = true;
 }
 
 /* Watchdog for timers detection */
