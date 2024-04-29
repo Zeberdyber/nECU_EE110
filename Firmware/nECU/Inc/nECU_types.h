@@ -404,12 +404,19 @@ typedef struct
 } AnalogSensorCalibration;
 typedef struct
 {
+    nECU_Delay delay;           // update delay structure
+    float smoothingAlpha;       // value for smoothing
+    uint16_t *smoothingBuffer;  // pointer to buffer used for smoothing
+    uint8_t smoothingBufferLen; // lenght of the smoothing buffer
+} AnalogSensorFiltering;
+typedef struct
+{
     AnalogSensorCalibration calibrationData; // calibration structure
     uint16_t *ADC_input;                     // pointer to ADC input data
-    uint16_t decimalPoint;                   // decimal point indicator to store floating point as uint16_t
     float outputFloat;                       // resulting value in float
     uint16_t output16bit;                    // resulting value in 16bit
     uint8_t output8bit;                      // resulting value in 8bit
+    AnalogSensorFiltering filter;            // filtering structure
 } AnalogSensor_Handle;
 typedef struct
 {

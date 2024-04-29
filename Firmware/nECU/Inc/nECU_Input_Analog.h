@@ -46,6 +46,11 @@ extern "C"
     uint8_t *nECU_BackPressure_GetPointer(void); // returns pointer to resulting data
     void nECU_BackPressure_Init(void);           // initialize BackPressure structure
     void nECU_BackPressure_Update(void);         // update BackPressure structure
+
+    void nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inMin, float outMax, float outMin, uint16_t *ADC_Data);                    // function to setup the structure
+    void nECU_A_Input_SetSmoothing(AnalogSensor_Handle *sensor, float alpha, uint16_t *smoothing_buffer, uint8_t buffer_length, uint16_t update_frequency); // setups filtering and smoothing
+    void nECU_A_Input_Update(AnalogSensor_Handle *sensor);                                                                                                  // update current value
+
     /* General */
     void nECU_Analog_Start(void);  // start of all analog functions
     void nECU_Analog_Stop(void);   // stop of all analog functions

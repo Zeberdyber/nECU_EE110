@@ -73,7 +73,6 @@ void nECU_MAP_Init(void) // initialize MAP structure
         MAP.calibrationData.OUT_MeasuredMax = MAP_kPA_CALIB_MAX;
         MAP.calibrationData.OUT_MeasuredMin = MAP_kPA_CALIB_MIN;
         nECU_calculateLinearCalibration(&MAP.calibrationData);
-        MAP.decimalPoint = MAP_DECIMAL_POINT;
         MAP.ADC_input = getPointer_MAP_ADC();
         MAP_Initialized = true;
     }
@@ -101,13 +100,7 @@ void nECU_BackPressure_Init(void) // initialize BackPressure structure
 {
     if (BackPressure_Initialized == false)
     {
-        BackPressure.calibrationData.ADC_MeasuredMin = BACKPRESSURE_ADC_CALIB_MIN;
-        BackPressure.calibrationData.ADC_MeasuredMax = BACKPRESSURE_ADC_CALIB_MAX;
-        BackPressure.calibrationData.OUT_MeasuredMax = BACKPRESSURE_kPA_CALIB_MAX;
-        BackPressure.calibrationData.OUT_MeasuredMin = BACKPRESSURE_kPA_CALIB_MIN;
-        nECU_calculateLinearCalibration(&BackPressure.calibrationData);
-        BackPressure.decimalPoint = BACKPRESSURE_DECIMAL_POINT;
-        BackPressure.ADC_input = getPointer_Backpressure_ADC();
+        nECU_A_Input_Init(&(BackPressure), BACKPRESSURE_ADC_CALIB_MAX, BACKPRESSURE_ADC_CALIB_MIN, BACKPRESSURE_kPA_CALIB_MAX, BACKPRESSURE_kPA_CALIB_MIN, getPointer_Backpressure_ADC());
         BackPressure_Initialized = true;
     }
     if (BackPressure_Working == false && BackPressure_Initialized == true)
@@ -122,22 +115,87 @@ void nECU_BackPressure_Update(void) // update BackPressure structure
     {
         return;
     }
-    BackPressure.outputFloat = nECU_getLinearSensor(BackPressure.ADC_input, &BackPressure.calibrationData);
+    nECU_A_Input_Update(&(BackPressure));
     BackPressure.output8bit = nECU_FloatToUint8_t(BackPressure.outputFloat, BACKPRESSURE_DECIMAL_POINT, 8);
 }
 
+/* Addtional Analog inputs sketch */
+void nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inMin, float outMax, float outMin, uint16_t *ADC_Data) // function to setup the structure
+{
+    // setup basic parameters
+    sensor->calibrationData.ADC_MeasuredMax = inMax;
+    sensor->calibrationData.ADC_MeasuredMin = inMin;
+    sensor->calibrationData.OUT_MeasuredMax = outMax;
+    sensor->calibrationData.OUT_MeasuredMin = outMin;
+    sensor->ADC_input = ADC_Data;
+    nECU_calculateLinearCalibration(&(sensor->calibrationData));
+
+    // setup filter and delay
+    sensor->filter.smoothingAlpha = 1.0;
+    sensor->filter.smoothingBufferLen = 0;
+    uint32_t start_delay = 0;
+    nECU_Delay_Set(&(sensor->filter.delay), &start_delay);
+
+    // set default values to the outputs
+    sensor->outputFloat = 0.0;
+    sensor->output8bit = 0;
+    sensor->output16bit = 0;
+}
+void nECU_A_Input_SetSmoothing(AnalogSensor_Handle *sensor, float alpha, uint16_t *smoothing_buffer, uint8_t buffer_length, uint16_t update_frequency) // setups filtering and smoothing
+{
+    if (update_frequency > 0) // set delay if requested
+    {
+        uint32_t delay = 1000 / update_frequency;
+        nECU_Delay_Set(&(sensor->filter.delay), &delay);
+        nECU_Delay_Start(&(sensor->filter.delay));
+    }
+    // copy smoothing data
+    sensor->filter.smoothingAlpha = alpha;
+    sensor->filter.smoothingBuffer = smoothing_buffer;
+    sensor->filter.smoothingBufferLen = buffer_length;
+}
+void nECU_A_Input_Update(AnalogSensor_Handle *sensor) // update current value
+{
+    uint16_t ADC_Data = sensor->output16bit; // set data as default to previous value (for filtering)
+
+    if (sensor->filter.delay.active == true) // check if delay was setup
+    {
+        nECU_Delay_Update(&(sensor->filter.delay));
+        if (sensor->filter.delay.done == true) // check if time have passed
+        {
+            nECU_Delay_Start(&(sensor->filter.delay)); // restart delay
+            // rest of the function will be done
+        }
+        else
+        {
+            return; // drop if not done
+        }
+    }
+
+    // do the filtering if needed
+    if (sensor->filter.smoothingAlpha < 1.0) // check if alpha was configured
+    {
+        nECU_expSmooth((sensor->ADC_input), &ADC_Data, sensor->filter.smoothingAlpha);
+    }
+    if (sensor->filter.smoothingBufferLen > 0) // check if buffer was configured
+    {
+        nECU_averageSmooth((sensor->filter.smoothingBuffer), &ADC_Data, &ADC_Data, (sensor->filter.smoothingBufferLen));
+    }
+
+    sensor->outputFloat = nECU_getLinearSensor(&ADC_Data, &(sensor->calibrationData));
+    sensor->output16bit = (uint16_t)sensor->outputFloat;
+    sensor->output8bit = (uint8_t)sensor->outputFloat;
+}
 /* General */
 void nECU_Analog_Start(void) // start of all analog functions
 {
     nECU_MAP_Init();
     nECU_BackPressure_Init();
 }
-
 void nECU_Analog_Stop(void) // stop of all analog functions
 {
     UNUSED(false);
 }
-
 void nECU_Analog_Update(void) // update to all analog functions
 {
     nECU_MAP_Update();

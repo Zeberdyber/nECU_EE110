@@ -30,7 +30,6 @@ void nECU_OX_Init(void) // initialize narrowband lambda structure
         OX.sensor.calibrationData.OUT_MeasuredMax = OXYGEN_VOLTAGE_MAX;
         OX.sensor.calibrationData.OUT_MeasuredMin = OXYGEN_VOLTAGE_MIN;
         nECU_calculateLinearCalibration(&OX.sensor.calibrationData);
-        OX.sensor.decimalPoint = OXYGEN_DECIMAL_POINT;
         OX.sensor.ADC_input = getPointer_OX_ADC();
         /* Heater */
         // timer configuration
@@ -64,7 +63,7 @@ void nECU_OX_Update(void) // update narrowband lambda structure
     }
 
     OX.sensor.outputFloat = nECU_getLinearSensor(OX.sensor.ADC_input, &OX.sensor.calibrationData);
-    OX.sensor.output8bit = nECU_FloatToUint8_t(OX.sensor.outputFloat, OX.sensor.decimalPoint, 8);
+    OX.sensor.output8bit = nECU_FloatToUint8_t(OX.sensor.outputFloat, OXYGEN_DECIMAL_POINT, 8);
 
     /* Output update */
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */

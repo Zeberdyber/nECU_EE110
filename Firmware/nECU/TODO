@@ -4,24 +4,18 @@
             - igf:
                 > missfire
                 > no signal
-            - VSS:
-                (NO) input ripple
             - SpeedSens:
                 > abnormal sensor
                 > data error
-    [X] VSS filterring for stable data output - currently high ripple
-        done with additional buffer, updated on CAN frame send
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected
-    VSS output signal is about right although very messy
+    no VSS signal comming to ECU nor maxxecu (after 1k pulldown added), same as IGF, works on bench, does not on car
+    ST-Link not detected after corresponding STM32 was switched to 128kB version (error of USB device detection in Windows)
 
 [ ] test:
     [ ] hardware test:
-        [X] VSS input ripple - no tipple
-        [X] filtering of VSS (low speed correction)
         [ ] frequency readout (RPM) fix and test functions - missing level shifter?
-    [X] user settings saving (from button menu) - working :D
     [ ] Add pull down resistor (370R) and test IGF signal
 
 [ ] on road:
