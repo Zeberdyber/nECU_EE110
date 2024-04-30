@@ -11,12 +11,18 @@ nECU_Knock Knock = {0};
 extern IGF_Handle IGF;
 
 static bool Knock_Initialized = false, Knock_Working = false;
+static bool Knock_UART_Transmission = false;
+static nECU_UART knock_uart;
+static uint8_t UART_data_buffer[512];
 
 /* Knock detection */
 void nECU_Knock_Init(void) // initialize and start
 {
     if (Knock_Initialized == false)
     {
+        // UART
+        nECU_UART_Init(&knock_uart, &PC_UART, UART_data_buffer);
+
         Knock.RetardPerc = 0; // initial value
         Knock.LevelWaiting = false;
         Knock.CycleDoneFlag = nECU_Knock_Delay_DoneFlag();
@@ -140,4 +146,16 @@ void nECU_Knock_DeInit(void) // stop
 uint8_t *nECU_Knock_GetPointer(void) // returns pointer to knock retard percentage
 {
     return &Knock.RetardOut;
+}
+nECU_UART *nECU_Knock_UART_Pointer(void) // returns pointer to Tx UART object
+{
+    return &knock_uart;
+}
+bool *nECU_Knock_Transmission_Flag(void) // returns ponter to Tx UART transmission flag
+{
+    return &Knock_UART_Transmission;
+}
+void nECU_Knock_Send_UART(uint16_t *ADC_data) // sends RAW ADC data over UART
+{
+    nECU_UART_SendKnock(ADC_data, &knock_uart);
 }

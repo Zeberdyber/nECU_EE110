@@ -560,13 +560,13 @@ typedef struct
     nECU_Debug_error_que error_que;        // que of active error messages
 } nECU_Debug;
 
-// enum device
-// {
-//     MAIN_CPU = 1,
-//     EGT_IC_CYL1 = 2,
-//     EGT_IC_CYL2 = 3,
-//     EGT_IC_CYL3 = 4,
-//     EGT_IC_CYL4 = 5,
-//     DEVICE_NONE = 0
-// };
+/* UART */
+typedef struct
+{
+    UART_HandleTypeDef *huart;
+    uint8_t *message;
+    uint8_t length;
+    bool pending;
+} nECU_UART;
+
 #endif // _nECU_types_H_

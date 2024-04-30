@@ -10,21 +10,19 @@
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected
-    no VSS signal comming to ECU nor maxxecu (after 1k pulldown added), same as IGF, works on bench, does not on car
-    ST-Link not detected after corresponding STM32 was switched to 128kB version (error of USB device detection in Windows)
 
 [ ] test:
     [ ] hardware test:
         [ ] frequency readout (RPM) fix and test functions - missing level shifter?
-    [ ] Add pull down resistor (370R) and test IGF signal
+    [X] Add pull down resistor (370R) and test IGF signal did not help
 
 [ ] on road:
     [ ] OX calibration
-    [ ] VSS calibration
+    [X] VSS calibration
     
 [ ] scheduled:
     [ ] Immobilizer communication
-    [ ] Onboard UART
+    [X] Onboard UART (tested with speeds up to 921600)
     [ ] External AI (analog input) in code integration with proper scaling settings
     [ ] watchdogs
 
@@ -41,8 +39,6 @@ Current issues:
     [ ] Immo communication
     [ ] Oil pressure analog input
 
-[X] Tests on bench:
-    [X] IGF interrupts
-    [X] IGF calculation
-    [X] VSS interrupts
-    [X] VSS calculation
+[ ] Known bugs:
+    [ ] ocassional VSS speed readout incorrect (will last for maximum of 1s)
+        Happened once so far when slowing down slowly at speed around 12km/h readout bumped to 45km/s for a 600ms period

@@ -125,7 +125,7 @@ void ADC3_START(void)
 {
   if (ADC3_Initialized == false)
   {
-    adc3_data.UART_transmission = nECU_UART_KnockTx();
+    adc3_data.UART_transmission = nECU_Knock_Transmission_Flag();
     adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
     ADC3_Initialized = true;
   }
@@ -227,11 +227,7 @@ void nECU_ADC3_Routine(void)
     adc3_data.status.callback_half = false; // clear flag
     if (*adc3_data.UART_transmission == true)
     {
-#if TEST_UART == 1
-      Send_Triangle_UART();
-      return;
-#endif
-      nECU_UART_SendKnock(&adc3_data.in_buffer[0]);
+      nECU_Knock_Send_UART(&adc3_data.in_buffer[0]);
     }
     nECU_Knock_ADC_Callback(&adc3_data.in_buffer[0]);
   }
@@ -240,14 +236,14 @@ void nECU_ADC3_Routine(void)
     adc3_data.status.callback_full = false; // clear flag
     if (*adc3_data.UART_transmission == true)
     {
-#if TEST_UART == 1
-      Send_Triangle_UART();
-      return;
-#endif
-      nECU_UART_SendKnock(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
+      nECU_Knock_Send_UART(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
     }
     nECU_Knock_ADC_Callback(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
   }
+#if TEST_KNOCK_UART == true
+  Send_Triangle_UART();
+  return;
+#endif
 }
 
 /* pointer get functions */
