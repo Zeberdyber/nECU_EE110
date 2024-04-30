@@ -13,12 +13,17 @@ extern "C"
 #endif
 
     /* Includes */
+#include "main.h"
+#include "usart.h"
+#include "stdio.h"
+#include "stdbool.h"
 
     /* Definitions */
 
     /* typedef */
 
     /* Function Prototypes */
+    void test_uart(void);
 
 #ifdef __cplusplus
 }

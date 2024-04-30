@@ -8,13 +8,14 @@
 #include "nECU_UART.h"
 
 /* UART peripheral definition */
-extern UART_HandleTypeDef huart1;
-#define PC_UART &huart1
+extern UART_HandleTypeDef huart3;
+#define PC_UART &huart3
 
 /* Flow control bits */
 uint8_t Rx_buffer[1];
 bool Knock_UART_Transmission = false;
 bool DMA_Done = true;
+extern bool pc_transmit;
 
 /* UART Tx Buffer for knock RAW data */
 uint8_t knock_UART_buffer[UART_KNOCK_LEN_BYTES];
@@ -181,15 +182,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) // Rx completed
 /* nECU control while UART Tx active*/
 void nECU_UART_Tx_Start_Routine(void) // prepare nECU to be able to transmit
 {
-    nECU_Stop();
-    ADC3_START();
-    nECU_UART_RXStartPC();
-    Knock_UART_Transmission = true;
+    pc_transmit = true;
+    // nECU_Stop();
+    // ADC3_START();
+    // nECU_UART_RXStartPC();
+    // Knock_UART_Transmission = true;
 }
 void nECU_UART_Tx_Stop_Routine(void) // return back to regular execution
 {
-    nECU_Start();
-    Knock_UART_Transmission = false;
+    pc_transmit = false;
+    // nECU_Start();
+    // Knock_UART_Transmission = false;
 }
 bool *nECU_UART_KnockTx(void) // return pointer to knock tx flag
 {

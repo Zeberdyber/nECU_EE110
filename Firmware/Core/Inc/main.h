@@ -107,6 +107,10 @@ void Error_Handler(void);
 #define IMI_GPIO_Port GPIOA
 #define OX_PWM_Pin GPIO_PIN_15
 #define OX_PWM_GPIO_Port GPIOA
+#define PC_TX_Pin GPIO_PIN_10
+#define PC_TX_GPIO_Port GPIOC
+#define PC_RX_Pin GPIO_PIN_11
+#define PC_RX_GPIO_Port GPIOC
 #define T4_CS_Pin GPIO_PIN_3
 #define T4_CS_GPIO_Port GPIOD
 #define T3_CS_Pin GPIO_PIN_4
