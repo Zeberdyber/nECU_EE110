@@ -7,19 +7,41 @@
 
 #include "nECU_tests.h"
 
-/* general */
-void nECU_tests_error_display(OnBoardLED *inst) // on board LEDs display
+static OnBoardLED_Animate test_fail_animation;
+static bool Indicator_Initialized = false;
+
+/* Fail indication */
+void nECU_tests_fail_init(void) // initializes indicator structure
 {
-    nECU_LED_SetState(inst, GPIO_PIN_RESET);
-    do
+    if (Indicator_Initialized == false)
     {
-        for (uint8_t count = 0; count < ERROR_BLINK_TIMES * 2; count++)
-        {
-            HAL_Delay(ERROR_BLINK_SPEED);
-            nECU_LED_FlipState(inst);
-        }
-    } while (ERROR_HALT);
-    nECU_LED_SetState(inst, GPIO_PIN_RESET);
+        OnBoard_LED_Animation_Init(&test_fail_animation, LED_ANIMATE_TEST_ID);
+        OnBoard_LED_L_Add_Animation(&test_fail_animation);
+        Indicator_Initialized = true;
+    }
+}
+void nECU_tests_fail_deinit(void) // deinitializes indicator structure
+{
+    if (Indicator_Initialized == true)
+    {
+        OnBoard_LED_L_Remove_Animation(&test_fail_animation);
+        Indicator_Initialized = false;
+    }
+}
+void nECU_tests_error_display(void) // on board LEDs display
+{
+    nECU_tests_fail_init();
+    OnBoard_LED_Animation_BlinkStart(&test_fail_animation, ERROR_BLINK_SPEED, ERROR_BLINK_TIMES);
+    while (test_fail_animation.blink_active == true)
+    {
+        HAL_Delay(1);
+        OnBoard_LED_Update(); // keep on updating the LEDs
+    }
+    while (ERROR_HALT)
+    {
+        HAL_Delay(UINT32_MAX); // stop execition
+    }
+    nECU_tests_fail_deinit();
 }
 
 /* system tests */
@@ -87,7 +109,7 @@ void nECU_systest_run(void) // run tests of type systest
 }
 void nECU_systest_error(void) // function to call when error detected
 {
-    nECU_tests_error_display(&SYSTEST_INDICATOR);
+    nECU_tests_error_display();
 }
 
 /* code tests */
@@ -224,7 +246,7 @@ void nECU_codetest_run(void) // run tests of type codetest
 }
 void nECU_codetest_error(void) // function to call when error detected
 {
-    nECU_tests_error_display(&CODETEST_INDICATOR);
+    nECU_tests_error_display();
 }
 
 /* temporary tests */

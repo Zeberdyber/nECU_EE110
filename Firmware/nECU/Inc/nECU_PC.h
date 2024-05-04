@@ -14,11 +14,13 @@ extern "C"
 
     /* Includes */
 #include "main.h"
-#include "usart.h"
 #include "stdio.h"
 #include "stdbool.h"
+#include "nECU_types.h"
+#include "nECU_UART.h"
 
-    /* Definitions */
+/* Definitions */
+#define PC_INDICATOR_SPEED 5 // how fast will LED blink in Hz
 
     /* typedef */
 

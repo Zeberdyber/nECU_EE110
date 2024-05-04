@@ -7,6 +7,10 @@
             - SpeedSens:
                 > abnormal sensor
                 > data error
+    [ ] UART
+        [ ] trafic indication
+        [ ] debug data send
+        [ ] sensor data send (variable tracing)
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected
@@ -14,15 +18,12 @@ Current issues:
 [ ] test:
     [ ] hardware test:
         [ ] frequency readout (RPM) fix and test functions - missing level shifter?
-    [X] Add pull down resistor (370R) and test IGF signal did not help
 
 [ ] on road:
     [ ] OX calibration
-    [X] VSS calibration
     
 [ ] scheduled:
     [ ] Immobilizer communication
-    [X] Onboard UART (tested with speeds up to 921600)
     [ ] External AI (analog input) in code integration with proper scaling settings
     [ ] watchdogs
 

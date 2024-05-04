@@ -139,8 +139,7 @@ HAL_StatusTypeDef nECU_UART_Tx(nECU_UART *obj) // sends the packet if possible
         return HAL_ERROR;
     }
 
-    HAL_UART_StateTypeDef state = HAL_UART_GetState(obj->huart); // gets current state of the peripheral
-    if (state & 0x5 && state > HAL_UART_STATE_RESET)             // checks 0 and 2 bit which indicate: HAL_UART_STATE_BUSY, HAL_UART_STATE_BUSY_TX, HAL_UART_STATE_BUSY_TX_RX
+    if (nECU_UART_Tx_Busy(obj) == true)
     {
         return HAL_BUSY; // breaks function if not possible to send
     }
@@ -167,8 +166,7 @@ HAL_StatusTypeDef nECU_UART_Rx(nECU_UART *obj) // starts the recive on UART
         return HAL_ERROR;
     }
 
-    HAL_UART_StateTypeDef state = HAL_UART_GetState(obj->huart); // gets current state of the peripheral
-    if (state & 0x5 && state > HAL_UART_STATE_RESET)             // checks 0 and 2 bit which indicate: HAL_UART_STATE_BUSY, HAL_UART_STATE_BUSY_TX, HAL_UART_STATE_BUSY_TX_RX
+    if (nECU_UART_Rx_Busy(obj) == true)
     {
         return HAL_BUSY; // breaks function if not possible to send
     }
@@ -186,17 +184,35 @@ HAL_StatusTypeDef nECU_UART_Tx_Abort(nECU_UART *obj) // stops Tx transmission
 {
     obj->pending = false;
     obj->length = 0;
-    return HAL_UART_AbortTransmit_IT(&(obj->huart));
+    return HAL_UART_AbortTransmit_IT((obj->huart));
 }
 HAL_StatusTypeDef nECU_UART_Rx_Abort(nECU_UART *obj) // stops Rx transmission
 {
     obj->pending = false;
     obj->length = 0;
-    return HAL_UART_AbortReceive_IT(&(obj->huart));
+    return HAL_UART_AbortReceive_IT((obj->huart));
 }
 bool *nECU_UART_Pending_Flag(nECU_UART *obj) // returns pending flag pointer
 {
     return &(obj->pending);
+}
+bool nECU_UART_Tx_Busy(nECU_UART *obj) // returns if Tx is busy
+{
+    HAL_UART_StateTypeDef state = HAL_UART_GetState(obj->huart); // gets current state of the peripheral
+    if ((state & 0x5) && (state > HAL_UART_STATE_RESET))         // checks 2 bit which indicate: HAL_UART_STATE_BUSY_TX, HAL_UART_STATE_BUSY_TX_RX
+    {
+        return true;
+    }
+    return false;
+}
+bool nECU_UART_Rx_Busy(nECU_UART *obj) // returns if Rx is busy
+{
+    HAL_UART_StateTypeDef state = HAL_UART_GetState(obj->huart); // gets current state of the peripheral
+    if ((state & 0x4) && (state > HAL_UART_STATE_RESET))         // checks 1 bit which indicate: HAL_UART_STATE_BUSY_RX, HAL_UART_STATE_BUSY_TX_RX
+    {
+        return true;
+    }
+    return false;
 }
 
 /* Callbacks */

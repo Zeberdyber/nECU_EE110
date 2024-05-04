@@ -37,7 +37,10 @@
 #define KNOCK_DMA_LEN 512     // length of DMA buffer for KNOCK_ADC
 #define FFT_LENGTH 2048       // length of data passed to FFT code and result precision
 
-#define DEBUG_QUE_LEN 50 // number of debug messages that will be stored in memory
+#define PC_UART_BUF_LEN 128 // length of buffer for UART transmission to PC
+
+#define DEBUG_QUE_LEN 50                // number of debug messages that will be stored in memory
+#define ONBOARD_LED_ANIMATION_QUE_LEN 5 // number of animation access points
 
 union FloatToBytes
 {
@@ -187,11 +190,27 @@ typedef struct
 } Button;
 
 /* Debug */
+typedef enum
+{
+    LED_ANIMATE_TEST_ID = 3,
+    LED_ANIMATE_ERROR_ID = 2,
+    LED_ANIMATE_UART_ID = 1,
+    LED_ANIMATE_NONE_ID
+} OnBoardLED_Animate_ID;
 typedef struct
 {
-    GPIO_struct LEDPin;       // pin of the LED structure
-    nECU_Delay delay;         // delay structure for non-blocking blinking
-    bool blinking, blinkPrev; // ON/OFF for blinking animation
+    GPIO_PinState state;            // state to be displayed
+    nECU_Delay blink_delay;         // delay structure for non-blocking blinking
+    bool blink_active;              // ON/OFF for blinking animation
+    uint8_t blink_count;            // number of blinks to do
+    OnBoardLED_Animate_ID priority; // ID determines which animation will be used for the output
+} OnBoardLED_Animate;
+typedef struct
+{
+    GPIO_struct LEDPin;                                     // pin of the LED structure
+    OnBoardLED_Animate *Animation;                          // variables used to determine what should be shown
+    OnBoardLED_Animate *Que[ONBOARD_LED_ANIMATION_QUE_LEN]; // que for animations (if multiple want to access)
+    uint8_t Que_len;                                        // number of animations in que
 } OnBoardLED;
 typedef struct
 {
@@ -470,6 +489,26 @@ typedef struct
     nECU_TickTrack timeTrack; // used to track time between clears
 } nECU_tim_Watchdog;
 
+/* UART */
+typedef struct
+{
+    UART_HandleTypeDef *huart;
+    uint8_t *message;
+    uint8_t length;
+    bool pending;
+} nECU_UART;
+
+/* PC */
+typedef struct
+{
+    nECU_UART output;
+    nECU_UART input;
+    uint8_t out_buf[PC_UART_BUF_LEN];
+    uint8_t in_buf[PC_UART_BUF_LEN];
+    OnBoardLED Tx_LED;
+    OnBoardLED Rx_LED;
+} nECU_PC;
+
 /* Debug develop */
 typedef enum
 {
@@ -530,13 +569,11 @@ typedef struct
     float value_at_flag; // value that coused flag
     nECU_Error_ID ID;    // ID of error
 } nECU_Debug_error_mesage;
-
 typedef struct
 {
     int16_t *MCU;       // internal temperature of MCU
     int16_t *EGT_IC[4]; // internal temperature of EGT ICs
 } nECU_Debug_IC_temp;   // error due to over/under temperature of ICs
-
 typedef struct
 {
     EGT_Error_Code *EGT_IC[4]; // error code from recived frame
@@ -551,7 +588,6 @@ typedef struct
     Counter counter;                                 // counter to track position of newest message
     uint16_t message_count;                          // count of messages in the que
 } nECU_Debug_error_que;
-
 typedef struct
 {
     nECU_Debug_EGT_Comm egt_communication; // error got from communication with EGT IC
@@ -559,14 +595,5 @@ typedef struct
     nECU_Debug_IC_temp device_temperature; // error due to over/under temperature of ICs
     nECU_Debug_error_que error_que;        // que of active error messages
 } nECU_Debug;
-
-/* UART */
-typedef struct
-{
-    UART_HandleTypeDef *huart;
-    uint8_t *message;
-    uint8_t length;
-    bool pending;
-} nECU_UART;
 
 #endif // _nECU_types_H_

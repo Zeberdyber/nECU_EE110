@@ -8,98 +8,12 @@
 
 #include "nECU_debug.h"
 
-OnBoardLED LED_L, LED_R;
 static nECU_Debug dbg_data;
 static nECU_LoopCounter main_loop;
 
-static bool LED_Initialized = false,
-            mainLoop_Initialized = false,
+static bool mainLoop_Initialized = false,
             debug_Initialized = false, debug_Working = false,
             debug_que_Initialized = false;
-
-/* On board LEDs */
-void OnBoard_LED_Init(void) // initialize structures for on board LEDs
-{
-    if (LED_Initialized == false)
-    {
-        uint32_t delay = (ONBOARD_LED_MS_PER_BLINK / 2);
-        /* Left LED */
-        LED_L.LEDPin.GPIO_Pin = LED1_Pin;
-        LED_L.LEDPin.GPIOx = LED1_GPIO_Port;
-        nECU_Delay_Set(&LED_L.delay, &delay);
-        LED_L.blinkPrev = false;
-
-        /* Right LED */
-        LED_R.LEDPin.GPIO_Pin = LED2_Pin;
-        LED_R.LEDPin.GPIOx = LED2_GPIO_Port;
-        nECU_Delay_Set(&LED_R.delay, &delay);
-        LED_R.blinkPrev = false;
-
-        LED_Initialized = true;
-    }
-}
-void OnBoard_LED_UpdateSingle(OnBoardLED *inst) // function to perform logic behind blinking times and update to GPIO
-{
-    if (LED_Initialized == false)
-    {
-        return;
-    }
-    nECU_Delay_Update(&inst->delay);
-    if (inst->blinking == true)
-    {
-        if (inst->blinkPrev == false) // for first startup
-        {
-            inst->blinkPrev = true;
-            nECU_Delay_Start(&inst->delay);
-        }
-        else if (inst->delay.done)
-        {
-
-            inst->LEDPin.State = !inst->LEDPin.State;
-            nECU_Delay_Start(&inst->delay);
-        }
-    }
-    else if (inst->blinkPrev == true) // stop blink
-    {
-        inst->blinkPrev = false;
-        nECU_Delay_Stop(&inst->delay);
-    }
-    HAL_GPIO_WritePin(inst->LEDPin.GPIOx, inst->LEDPin.GPIO_Pin, inst->LEDPin.State);
-}
-void OnBoard_LED_Update(void) // update on board LEDs states
-{
-    if (LED_Initialized == false)
-    {
-        return;
-    }
-
-    // LED_L.LEDPin.State = nECU_CAN_GetError();
-    // LED_L.blinking = nECU_CAN_GetState();
-    LED_L.blinking = true;
-    OnBoard_LED_UpdateSingle(&LED_L);
-
-    LED_R.LEDPin.State = nECU_SPI_getError(&SPI_PERIPHERAL_EGT);
-    LED_R.blinking = nECU_SPI_getBusy(&SPI_PERIPHERAL_EGT);
-    OnBoard_LED_UpdateSingle(&LED_R);
-}
-void nECU_LED_FlipState(OnBoardLED *inst) // simple function for debugging code
-{
-    if (LED_Initialized == false)
-    {
-        return;
-    }
-
-    HAL_GPIO_TogglePin(inst->LEDPin.GPIOx, inst->LEDPin.GPIO_Pin);
-}
-void nECU_LED_SetState(OnBoardLED *inst, GPIO_PinState state) // set state to selected LED
-{
-    if (LED_Initialized == false)
-    {
-        return;
-    }
-    inst->LEDPin.State = state;
-    HAL_GPIO_WritePin(inst->LEDPin.GPIOx, inst->LEDPin.GPIO_Pin, inst->LEDPin.State);
-}
 
 /* Used to track how many times main loop is done between CAN frames */
 void nECU_mainLoop_Init(void)

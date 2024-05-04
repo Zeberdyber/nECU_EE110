@@ -48,6 +48,8 @@ extern "C"
     HAL_StatusTypeDef nECU_UART_Tx_Abort(nECU_UART *obj);                            // stops Tx transmission
     HAL_StatusTypeDef nECU_UART_Rx_Abort(nECU_UART *obj);                            // stops Rx transmission
     bool *nECU_UART_Pending_Flag(nECU_UART *obj);                                    // returns pending flag pointer
+    bool nECU_UART_Tx_Busy(nECU_UART *obj);                                          // returns if Tx is busy
+    bool nECU_UART_Rx_Busy(nECU_UART *obj);                                          // returns if Rx is busy
     /* Callbacks */
     void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart); // Rx completed
     void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart); // Tx completed

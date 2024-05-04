@@ -26,20 +26,18 @@ extern "C"
 #include "nECU_debug.h"
 #include "nECU_adc.h"
 
-    extern OnBoardLED LED_L, LED_R;
-
 /* Definitions */
-#define SYSTEST_INDICATOR LED_L  // indicator for systests
-#define SYSTEST_DO_FLASH true    // choose to do flas tests !they will delete any saved data!
-#define CODETEST_INDICATOR LED_R // indicator for systests
+#define SYSTEST_DO_FLASH true // choose to do flas tests !they will delete any saved data!
 
 #define ERROR_HALT true       // should program stop on error
 #define ERROR_BLINK_TIMES 5   // number of blinks when error is detected
 #define ERROR_BLINK_SPEED 250 // delay time in ms
 
     /* Function Prototypes */
-    /* general */
-    void nECU_tests_error_display(OnBoardLED *inst); // on board LEDs display
+    /* Fail indication */
+    void nECU_tests_fail_init(void);     // initializes indicator structure
+    void nECU_tests_fail_deinit(void);   // deinitializes indicator structure
+    void nECU_tests_error_display(void); // on board LEDs display
 
     /* system tests */
     bool nECU_systest_Flash_SpeedCalibration(void); // test both read and write to flash memory

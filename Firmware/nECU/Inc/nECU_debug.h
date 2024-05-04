@@ -19,20 +19,11 @@ extern "C"
 #include "nECU_spi.h"
 
 /* Definitions */
-#define ONBOARD_LED_MS_PER_BLINK 1000 // number of miliseconds for full blink
-
 #define DEVICE_TEMPERATURE_MAX 55  // in deg C
 #define DEVICE_TEMPERATURE_MIN -20 // in deg C
 #define TC_TEMPERATURE_MAX 1000    // in deg C
 
 #define BENCH_MODE true // set true if not connected to car harness
-
-    /* On board LED */
-    void OnBoard_LED_Init(void);                                   // initialize structures for on board LEDs
-    void OnBoard_LED_UpdateSingle(OnBoardLED *inst);               // function to perform logic behind blinking times and update to GPIO
-    void OnBoard_LED_Update(void);                                 // update on board LEDs states
-    void nECU_LED_FlipState(OnBoardLED *inst);                     // simple function for debugging code
-    void nECU_LED_SetState(OnBoardLED *inst, GPIO_PinState state); // set state to selected LED
 
     void nECU_mainLoop_Init(void);
     void nECU_mainLoop_Update(void);

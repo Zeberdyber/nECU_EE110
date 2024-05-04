@@ -22,6 +22,7 @@
 #include "nECU_Knock.h"
 #include "nECU_main.h"
 #include "nECU_menu.h"
+#include "nECU_OnBoardLED.h"
 #include "nECU_PC.h"
 #include "nECU_Speed.h"
 #include "nECU_spi.h"
