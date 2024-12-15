@@ -73,6 +73,7 @@ Time ADC1 {/8, 12bit, 8 channels, 480 cycles each}
   uint16_t *getPointer_OX_ADC(void);
   uint16_t *getPointer_InternalTemp_ADC(void);
   uint16_t *getPointer_SpeedSens_ADC(Speed_Sensor_ID ID);
+  uint16_t *getPointer_AnalogInput(nECU_AnalogNumber ID);
 
   /* Conversion functions */
   float ADCToVolts(uint16_t ADCValue);

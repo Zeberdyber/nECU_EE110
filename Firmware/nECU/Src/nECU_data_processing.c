@@ -8,9 +8,9 @@
 #include "nECU_data_processing.h"
 
 /* Smoothing functions */
-void nECU_expSmooth(uint16_t *in, uint16_t *out, float alpha) // exponential smoothing algorithm
+void nECU_expSmooth(uint16_t *in, uint16_t *in_previous, uint16_t *out, float alpha) // exponential smoothing algorithm
 {
-    *out = (*in * alpha) + (*out * (1 - alpha));
+    *out = (*in * alpha) + (*in_previous * (1 - alpha));
 }
 void nECU_averageSmooth(uint16_t *Buffer, uint16_t *in, uint16_t *out, uint8_t dataLen) // averages whole buffer and adds to the input buffer (FIFO, moving average)
 {
@@ -32,7 +32,7 @@ void nECU_averageSmooth(uint16_t *Buffer, uint16_t *in, uint16_t *out, uint8_t d
 void nECU_averageExpSmooth(uint16_t *Buffer, uint16_t *in, uint16_t *out, uint8_t dataLen, float alpha) // exponential smoothing before averaging
 {
     uint16_t exp_out = *out;
-    nECU_expSmooth(in, &exp_out, alpha);
+    nECU_expSmooth(in, &exp_out, &exp_out, alpha);
     nECU_averageSmooth(Buffer, &exp_out, out, dataLen);
 }
 
@@ -61,7 +61,7 @@ bool nECU_expSmooth_test(void) // tests nECU_expSmooth() function
     A = 100;
     B = 0;
     alpha = 0.5;
-    nECU_expSmooth(&A, &B, alpha);
+    nECU_expSmooth(&A, &B, &B, alpha);
     if (B != 50)
     {
         return false;
@@ -69,7 +69,7 @@ bool nECU_expSmooth_test(void) // tests nECU_expSmooth() function
     A = 0;
     B = 100;
     alpha = 0.5;
-    nECU_expSmooth(&A, &B, alpha);
+    nECU_expSmooth(&A, &B, &B, alpha);
     if (B != 50)
     {
         return false;
@@ -77,7 +77,7 @@ bool nECU_expSmooth_test(void) // tests nECU_expSmooth() function
     A = 100;
     B = 200;
     alpha = 0.2;
-    nECU_expSmooth(&A, &B, alpha);
+    nECU_expSmooth(&A, &B, &B, alpha);
     if (B != 180)
     {
         return false;
@@ -85,7 +85,7 @@ bool nECU_expSmooth_test(void) // tests nECU_expSmooth() function
     A = 100;
     B = 200;
     alpha = 0.8;
-    nECU_expSmooth(&A, &B, alpha);
+    nECU_expSmooth(&A, &B, &B, alpha);
     if (B != 120)
     {
         return false;

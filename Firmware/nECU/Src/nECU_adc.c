@@ -91,9 +91,13 @@ void ADC1_START(void)
 {
   if (ADC1_Initialized == false)
   {
-    &adc1_data.out_buffer[3]; // add in future Analog input support
-    &adc1_data.out_buffer[4]; // add in future Analog input support
-    &adc1_data.out_buffer[5]; // add in future Analog input support
+    &adc1_data.out_buffer[0]; // Stock MAP sensor data
+    &adc1_data.out_buffer[1]; // Backpressure sensor data [spare]
+    &adc1_data.out_buffer[2]; // OX sensor data [spare]
+    &adc1_data.out_buffer[3]; // ANALOG_IN_1 input data [spare]
+    &adc1_data.out_buffer[4]; // ANALOG_IN_2 input data [spare]
+    &adc1_data.out_buffer[5]; // ANALOG_IN_3 input data [spare]
+    &adc1_data.out_buffer[6]; // Internal_temperature data
     &adc1_data.out_buffer[7]; // VREF data
     ADC1_Initialized = true;
   }
@@ -110,6 +114,10 @@ void ADC2_START(void)
 {
   if (ADC2_Initialized == false)
   {
+    &adc2_data.out_buffer[0]; // Speed sensor 1
+    &adc2_data.out_buffer[1]; // Speed sensor 2
+    &adc2_data.out_buffer[2]; // Speed sensor 3
+    &adc2_data.out_buffer[3]; // Speed sensor 4
     ADC2_Initialized = true;
   }
   if (ADC2_Working == false)
@@ -265,7 +273,19 @@ uint16_t *getPointer_InternalTemp_ADC(void)
 }
 uint16_t *getPointer_SpeedSens_ADC(Speed_Sensor_ID ID)
 {
+  if (ID = SPEED_SENSOR_NONE_ID)
+  {
+    return &adc2_data.out_buffer[0];
+  }
   return &adc2_data.out_buffer[0 + ID];
+}
+uint16_t *getPointer_AnalogInput(nECU_AnalogNumber ID)
+{
+  if (ID = ANALOG_IN_NONE)
+  {
+    return &adc1_data.out_buffer[3];
+  }
+  return &adc1_data.out_buffer[3 + ID];
 }
 
 /* Conversion functions */

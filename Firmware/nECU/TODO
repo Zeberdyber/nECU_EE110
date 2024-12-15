@@ -1,6 +1,7 @@
 [ ] develop:
     [ ] System diagnostics
         Show all running components, lookup all data, prepare for UART diagnostics
+        [ ] Initialized/Working to be standardized
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
             - igf:
@@ -27,7 +28,7 @@ Current issues:
     
 [ ] scheduled:
     [ ] Immobilizer communication
-    [ ] External AI (analog input) in code integration with proper scaling settings
+    [X] External AI (analog input) in code integration with proper scaling settings
     [ ] watchdogs
 
 [ ] optimization:

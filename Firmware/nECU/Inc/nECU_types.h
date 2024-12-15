@@ -332,6 +332,38 @@ typedef struct
     uint32_t *loop_count;
 } Frame2_struct;
 
+/* Input Analog */
+typedef enum
+{
+    ANALOG_IN_1 = 0,
+    ANALOG_IN_2 = 1,
+    ANALOG_IN_3 = 2,
+    ANALOG_IN_NONE
+} nECU_AnalogNumber;
+typedef struct
+{
+    uint16_t ADC_MeasuredMax, ADC_MeasuredMin; // limits of ADC readout
+    float OUT_MeasuredMax, OUT_MeasuredMin;    // limits of resulting output
+    float offset, factor;                      // offset that is added to result, factor by which output is multiplied
+} AnalogSensorCalibration;
+typedef struct
+{
+    nECU_Delay delay;           // update delay structure
+    float smoothingAlpha;       // value for smoothing
+    uint16_t previous_ADC_Data; // value from previous run
+    uint16_t *smoothingBuffer;  // pointer to buffer used for smoothing
+    uint8_t smoothingBufferLen; // lenght of the smoothing buffer
+} AnalogSensorFiltering;
+typedef struct
+{
+    AnalogSensorCalibration calibrationData; // calibration structure
+    uint16_t *ADC_input;                     // pointer to ADC input data
+    float outputFloat;                       // resulting value in float
+    uint16_t output16bit;                    // resulting value in 16bit
+    uint8_t output8bit;                      // resulting value in 8bit
+    AnalogSensorFiltering filter;            // filtering structure
+} AnalogSensor_Handle;
+
 /* Knock */
 typedef struct
 {
@@ -387,10 +419,10 @@ typedef struct
 /* Speed */
 typedef enum
 {
-    SPEED_SENSOR_FRONT_LEFT = 1,
-    SPEED_SENSOR_FRONT_RIGHT = 2,
-    SPEED_SENSOR_REAR_LEFT = 3,
-    SPEED_SENSOR_REAR_RIGHT = 4,
+    SPEED_SENSOR_FRONT_LEFT = 0,
+    SPEED_SENSOR_FRONT_RIGHT = 1,
+    SPEED_SENSOR_REAR_LEFT = 2,
+    SPEED_SENSOR_REAR_RIGHT = 3,
     SPEED_SENSOR_NONE_ID
 } Speed_Sensor_ID; // Here update if connected otherwise
 typedef struct
@@ -415,28 +447,6 @@ typedef struct
 } CalibrateRoutine;
 
 /* Stock */
-typedef struct
-{
-    uint16_t ADC_MeasuredMax, ADC_MeasuredMin; // limits of ADC readout
-    float OUT_MeasuredMax, OUT_MeasuredMin;    // limits of resulting output
-    float offset, factor;                      // offset that is added to result, factor by which output is multiplied
-} AnalogSensorCalibration;
-typedef struct
-{
-    nECU_Delay delay;           // update delay structure
-    float smoothingAlpha;       // value for smoothing
-    uint16_t *smoothingBuffer;  // pointer to buffer used for smoothing
-    uint8_t smoothingBufferLen; // lenght of the smoothing buffer
-} AnalogSensorFiltering;
-typedef struct
-{
-    AnalogSensorCalibration calibrationData; // calibration structure
-    uint16_t *ADC_input;                     // pointer to ADC input data
-    float outputFloat;                       // resulting value in float
-    uint16_t output16bit;                    // resulting value in 16bit
-    uint8_t output8bit;                      // resulting value in 8bit
-    AnalogSensorFiltering filter;            // filtering structure
-} AnalogSensor_Handle;
 typedef struct
 {
     nECU_Timer Heater;              // timer structure
