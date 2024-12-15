@@ -8,30 +8,22 @@
 #include "nECU_PC.h"
 
 static uint16_t cnt = 0; // Licznik wyslanych wiadomosci
-uint8_t data[50];        // Tablica przechowujaca wysylana wiadomosc.
-uint16_t size = 0;       // Rozmiar wysylanej wiadomosci
-
-bool pc_transmit = false;
 
 /* all pc transmission variables */
 static nECU_PC PC;
 /* status flags */
 static bool PC_Initialized = false, PC_Working = false;
+static bool PC_Active = false; // flag to indicate active communication with PC over UART
 
-void test_uart(void)
+void test_uart(void) // test function only
 {
-    if (HAL_UART_GetState(&huart3) == HAL_UART_STATE_BUSY_TX || pc_transmit == false)
-    {
-        return;
-    }
-
-    ++cnt;                                                             // Zwiekszenie licznika wyslanych wiadomosci.
-    size = sprintf(data, "Liczba wyslanych wiadomosci: %d.\n\r", cnt); // Stworzenie wiadomosci do wyslania oraz przypisanie ilosci wysylanych znakow do zmiennej size.
-    HAL_UART_Transmit_IT(&huart3, data, size);                         // Rozpoczecie nadawania danych z wykorzystaniem przerwan
-    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);                      // Zmiana stanu pinu na diodzie LED
+    nECU_PC_Init();
+    PC.output.length = sprintf(&(PC.out_buf[0]), "Liczba wyslanych wiadomosci: %d.\n\r", cnt); // Stworzenie wiadomosci do wyslania oraz przypisanie ilosci wysylanych znakow do zmiennej size.
+    nECU_PC_Transmit();
+    ++cnt; // Zwiekszenie licznika wyslanych wiadomosci.
 }
-
-void nECU_PC_Init(void)
+/* General functions */
+void nECU_PC_Init(void) // initializes structures for PC communication over UART
 {
     if (PC_Initialized == false)
     {
@@ -41,7 +33,8 @@ void nECU_PC_Init(void)
         /* Initialize structures */
         nECU_UART_Init(&(PC.input), &PC_UART, (PC.in_buf));
         nECU_UART_Init(&(PC.output), &PC_UART, (PC.out_buf));
-        // Onboard_LED_Init_struct(&(PC.Rx_LED), LED1_Pin);
+        OnBoard_LED_Animation_Init(&(PC.Tx_LED), LED_ANIMATE_UART_ID);
+        OnBoard_LED_Animation_Init(&(PC.Rx_LED), LED_ANIMATE_UART_ID);
         PC_Initialized = true;
     }
     if (PC_Initialized == true && PC_Working == false)
@@ -50,11 +43,49 @@ void nECU_PC_Init(void)
     }
 }
 
-void nECU_PC_Indicator(void) // function responsible to set state of onboard LED
+/* Flow control */
+void nECU_PC_Start(void) // call to start transmission
 {
-    // this function sets value of the LED, but does force the output
-
-    /* Check the peripheral */
-    bool Tx_busy = nECU_UART_Tx_Busy(&(PC.output));
-    bool Rx_busy = nECU_UART_Rx_Busy(&(PC.input));
+    if (PC_Active == false)
+    {
+        OnBoard_LED_L_Add_Animation(&(PC.Tx_LED));
+        OnBoard_LED_R_Add_Animation(&(PC.Rx_LED));
+        PC_Active = true;
+    }
+}
+void nECU_PC_Stop(void) // call to stop transmission
+{
+    if (PC_Active == true)
+    {
+        OnBoard_LED_L_Remove_Animation(&(PC.Tx_LED));
+        OnBoard_LED_L_Remove_Animation(&(PC.Rx_LED));
+        PC_Active = false;
+    }
+}
+void nECU_PC_Transmit(void) // call to send a frame
+{
+    nECU_PC_Tx_Start_Callback();
+    nECU_UART_Tx(&(PC.output));
+}
+void nECU_PC_Recieve(void) // call to start listening for frames
+{
+    nECU_PC_Rx_Start_Callback();
+    nECU_UART_Rx(&(PC.input));
+}
+/* Callbacks */
+void nECU_PC_Tx_Start_Callback(void) // to be called when Tx from PC has started
+{
+    OnBoard_LED_State_Flip(&(PC.Tx_LED));
+}
+void nECU_PC_Tx_Stop_Callback(void) // to be called when Tx from PC is done
+{
+    OnBoard_LED_State_Flip(&(PC.Tx_LED));
+}
+void nECU_PC_Rx_Start_Callback(void) // to be called when Rx to PC has started
+{
+    OnBoard_LED_State_Flip(&(PC.Rx_LED));
+}
+void nECU_PC_Rx_Stop_Callback(void) // to be called when Rx to PC is done
+{
+    OnBoard_LED_State_Flip(&(PC.Rx_LED));
 }

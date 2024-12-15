@@ -1,4 +1,6 @@
 [ ] develop:
+    [ ] System diagnostics
+        Show all running components, lookup all data, prepare for UART diagnostics
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
             - igf:
@@ -21,6 +23,7 @@ Current issues:
 
 [ ] on road:
     [ ] OX calibration
+    [ ] rectify 'IdleUp' missing
     
 [ ] scheduled:
     [ ] Immobilizer communication

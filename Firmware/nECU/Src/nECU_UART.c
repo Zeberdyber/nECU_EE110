@@ -221,7 +221,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) // Rx completed
     if (huart == &PC_UART)
     {
         PC_UART_obj->pending = true;
-        // do the things for PC
+        nECU_PC_Rx_Stop_Callback();
     }
     else if (huart == &IMMO_UART)
     {
@@ -233,7 +233,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) // Tx completed
 {
     if (huart == &PC_UART)
     {
-        // do the things for PC
+        nECU_PC_Tx_Stop_Callback();
     }
     else if (huart == &IMMO_UART)
     {

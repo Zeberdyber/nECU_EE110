@@ -25,7 +25,21 @@ extern "C"
     /* typedef */
 
     /* Function Prototypes */
-    void test_uart(void);
+    void test_uart(void); // test function only
+    /* General functions */
+    void nECU_PC_Init(void); // initializes structures for PC communication over UART
+
+    /* Flow control */
+    void nECU_PC_Start(void);    // call to start transmission
+    void nECU_PC_Stop(void);     // call to stop transmission
+    void nECU_PC_Transmit(void); // call to send a frame
+    void nECU_PC_Recieve(void);  // call to start listening for frames
+
+    /* Callbacks */
+    void nECU_PC_Tx_Start_Callback(void); // to be called when Tx from PC has started
+    void nECU_PC_Tx_Stop_Callback(void);  // to be called when Tx from PC is done
+    void nECU_PC_Rx_Start_Callback(void); // to be called when Rx to PC has started
+    void nECU_PC_Rx_Stop_Callback(void);  // to be called when Rx to PC is done
 
 #ifdef __cplusplus
 }
