@@ -1,9 +1,8 @@
 /**
  ******************************************************************************
  * @file    nECU_main.c
- * @brief   This file provides code for preparation and processing of RAW input
- *          data to make it usable for CAN transmission. It consists of
- *          calibration data and corresponding methods.
+ * @brief   This file is the main file of this project. It calls all startup
+ *          and loop functions.
  ******************************************************************************
  */
 
@@ -12,22 +11,21 @@
 /* General code */
 void nECU_Start(void) // start executing program (mostly in main loop, some in background with interrupts)
 {
+    nECU_Debug_Start(); // MUST BE THE FIRST EXECUTED LINE!!
+
     // nECU_systest_run();
     // nECU_codetest_run();
     // nECU_smoothing_tests();
-
-    // nECU_FLASH_getAllMemory();
-    // Button_Start();
 
     Frame0_Init();
     Frame1_Init();
     Frame2_Init();
     nECU_CAN_Start();
-    nECU_Debug_Start();
 
-    // OnBoard_LED_Init();
+    OnBoard_LED_Init();
 
     nECU_IGF_Init();
+    nECU_PC_Recieve();
 }
 void nECU_main(void) // main rutine of the program
 {
@@ -46,10 +44,12 @@ void nECU_main(void) // main rutine of the program
     // checks if its time to send packet
     nECU_CAN_CheckTime();
 
-    // OnBoard_LED_Update();
+    OnBoard_LED_Update();
     nECU_Debug_Periodic();
 
     nECU_IGF_Calc();
+
+    test_uart();
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {

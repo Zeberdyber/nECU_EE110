@@ -16,6 +16,7 @@ extern "C"
 #include "main.h"
 #include "nECU_types.h"
 #include "nECU_tim.h"
+#include "nECU_debug.h"
 
     /* Definitions */
 #define MAP_kPA_CALIB_MIN 270  // minimum sensor value result for minimum voltage
@@ -38,6 +39,13 @@ extern "C"
     float nECU_getLinearSensor(uint16_t *ADC_Value, AnalogSensorCalibration *inst);     // function to get result of linear sensor
     uint16_t nECU_FloatToUint16_t(float input, uint8_t decimalPoint, uint8_t bitCount); // convert float value to uint16_t value with correct decimal point and bit lenght
     uint8_t nECU_FloatToUint8_t(float input, uint8_t decimalPoint, uint8_t bitCount);   // convert float value to uint8_t value with correct decimal point and bit lenght
+
+    /* Internal Temperatre (MCU) */
+    void nECU_InternalTemp_Init(void);                // initialize structure
+    void nECU_InternalTemp_Callback(void);            // run when conversion ended
+    void nECU_InternalTemp_Update(void);              // perform update of output variables
+    uint16_t *nECU_InternalTemp_getTemperature(void); // return current temperature pointer (multiplied 100x)
+
     /* MAP */
     uint16_t *nECU_MAP_GetPointer(void); // returns pointer to resulting data
     void nECU_MAP_Init(void);            // initialize MAP structure

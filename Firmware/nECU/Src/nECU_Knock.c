@@ -58,6 +58,11 @@ void nECU_Knock_Init(void) // initialize and start
 }
 void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 {
+    if (Knock_UART_Transmission == true)
+    {
+        nECU_Knock_Send_UART(input_buffer);
+    }
+
     if (Knock_Working == true)
     {
         for (uint16_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
@@ -150,10 +155,6 @@ uint8_t *nECU_Knock_GetPointer(void) // returns pointer to knock retard percenta
 nECU_UART *nECU_Knock_UART_Pointer(void) // returns pointer to Tx UART object
 {
     return &knock_uart;
-}
-bool *nECU_Knock_Transmission_Flag(void) // returns ponter to Tx UART transmission flag
-{
-    return &Knock_UART_Transmission;
 }
 void nECU_Knock_Send_UART(uint16_t *ADC_data) // sends RAW ADC data over UART
 {

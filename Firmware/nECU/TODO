@@ -1,4 +1,5 @@
 [ ] develop:
+    [ ] Update Bench_mode
     [ ] System diagnostics
         Show all running components, lookup all data, prepare for UART diagnostics
         [ ] Initialized/Working to be standardized
@@ -24,11 +25,10 @@ Current issues:
 
 [ ] on road:
     [ ] OX calibration
-    [ ] rectify 'IdleUp' missing
+    [X] rectify 'IdleUp' missing -> resolution: missing 'initialized = true'
     
 [ ] scheduled:
     [ ] Immobilizer communication
-    [X] External AI (analog input) in code integration with proper scaling settings
     [ ] watchdogs
 
 [ ] optimization:

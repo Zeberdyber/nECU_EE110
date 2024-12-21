@@ -9,9 +9,6 @@
 #include "nECU_can.h"
 #include "nECU_tests.h"
 
-/* General variables */
-uint8_t CAN_Code_Error = 0; // error in user code ex: no valid solution for given input
-
 /* RX variables */
 /* CAN Headers */
 CAN_RxHeaderTypeDef CanRxFrame0;
@@ -27,12 +24,13 @@ extern Frame0_struct F0_var;
 extern Frame1_struct F1_var;
 extern Frame2_struct F2_var;
 
-static bool CAN_Initialized = false, CAN_Working = false;
+extern nECU_ProgramBlockData D_CAN_TX, D_CAN_RX; // diagnostic and flow control data
+extern nECU_ProgramBlockData D_F0, D_F1, D_F2;   // diagnostic and flow control data
 
 // General functions
 void nECU_CAN_Start(void) // start periodic transmission of data accroding to the timers
 {
-  if (CAN_Initialized == false)
+  if (D_CAN_TX.Status == D_BLOCK_STOP)
   {
     nECU_CAN_InitFrame(nECU_Frame_Speed);
     nECU_CAN_InitFrame(nECU_Frame_EGT);
@@ -49,18 +47,20 @@ void nECU_CAN_Start(void) // start periodic transmission of data accroding to th
     F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
     F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
     F2_var.can_data.Mailbox = CAN_TX_MAILBOX2;
-    CAN_Initialized = true;
+
+    D_CAN_TX.Status |= D_BLOCK_INITIALIZED;
   }
-  if (CAN_Working == false && CAN_Initialized == true)
+  if (D_CAN_TX.Status & D_BLOCK_INITIALIZED)
   {
     HAL_CAN_Start(&hcan1);
-    CAN_Working = true;
+    D_CAN_TX.Status |= D_BLOCK_WORKING;
   }
 }
 void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
 {
-  if (CAN_Initialized == false)
+  if (!(D_CAN_TX.Status & D_BLOCK_WORKING))
   {
+    D_CAN_TX.Status |= D_BLOCK_CODE_ERROR;
     return;
   }
   nECU_CAN_TxFrame *pFrame;
@@ -76,8 +76,8 @@ void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) //
     pFrame = &F2_var.can_data;
     break;
   default:
-    CAN_Code_Error = 1;
-    break;
+    D_CAN_TX.Status |= D_BLOCK_CODE_ERROR;
+    return;
   }
   for (uint8_t i = 0; i < pFrame->Header.DLC; i++)
   {
@@ -88,18 +88,15 @@ void nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   HAL_CAN_Stop(&hcan1);
   nECU_CAN_RX_Stop();
-  CAN_Working = false;
-}
-bool nECU_CAN_Working(void) // returns if CAN is ON
-{
-  return CAN_Working;
+  D_CAN_TX.Status = D_BLOCK_STOP;
 }
 
 // Communication functions
 void nECU_CAN_CheckTime(void) // checks if it is time to send packet
 {
-  if (CAN_Initialized == false)
+  if (!(D_CAN_TX.Status & D_BLOCK_WORKING))
   {
+    D_CAN_TX.Status |= D_BLOCK_CODE_ERROR;
     return;
   }
 
@@ -114,18 +111,18 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
   F2_var.timeElapsed += F2_var.timer.difference * F2_var.timer.convFactor;
 
   // check if time is above threshold
-  if (F0_var.timeElapsed >= CAN_TX_FRAME0_TIME && Frame0_Working())
+  if (F0_var.timeElapsed >= CAN_TX_FRAME0_TIME && (D_F0.Status & D_BLOCK_WORKING))
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Speed);
     F0_var.timeElapsed = 0;
     *F0_var.ClearEngineCode = false;
   }
-  if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME && Frame1_Working())
+  if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME && (D_F1.Status & D_BLOCK_WORKING))
   {
     nECU_CAN_TransmitFrame(nECU_Frame_EGT);
     F1_var.timeElapsed = 0;
   }
-  if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME && Frame2_Working())
+  if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME && (D_F2.Status & D_BLOCK_WORKING))
   {
     nECU_CAN_TransmitFrame(nECU_Frame_Stock);
     F2_var.timeElapsed = 0;
@@ -135,6 +132,12 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
 }
 void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for selected frame
 {
+  if (D_CAN_TX.Status & D_BLOCK_WORKING) // break if CAN is already working
+  {
+    D_CAN_TX.Status |= D_BLOCK_CODE_ERROR;
+    return;
+  }
+
   nECU_CAN_TxFrame *pFrame;
 
   switch (frameID)
@@ -153,8 +156,8 @@ void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for sele
     break;
 
   default:
-    CAN_Code_Error = 1;
-    break;
+    D_CAN_TX.Status |= D_BLOCK_CODE_ERROR;
+    return;
   }
 
   pFrame->Header.IDE = CAN_ID_STD;
@@ -163,11 +166,12 @@ void nECU_CAN_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for sele
 }
 uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame over CAN
 {
-  if (CAN_Initialized == false)
+  if (!(D_CAN_TX.Status & D_BLOCK_WORKING))
   {
-    return 1;
+    D_CAN_TX.Status |= D_BLOCK_CODE_ERROR;
+    return 0;
   }
-  if (CAN_Working == true)
+  if (D_CAN_TX.Status & D_BLOCK_WORKING)
   {
     nECU_CAN_TxFrame *pFrame;
     switch (frameID)
@@ -182,39 +186,27 @@ uint8_t nECU_CAN_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame
       pFrame = &F2_var.can_data;
       break;
     default:
-      CAN_Code_Error = 1;
+      D_CAN_TX.Status |= D_BLOCK_CODE_ERROR;
       return 0;
-      break;
     }
-    // if (HAL_CAN_IsTxMessagePending(&hcan1, &(F2_var.can_data.Mailbox)) == 0) // Check if CAN mailbox empty, then send
-    // {
     HAL_CAN_AddTxMessage(&hcan1, &(pFrame->Header), pFrame->Send_Buffer, &(pFrame->Mailbox)); // Transmit the data
     return 1;
-    // }
   }
   return 0;
 }
 uint8_t nECU_CAN_IsBusy(void) // Check if any messages are pending
 {
-  if (HAL_CAN_IsTxMessagePending(&hcan1, F0_var.can_data.Mailbox) || HAL_CAN_IsTxMessagePending(&hcan1, F1_var.can_data.Mailbox) || HAL_CAN_IsTxMessagePending(&hcan1, F2_var.can_data.Mailbox))
-  {
-    return 1;
-  }
-  return 0;
+  uint8_t result = 0;
+  result += HAL_CAN_IsTxMessagePending(&hcan1, F0_var.can_data.Mailbox);
+  result += HAL_CAN_IsTxMessagePending(&hcan1, F1_var.can_data.Mailbox);
+  result += HAL_CAN_IsTxMessagePending(&hcan1, F2_var.can_data.Mailbox);
+  return result;
 }
 
 // Diagnostic functions
-uint8_t nECU_CAN_GetStatus(void) // get current status of nECU CAN
-{
-  return CAN_Code_Error;
-}
 bool nECU_CAN_GetState(void) // get data if can periperal buisy
 {
-  if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_LISTENING) // RX transmission ongoing
-  {
-    return true;
-  }
-  if (HAL_CAN_IsTxMessagePending(&hcan1, F0_var.can_data.Mailbox) || HAL_CAN_IsTxMessagePending(&hcan1, F1_var.can_data.Mailbox) || HAL_CAN_IsTxMessagePending(&hcan1, F2_var.can_data.Mailbox)) // message is waiting for TX
+  if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_LISTENING || nECU_CAN_IsBusy()) // check RX/TX transmission ongoing
   {
     return true;
   }
@@ -225,6 +217,7 @@ bool nECU_CAN_GetError(void) // get error state pf can periperal buisy
   HAL_CAN_StateTypeDef CurrentState = HAL_CAN_GetState(&hcan1);
   if (CurrentState >= HAL_CAN_STATE_SLEEP_PENDING || CurrentState == HAL_CAN_STATE_RESET)
   {
+    D_CAN_TX.Status |= D_BLOCK_ERROR;
     return true;
   }
   return false;

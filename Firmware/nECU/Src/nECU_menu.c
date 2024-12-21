@@ -31,7 +31,10 @@ void Button_Menu_Init(void) // initialize button menu
   if (Menu_Working == false && Menu_Initialized == true)
   {
     Button_Start();
-    ButtonLight_BreathAllOnce();
+    ButtonLight_Breath(RED_BUTTON_ID, 100, 1);
+    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
+    ButtonLight_Breath(GREEN_BUTTON_ID, 100, 1);
+
     Menu_Working = true;
   }
 }
@@ -50,12 +53,16 @@ void Button_Menu(void) // update function
   if (OrangeType == CLICK_TYPE_HOLD && Menu.MenuLevel < 1) // move up the menu
   {
     Menu.MenuLevel++;
-    ButtonLight_BreathAllOnce();
+    ButtonLight_Breath(RED_BUTTON_ID, 100, 1);
+    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
+    ButtonLight_Breath(GREEN_BUTTON_ID, 100, 1);
   }
   else if ((OrangeType == CLICK_TYPE_DOUBLE_CLICK) && (Menu.MenuLevel > 0)) // move down the menu
   {
     Menu.MenuLevel--;
-    ButtonLight_BreathAllOnce();
+    ButtonLight_Breath(RED_BUTTON_ID, 100, 1);
+    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
+    ButtonLight_Breath(GREEN_BUTTON_ID, 100, 1);
   }
 
   switch (Menu.MenuLevel)
@@ -63,7 +70,7 @@ void Button_Menu(void) // update function
   case 0:
     if (RedType == CLICK_TYPE_SINGLE_CLICK) // Traction control ON/OFF
     {
-      ButtonLight_BlinkOneOnce(RED_BUTTON_ID);
+      ButtonLight_Blink(RED_BUTTON_ID, 50, 1);
       Menu.TractionOFF = !Menu.TractionOFF;
       nECU_Save_Delay_Start();
     }
@@ -74,13 +81,13 @@ void Button_Menu(void) // update function
     }
     if (OrangeType == CLICK_TYPE_SINGLE_CLICK) // Antilag ON/OFF
     {
-      ButtonLight_BlinkOneOnce(ORANGE_BUTTON_ID);
+      ButtonLight_Blink(ORANGE_BUTTON_ID, 50, 1);
       Menu.Antilag = !Menu.Antilag;
       nECU_Save_Delay_Start();
     }
     if (GreenType == CLICK_TYPE_SINGLE_CLICK) // Lunch control level 1 ON/OFF
     {
-      ButtonLight_BlinkOneOnce(GREEN_BUTTON_ID);
+      ButtonLight_Blink(GREEN_BUTTON_ID, 50, 1);
       Menu.LunchControlLevel = !Menu.LunchControlLevel;
     }
 
@@ -92,12 +99,12 @@ void Button_Menu(void) // update function
   case 1:
     if (RedType == CLICK_TYPE_SINGLE_CLICK) // Clear codes
     {
-      ButtonLight_BlinkOneOnce(RED_BUTTON_ID);
+      ButtonLight_Blink(RED_BUTTON_ID, 50, 1);
       Menu.ClearEngineCode = true;
     }
     if ((OrangeType == CLICK_TYPE_SINGLE_CLICK) && (Menu.TuneSelector < TUNE_NUMBER)) // cycle threw tunes
     {
-      ButtonLight_BlinkOneOnce(ORANGE_BUTTON_ID);
+      ButtonLight_Blink(ORANGE_BUTTON_ID, 50, 1);
       Menu.TuneSelector++;
       if (Menu.TuneSelector == TUNE_NUMBER)
       {
@@ -106,7 +113,7 @@ void Button_Menu(void) // update function
     }
     if ((GreenType == CLICK_TYPE_SINGLE_CLICK) && (Menu.LunchControlLevel < (LAUNCH_CONTROL_NUMBER + 1))) // cycle threw lunch control levels
     {
-      ButtonLight_BlinkOneOnce(GREEN_BUTTON_ID);
+      ButtonLight_Blink(GREEN_BUTTON_ID, 50, 1);
       Menu.LunchControlLevel++;
       if (Menu.LunchControlLevel == (LAUNCH_CONTROL_NUMBER + 1)) // +1 for 0 state
       {

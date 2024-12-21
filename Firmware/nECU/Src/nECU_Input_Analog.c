@@ -10,12 +10,10 @@
 // internal variables
 static AnalogSensor_Handle MAP;
 static AnalogSensor_Handle BackPressure;
+static nECU_InternalTemp MCU_temperature;
 static AnalogSensor_Handle AI1, AI2, AI3; // additional analog inputs
 
-// initialized flags
-static bool MAP_Initialized = false, MAP_Working = false,
-            BackPressure_Initialized = false, BackPressure_Working = false,
-            AI_Initialized = false, AI_Working = false;
+extern nECU_ProgramBlockData D_MAP, D_BackPressure, D_MCU_temperature, D_AdditionalAI, D_Input_Analog; // diagnostic and flow control data
 
 /* Analog sensors */
 void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst) // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
@@ -62,6 +60,55 @@ uint8_t nECU_FloatToUint8_t(float input, uint8_t decimalPoint, uint8_t bitCount)
     return output & mask;
 }
 
+/* Internal Temperatre (MCU) */
+void nECU_InternalTemp_Init(void) // initialize structure
+{
+    if (D_MCU_temperature.Status == D_BLOCK_STOP)
+    {
+        MCU_temperature.ADC_data = getPointer_InternalTemp_ADC();
+        MCU_temperature.temperature = 0;
+        D_MCU_temperature.Status |= D_BLOCK_INITIALIZED;
+    }
+    if (D_MCU_temperature.Status & D_BLOCK_INITIALIZED)
+    {
+        nECU_InternalTemp_Delay_Start();
+        nECU_InternalTemp_StartupDelay_Start();
+        ADC1_START();
+        D_MCU_temperature.Status |= D_BLOCK_WORKING;
+    }
+}
+void nECU_InternalTemp_Callback(void) // run when conversion ended
+{
+    if (!(D_MCU_temperature.Status & D_BLOCK_WORKING) || *nECU_InternalTemp_StartupDelay_DoneFlag() == false)
+    {
+        return;
+    }
+    if (*nECU_InternalTemp_Delay_DoneFlag() == true)
+    {
+        nECU_InternalTemp_Update(); // calculate value
+        nECU_InternalTemp_Delay_Start();
+    }
+}
+void nECU_InternalTemp_Update(void) // perform update of output variables
+{
+    if (!(D_MCU_temperature.Status & D_BLOCK_WORKING))
+    {
+        return;
+    }
+
+    // convert to temperature
+    float Temperature = ADCToVolts(*MCU_temperature.ADC_data);
+    Temperature -= (float)INTERNAL_TEMP_V25;
+    Temperature /= (float)(INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
+    Temperature += (float)25;
+    MCU_temperature.temperature = Temperature * INTERNAL_TEMP_MULTIPLIER;
+}
+uint16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)
+{
+    /* returned value is multipled 100 times, which means that it carries two digits after dot */
+    return &MCU_temperature.temperature;
+}
+
 /* MAP */
 uint16_t *nECU_MAP_GetPointer(void) // returns pointer to resulting data
 {
@@ -69,20 +116,20 @@ uint16_t *nECU_MAP_GetPointer(void) // returns pointer to resulting data
 }
 void nECU_MAP_Init(void) // initialize MAP structure
 {
-    if (MAP_Initialized == false)
+    if (D_MAP.Status == D_BLOCK_STOP)
     {
         nECU_A_Input_Init(&MAP, MAP_ADC_CALIB_MAX, MAP_ADC_CALIB_MIN, MAP_kPA_CALIB_MAX, MAP_kPA_CALIB_MIN, getPointer_MAP_ADC());
-        MAP_Initialized = true;
+        D_MAP.Status = D_BLOCK_INITIALIZED;
     }
-    if (MAP_Working == false && MAP_Initialized == true)
+    if (D_MAP.Status == D_BLOCK_INITIALIZED)
     {
         ADC1_START();
-        MAP_Working = true;
+        D_MAP.Status = D_BLOCK_WORKING;
     }
 }
 void nECU_MAP_Update(void) // update MAP structure
 {
-    if (MAP_Working == false)
+    if (D_MAP.Status != D_BLOCK_WORKING)
     {
         return;
     }
@@ -97,20 +144,20 @@ uint8_t *nECU_BackPressure_GetPointer(void) // returns pointer to resulting data
 }
 void nECU_BackPressure_Init(void) // initialize BackPressure structure
 {
-    if (BackPressure_Initialized == false)
+    if (D_BackPressure.Status == D_BLOCK_STOP)
     {
         nECU_A_Input_Init(&(BackPressure), BACKPRESSURE_ADC_CALIB_MAX, BACKPRESSURE_ADC_CALIB_MIN, BACKPRESSURE_kPA_CALIB_MAX, BACKPRESSURE_kPA_CALIB_MIN, getPointer_Backpressure_ADC());
-        BackPressure_Initialized = true;
+        D_BackPressure.Status = D_BLOCK_INITIALIZED;
     }
-    if (BackPressure_Working == false && BackPressure_Initialized == true)
+    if (D_BackPressure.Status == D_BLOCK_INITIALIZED)
     {
         ADC1_START();
-        BackPressure_Working = true;
+        D_BackPressure.Status = D_BLOCK_WORKING;
     }
 }
 void nECU_BackPressure_Update(void) // update BackPressure structure
 {
-    if (BackPressure_Working == false)
+    if (D_BackPressure.Status != D_BLOCK_WORKING)
     {
         return;
     }
@@ -121,7 +168,7 @@ void nECU_BackPressure_Update(void) // update BackPressure structure
 /* Addtional Analog inputs */
 void nECU_A_Input_Init_All(void)
 {
-    if (AI_Initialized == false)
+    if (D_AdditionalAI.Status == D_BLOCK_STOP)
     {
         // Example values to initialize inputs [temporary values]
         uint16_t inMax = ADC_MAX_VALUE_12BIT;
@@ -133,17 +180,17 @@ void nECU_A_Input_Init_All(void)
         nECU_A_Input_Init(&AI1, inMax, inMin, outMax, outMin, getPointer_AnalogInput(ANALOG_IN_1));
         nECU_A_Input_Init(&AI2, inMax, inMin, outMax, outMin, getPointer_AnalogInput(ANALOG_IN_2));
         nECU_A_Input_Init(&AI3, inMax, inMin, outMax, outMin, getPointer_AnalogInput(ANALOG_IN_3));
-        AI_Initialized = true;
+        D_AdditionalAI.Status = D_BLOCK_INITIALIZED;
     }
-    if (AI_Initialized == true && AI_Working == false)
+    if (D_AdditionalAI.Status == D_BLOCK_INITIALIZED)
     {
         ADC1_START();
-        AI_Working = true;
+        D_AdditionalAI.Status = D_BLOCK_WORKING;
     }
 }
 void nECU_A_Input_Update_All(void)
 {
-    if (AI_Working == false)
+    if (D_AdditionalAI.Status != D_BLOCK_WORKING)
     {
         return;
     }
@@ -234,5 +281,6 @@ void nECU_Analog_Update(void) // update to all analog functions
 {
     nECU_MAP_Update();
     nECU_BackPressure_Update();
+    nECU_InternalTemp_Callback();
     nECU_A_Input_Update_All();
 }

@@ -7,38 +7,39 @@
 
 #include "nECU_button.h"
 
-Button Red;
-Button Orange;
-Button Green;
+static Button Red;
+static Button Orange;
+static Button Green;
 
-static bool Red_Initialized = false, Red_Working = false;
-static bool Orange_Initialized = false, Orange_Working = false;
-static bool Green_Initialized = false, Green_Working = false;
+extern nECU_ProgramBlockData D_Button_Red, D_Button_Orange, D_Button_Green; // diagnostic and flow control data
 
 /* All button functions */
 void Button_Start(void)
 {
-  if (Red_Initialized == false || Red_Working == false)
+  if (D_Button_Red.Status == D_BLOCK_STOP)
   {
-    ButtonLight_Init(&Red.light, 1, &BUTTON_OUTPUT_TIMER);
-    ButtonInput_Init(&Red.input, 1, &BUTTON_INPUT_TIMER);
-    Red_Initialized = true;
+    if (ButtonLight_Init(&Red.light, 1, &BUTTON_OUTPUT_TIMER) &&
+        ButtonInput_Init(&Red.input, 1, &BUTTON_INPUT_TIMER))
+    {
+      D_Button_Red.Status |= D_BLOCK_INITIALIZED_WORKING;
+    }
   }
-  Red_Working = true;
-  if (Orange_Initialized == false || Orange_Working == false)
+  if (D_Button_Orange.Status == D_BLOCK_STOP)
   {
-    ButtonLight_Init(&Orange.light, 2, &BUTTON_OUTPUT_TIMER);
-    ButtonInput_Init(&Orange.input, 2, &BUTTON_INPUT_TIMER);
-    Orange_Initialized = true;
+    if (ButtonLight_Init(&Orange.light, 2, &BUTTON_OUTPUT_TIMER) &&
+        ButtonInput_Init(&Orange.input, 2, &BUTTON_INPUT_TIMER))
+    {
+      D_Button_Orange.Status |= D_BLOCK_INITIALIZED_WORKING;
+    }
   }
-  Orange_Working = true;
-  if (Green_Initialized == false || Green_Working == false)
+  if (D_Button_Green.Status == D_BLOCK_STOP)
   {
-    ButtonLight_Init(&Green.light, 3, &BUTTON_OUTPUT_TIMER);
-    ButtonInput_Init(&Green.input, 3, &BUTTON_INPUT_TIMER);
-    Green_Initialized = true;
+    if (ButtonLight_Init(&Green.light, 3, &BUTTON_OUTPUT_TIMER) &&
+        ButtonInput_Init(&Green.input, 3, &BUTTON_INPUT_TIMER))
+    {
+      D_Button_Green.Status |= D_BLOCK_INITIALIZED_WORKING;
+    }
   }
-  Green_Working = true;
 }
 void Button_Stop(void)
 {
@@ -52,13 +53,13 @@ void Button_Stop(void)
   ButtonInput_Stop(&Orange.input);
   ButtonInput_Stop(&Green.input);
 
-  Red_Working = false;
-  Orange_Working = false;
-  Green_Working = false;
+  D_Button_Red.Status = D_BLOCK_STOP;
+  D_Button_Orange.Status = D_BLOCK_STOP;
+  D_Button_Green.Status = D_BLOCK_STOP;
 }
 
 /* BUTTON LIGHT BEGIN */
-void ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonLight object with corresponding timer
+static bool ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonLight object with corresponding timer
 {
   Light->Timer.htim = htim;
   nECU_tim_Init_struct(&Light->Timer);
@@ -81,16 +82,19 @@ void ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *ht
     break;
 
   default:
-    break;
+    return false;
   }
   nECU_tim_PWM_start(&Light->Timer);
 
   nECU_TickTrack_Init(&(Light->TimeTracker));
 
   Light->Mode = BUTTON_MODE_OFF; // Turn off
+
+  return true;
 }
-void ButtonLight_Update(ButtonLight *Light) // periodic animation update function
+static void ButtonLight_Update(ButtonLight *Light) // periodic animation update function
 {
+  ButtonLight_TimeTrack(Light);
   switch (Light->Mode)
   {
   case BUTTON_MODE_OFF:
@@ -193,67 +197,38 @@ void ButtonLight_Update(ButtonLight *Light) // periodic animation update functio
     break;
   }
 }
-void ButtonLight_Set_Blink(ButtonLight *Light, uint8_t Speed, uint16_t Count) // setup blinking animation
-{
-  Light->Blinking.speed = Speed;
-  Light->Blinking.count = Count;
-  Light->Mode = BUTTON_MODE_ANIMATED;
-}
-void ButtonLight_Set_Breathe(ButtonLight *Light, uint8_t Speed, uint16_t Count) // setup breathing animation
-{
-  Light->Breathing.speed = Speed;
-  Light->Breathing.count = Count;
-  Light->Mode = BUTTON_MODE_ANIMATED;
-}
-void ButtonLight_Set_Mode(ButtonLight *Light, ButtonLight_Mode Mode) // setup mode (animation type)
-{
-  Light->Mode = Mode;
-  Light->ModePrev = BUTTON_MODE_OFF;
-}
-void ButtonLight_UpdateAll(void) // function to launch updates for all buttons
-{
-  ButtonLight_TimeTrack_All(); // update times
-  if (Red_Working == true)
-  {
-    ButtonLight_Update(&Red.light);
-  }
-  if (Orange_Working == true)
-  {
-    ButtonLight_Update(&Orange.light);
-  }
-  if (Green_Working == true)
-  {
-    ButtonLight_Update(&Green.light);
-  }
-}
-void ButtonLight_TimeTrack(ButtonLight *Light) // funtion called to update time passed
+static void ButtonLight_TimeTrack(ButtonLight *Light) // funtion called to update time passed
 {
   nECU_TickTrack_Update(&(Light->TimeTracker));                                 // update tracker
   Light->Time += Light->TimeTracker.difference * Light->TimeTracker.convFactor; // add to time elapsed
 }
-void ButtonLight_TimeTrack_All(void) // function called to update time in all buttons
-{
-  if (Red_Working == true)
-  {
-    ButtonLight_TimeTrack(&(Red.light));
-  }
-  if (Orange_Working == true)
-  {
-    ButtonLight_TimeTrack(&(Orange.light));
-  }
-  if (Green_Working == true)
-  {
-    ButtonLight_TimeTrack(&(Green.light));
-  }
-}
-void ButtonLight_Stop(ButtonLight *Light) // stops PWM for seected button
+static void ButtonLight_Stop(ButtonLight *Light) // stops PWM for seected button
 {
   nECU_tim_PWM_stop(&Light->Timer);
+}
+
+void ButtonLight_UpdateAll(void) // function to launch updates for all buttons
+{
+  if (D_Button_Red.Status & D_BLOCK_WORKING)
+  {
+    ButtonLight_Update(&Red.light);
+    nECU_TickTrack_Update(&D_Button_Red.Update_ticks);
+  }
+  if (D_Button_Orange.Status & D_BLOCK_WORKING)
+  {
+    ButtonLight_Update(&Orange.light);
+    nECU_TickTrack_Update(&D_Button_Orange.Update_ticks);
+  }
+  if (D_Button_Green.Status & D_BLOCK_WORKING)
+  {
+    ButtonLight_Update(&Green.light);
+    nECU_TickTrack_Update(&D_Button_Green.Update_ticks);
+  }
 }
 /* BUTTON LIGHT END */
 
 /* BUTTON INPUT BEGIN */
-void ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonInput object with corresponding timer and GPIO
+static bool ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonInput object with corresponding timer and GPIO
 {
   button->Timer.htim = htim;
   nECU_tim_Init_struct(&button->Timer);
@@ -281,39 +256,52 @@ void ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *h
     break;
 
   default:
-    break;
+    return false;
   }
   nECU_tim_IC_start(&button->Timer);
+
+  return true;
 }
-void ButtonInput_TimingEvent(TIM_HandleTypeDef *htim) // funtion called after input capture interrupt from timer
+static void ButtonInput_Stop(ButtonInput *button) // stop Input Capture for selected button
 {
-  ButtonInput_Identify(htim);
+  nECU_tim_IC_stop(&button->Timer);
 }
+
 void ButtonInput_Identify(TIM_HandleTypeDef *htim) // function to identify to which button is pressed
 {
+  // Find correct button input by channel interrupted
+  ButtonInput *temporary;
+  nECU_ProgramBlock_Status *status;
   if (htim->Channel == Red.input.Channel_IC)
   {
-    if (Red_Working == true)
-    {
-      ButtonInput_InterruptRoutine(&Red.input);
-    }
+    temporary = &Red.input;
+    status = &D_Button_Red.Status;
   }
   else if (htim->Channel == Orange.input.Channel_IC)
   {
-    if (Orange_Working == true)
-    {
-      ButtonInput_InterruptRoutine(&Orange.input);
-    }
+    temporary = &Orange.input;
+    status = &D_Button_Orange.Status;
   }
   else if (htim->Channel == Green.input.Channel_IC)
   {
-    if (Green_Working == true)
-    {
-      ButtonInput_InterruptRoutine(&Green.input);
-    }
+    temporary = &Green.input;
+    status = &D_Button_Green.Status;
+  }
+  else
+  {
+    return;
+  }
+
+  if (*status & D_BLOCK_WORKING)
+  {
+    ButtonInput_InterruptRoutine(temporary);
+  }
+  else
+  {
+    *status = D_BLOCK_CODE_ERROR;
   }
 }
-void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called after input capture callback (updates button structure)
+static void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called after input capture callback (updates button structure)
 {
   uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(button->Timer.htim, button->Timer.Channel_List[0]);
 
@@ -367,22 +355,36 @@ void ButtonInput_InterruptRoutine(ButtonInput *button) // routine to be called a
 }
 Button_ClickType ButtonInput_GetType(Button_ID id) // get click type if avaliable
 {
+  // Find correct light by ID
   ButtonInput *inst;
+  nECU_ProgramBlock_Status *status;
   switch (id)
   {
   case RED_BUTTON_ID:
     inst = &Red.input;
+    status = &D_Button_Red.Status;
     break;
   case ORANGE_BUTTON_ID:
     inst = &Orange.input;
+    status = &D_Button_Orange.Status;
     break;
   case GREEN_BUTTON_ID:
     inst = &Green.input;
+    status = &D_Button_Green.Status;
     break;
   default:
+    D_Button_Red.Status = D_BLOCK_CODE_ERROR;
+    D_Button_Orange.Status = D_BLOCK_CODE_ERROR;
+    D_Button_Green.Status = D_BLOCK_CODE_ERROR;
     return 0;
-    break;
   }
+
+  if (!(*status & D_BLOCK_INITIALIZED_WORKING))
+  {
+    return 0;
+  }
+
+  // Copy click type to output
   if (inst->newType == true)
   {
     inst->newType = false;
@@ -390,132 +392,82 @@ Button_ClickType ButtonInput_GetType(Button_ID id) // get click type if avaliabl
   }
   return CLICK_TYPE_NONE;
 }
-void ButtonInput_Stop(ButtonInput *button) // stop Input Capture for selected button
-{
-  nECU_tim_IC_stop(&button->Timer);
-}
 /* BUTTON INPUT END */
 
 /* Animations */
-void ButtonLight_BreathAllOnce(void) // breath all button lights once
+static bool ButtonLight_Identify(Button_ID id, ButtonLight *light) // find corresponding light structrue, return if ok
 {
-  ButtonLight_Set_Breathe(&Red.light, 50, 2);
-  ButtonLight_Set_Breathe(&Orange.light, 50, 2);
-  ButtonLight_Set_Breathe(&Green.light, 50, 2);
-}
-void ButtonLight_BlinkAllOnce(void) // blink all button lights once
-{
-  ButtonLight_Set_Blink(&Red.light, 100, 1);
-  ButtonLight_Set_Blink(&Orange.light, 100, 1);
-  ButtonLight_Set_Blink(&Green.light, 100, 1);
-}
-void ButtonLight_BreathOneOnce(Button_ID id) // breath selected button once
-{
+  // Find correct light by ID
+  nECU_ProgramBlock_Status *status;
   switch (id)
   {
   case RED_BUTTON_ID:
-    ButtonLight_Set_Breathe(&Red.light, 100, 1);
+    light = &Red.light;
+    status = &D_Button_Red.Status;
     break;
   case ORANGE_BUTTON_ID:
-    ButtonLight_Set_Breathe(&Orange.light, 100, 1);
-    break;
+    light = &Orange.light;
+    status = &D_Button_Orange.Status;
   case GREEN_BUTTON_ID:
-    ButtonLight_Set_Breathe(&Green.light, 100, 1);
-    break;
-
+    light = &Green.light;
+    status = &D_Button_Green.Status;
   default:
-    break;
+    D_Button_Red.Status = D_BLOCK_CODE_ERROR;
+    D_Button_Orange.Status = D_BLOCK_CODE_ERROR;
+    D_Button_Green.Status = D_BLOCK_CODE_ERROR;
+    return false;
   }
-}
-void ButtonLight_BlinkOneOnce(Button_ID id) // blink selected button once
-{
-  switch (id)
+
+  if (!(*status & D_BLOCK_INITIALIZED_WORKING))
   {
-  case RED_BUTTON_ID:
-    ButtonLight_Set_Blink(&Red.light, 50, 1);
-    break;
-  case ORANGE_BUTTON_ID:
-    ButtonLight_Set_Blink(&Orange.light, 50, 1);
-    break;
-  case GREEN_BUTTON_ID:
-    ButtonLight_Set_Blink(&Green.light, 50, 1);
-    break;
-
-  default:
-    break;
+    *status = D_BLOCK_ERROR;
+    return false;
   }
+
+  return true;
 }
+
 void ButtonLight_SetOne(Button_ID id, bool state) // set selected button
 {
-  uint8_t Mode;
+  uint8_t Mode = BUTTON_MODE_RESTING; // By default turn off
   if (state != false)
   {
     Mode = BUTTON_MODE_ON;
   }
-  else
-  {
-    Mode = BUTTON_MODE_RESTING;
-  }
 
-  // if animation is not active then display buttonPin.State
-  switch (id)
-  {
-  case RED_BUTTON_ID:
-    if (Red.light.Mode != BUTTON_MODE_ANIMATED)
-    {
-      ButtonLight_Set_Mode(&Red.light, Mode);
-    }
-    break;
-  case ORANGE_BUTTON_ID:
-    if (Orange.light.Mode != BUTTON_MODE_ANIMATED)
-    {
-      ButtonLight_Set_Mode(&Orange.light, Mode);
-      break;
-    }
-  case GREEN_BUTTON_ID:
-    if (Green.light.Mode != BUTTON_MODE_ANIMATED)
-    {
-      ButtonLight_Set_Mode(&Green.light, Mode);
-      break;
-    }
+  ButtonLight *temporary;
 
-  default:
-    break;
+  if (ButtonLight_Identify(id, temporary)) // do only if button exists and is working
+  {
+    /* Perform operation */
+    if (temporary->Mode != BUTTON_MODE_ANIMATED)
+    {
+      temporary->Mode = Mode;
+      temporary->ModePrev = BUTTON_MODE_OFF;
+    }
   }
 }
 void ButtonLight_Breath(Button_ID id, uint8_t Speed, uint16_t Count) // breath one button
 {
-  switch (id)
-  {
-  case RED_BUTTON_ID:
-    ButtonLight_Set_Breathe(&Red.light, Speed, Count);
-    break;
-  case ORANGE_BUTTON_ID:
-    ButtonLight_Set_Breathe(&Orange.light, Speed, Count);
-    break;
-  case GREEN_BUTTON_ID:
-    ButtonLight_Set_Breathe(&Green.light, Speed, Count);
-    break;
+  ButtonLight *temporary;
 
-  default:
-    break;
+  if (ButtonLight_Identify(id, temporary)) // do only if button exists and is working
+  {
+    /* Perform operation */
+    temporary->Breathing.speed = Speed;
+    temporary->Breathing.count = Count;
+    temporary->Mode = BUTTON_MODE_ANIMATED;
   }
 }
 void ButtonLight_Blink(Button_ID id, uint8_t Speed, uint16_t Count) // blink one button
 {
-  switch (id)
-  {
-  case RED_BUTTON_ID:
-    ButtonLight_Set_Blink(&Red.light, Speed, Count);
-    break;
-  case ORANGE_BUTTON_ID:
-    ButtonLight_Set_Blink(&Orange.light, Speed, Count);
-    break;
-  case GREEN_BUTTON_ID:
-    ButtonLight_Set_Blink(&Green.light, Speed, Count);
-    break;
+  ButtonLight *temporary;
 
-  default:
-    break;
+  if (ButtonLight_Identify(id, temporary)) // do only if button exists and is working
+  {
+    /* Perform operation */
+    temporary->Blinking.speed = Speed;
+    temporary->Blinking.count = Count;
+    temporary->Mode = BUTTON_MODE_ANIMATED;
   }
 }

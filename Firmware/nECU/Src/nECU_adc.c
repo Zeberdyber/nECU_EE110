@@ -8,15 +8,11 @@
 #include "nECU_adc.h"
 
 // local variables
-nECU_ADC1 adc1_data;
-nECU_ADC2 adc2_data;
-nECU_ADC3 adc3_data;
-nECU_InternalTemp MCU_temperature;
+static nECU_ADC1 adc1_data;
+static nECU_ADC2 adc2_data;
+static nECU_ADC3 adc3_data;
 
-static bool ADC1_Initialized = false, ADC1_Working = false,
-            ADC2_Initialized = false, ADC2_Working = false,
-            ADC3_Initialized = false, ADC3_Working = false,
-            MCU_temp_Initialized = false, MCU_temp_Working = false;
+extern nECU_ProgramBlockData D_ADC1, D_ADC2, D_ADC3; // diagnostic and flow control data
 
 /* Interrupt functions */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
@@ -89,8 +85,9 @@ void ADC_START_ALL(void)
 }
 void ADC1_START(void)
 {
-  if (ADC1_Initialized == false)
+  if (D_ADC1.Status == D_BLOCK_STOP)
   {
+    /* List of data in buffer */
     &adc1_data.out_buffer[0]; // Stock MAP sensor data
     &adc1_data.out_buffer[1]; // Backpressure sensor data [spare]
     &adc1_data.out_buffer[2]; // OX sensor data [spare]
@@ -99,66 +96,75 @@ void ADC1_START(void)
     &adc1_data.out_buffer[5]; // ANALOG_IN_3 input data [spare]
     &adc1_data.out_buffer[6]; // Internal_temperature data
     &adc1_data.out_buffer[7]; // VREF data
-    ADC1_Initialized = true;
-  }
-  if (ADC1_Working == false)
-  {
+
+    /* Clear status flags */
     adc1_data.status.callback_half = false;
     adc1_data.status.callback_full = false;
     adc1_data.status.overflow = false;
+
+    D_ADC1.Status |= D_BLOCK_INITIALIZED;
+  }
+  if (D_ADC1.Status & D_BLOCK_INITIALIZED)
+  {
     HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.in_buffer, sizeof(adc1_data.in_buffer) / sizeof(uint16_t));
-    ADC1_Working = true;
+    D_ADC1.Status |= D_BLOCK_WORKING;
   }
 }
 void ADC2_START(void)
 {
-  if (ADC2_Initialized == false)
+  if (D_ADC2.Status == D_BLOCK_STOP)
   {
+    /* List of data in buffer */
     &adc2_data.out_buffer[0]; // Speed sensor 1
     &adc2_data.out_buffer[1]; // Speed sensor 2
     &adc2_data.out_buffer[2]; // Speed sensor 3
     &adc2_data.out_buffer[3]; // Speed sensor 4
-    ADC2_Initialized = true;
-  }
-  if (ADC2_Working == false)
-  {
+
+    /* Clear status flags */
     adc2_data.status.callback_half = false;
     adc2_data.status.callback_full = false;
     adc2_data.status.overflow = false;
+
+    D_ADC2.Status |= D_BLOCK_INITIALIZED;
+  }
+  if (D_ADC2.Status & D_BLOCK_INITIALIZED)
+  {
     HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.in_buffer, sizeof(adc2_data.in_buffer) / sizeof(uint16_t));
-    ADC2_Working = true;
+    D_ADC2.Status |= D_BLOCK_WORKING;
   }
 }
 void ADC3_START(void)
 {
-  if (ADC3_Initialized == false)
+  if (D_ADC3.Status == D_BLOCK_STOP)
   {
-    adc3_data.UART_transmission = nECU_Knock_Transmission_Flag();
     adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
-    ADC3_Initialized = true;
-  }
-  if (ADC3_Working == false)
-  {
+
+    /* Clear status flags */
     adc3_data.status.callback_half = false;
     adc3_data.status.callback_full = false;
     adc3_data.status.overflow = false;
+
+    D_ADC3.Status |= D_BLOCK_INITIALIZED;
+  }
+  if (D_ADC3.Status & D_BLOCK_INITIALIZED)
+  {
     HAL_TIM_Base_Start(adc3_data.samplingTimer);
     HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t));
-    ADC3_Working = true;
+    D_ADC3.Status |= D_BLOCK_WORKING;
   }
 }
 /* Stop functions */
 void ADC_STOP_ALL(void)
 {
-  if (ADC1_Working == true)
+  if (D_ADC1.Status & D_BLOCK_INITIALIZED_WORKING)
   {
     ADC1_STOP();
   }
-  if (ADC2_Working == true)
+  if (D_ADC2.Status & D_BLOCK_INITIALIZED_WORKING)
   {
     ADC2_STOP();
   }
-  if (ADC3_Working == true)
+  if (D_ADC3.Status & D_BLOCK_INITIALIZED_WORKING)
   {
     ADC3_STOP();
   }
@@ -167,33 +173,33 @@ void ADC1_STOP(void)
 {
   HAL_ADC_Stop_DMA(&GENERAL_ADC);
   nECU_ADC1_Routine(); // finish routine if flags pending
-  ADC1_Working = false;
+  D_ADC1.Status = D_BLOCK_STOP;
 }
 void ADC2_STOP(void)
 {
   HAL_ADC_Stop_DMA(&SPEED_ADC);
   nECU_ADC2_Routine(); // finish routine if flags pending
-  ADC2_Working = false;
+  D_ADC2.Status = D_BLOCK_STOP;
 }
 void ADC3_STOP(void)
 {
   HAL_TIM_Base_Stop(adc3_data.samplingTimer);
   HAL_ADC_Stop_DMA(&KNOCK_ADC);
-  ADC3_Working = false;
+  D_ADC1.Status = D_BLOCK_STOP;
 }
 /* ADC Rutines */
 void nECU_ADC_All_Routine(void)
 {
   /* Remember that all ADC are working simoutainously, all callbacks will be at the same time */
-  if (ADC1_Working == true)
+  if (D_ADC1.Status & D_BLOCK_INITIALIZED_WORKING)
   {
     nECU_ADC1_Routine();
   }
-  if (ADC2_Working == true)
+  if (D_ADC2.Status & D_BLOCK_INITIALIZED_WORKING)
   {
     nECU_ADC2_Routine();
   }
-  if (ADC2_Working == true)
+  if (D_ADC3.Status & D_BLOCK_INITIALIZED_WORKING)
   {
     nECU_ADC3_Routine();
   }
@@ -209,9 +215,9 @@ void nECU_ADC1_Routine(void)
   else if (adc1_data.status.callback_full == true)
   {
     nECU_ADC_AverageDMA(&GENERAL_ADC, &(adc1_data.in_buffer[GENERAL_DMA_LEN / 2]), GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
-    nECU_InternalTemp_Callback();
     adc1_data.status.callback_full = false; // clear flag
   }
+  nECU_TickTrack_Update(&D_ADC1.Update_ticks);
 }
 void nECU_ADC2_Routine(void)
 {
@@ -226,6 +232,7 @@ void nECU_ADC2_Routine(void)
     nECU_ADC_AverageDMA(&SPEED_ADC, &adc2_data.in_buffer[(SPEED_DMA_LEN / 2) - 1], SPEED_DMA_LEN / 2, adc2_data.out_buffer, SPEED_SMOOTH_ALPHA);
     adc2_data.status.callback_full = false; // clear flag
   }
+  nECU_TickTrack_Update(&D_ADC2.Update_ticks);
 }
 void nECU_ADC3_Routine(void)
 {
@@ -233,21 +240,14 @@ void nECU_ADC3_Routine(void)
   if (adc3_data.status.callback_half == true)
   {
     adc3_data.status.callback_half = false; // clear flag
-    if (*adc3_data.UART_transmission == true)
-    {
-      nECU_Knock_Send_UART(&adc3_data.in_buffer[0]);
-    }
     nECU_Knock_ADC_Callback(&adc3_data.in_buffer[0]);
   }
   else if (adc3_data.status.callback_full == true)
   {
     adc3_data.status.callback_full = false; // clear flag
-    if (*adc3_data.UART_transmission == true)
-    {
-      nECU_Knock_Send_UART(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
-    }
     nECU_Knock_ADC_Callback(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
   }
+  nECU_TickTrack_Update(&D_ADC3.Update_ticks);
 #if TEST_KNOCK_UART == true
   Send_Triangle_UART();
   return;
@@ -300,55 +300,7 @@ uint16_t VoltsToADC(float Voltage)
   return (uint16_t)Voltage;
 }
 
-/* Internal Temperatre (MCU) */
-void nECU_InternalTemp_Init(void) // initialize structure
-{
-  if (MCU_temp_Initialized == false)
-  {
-    MCU_temperature.ADC_data = getPointer_InternalTemp_ADC();
-    MCU_temperature.temperature = 0;
-    MCU_temp_Initialized = true;
-  }
-  if (MCU_temp_Working == false && MCU_temp_Initialized == true)
-  {
-    nECU_InternalTemp_Delay_Start();
-    nECU_InternalTemp_StartupDelay_Start();
-    ADC1_START();
-    MCU_temp_Working = true;
-  }
-}
-void nECU_InternalTemp_Callback(void) // run when conversion ended
-{
-  if (MCU_temp_Working == false || *nECU_InternalTemp_StartupDelay_DoneFlag() == false)
-  {
-    return;
-  }
-  if (*nECU_InternalTemp_Delay_DoneFlag() == true)
-  {
-    nECU_InternalTemp_Update(); // calculate value
-    nECU_InternalTemp_Delay_Start();
-  }
-}
-void nECU_InternalTemp_Update(void) // perform update of output variables
-{
-  if (MCU_temp_Working == false)
-  {
-    return;
-  }
-
-  // convert to temperature
-  float Temperature = ADCToVolts(*MCU_temperature.ADC_data);
-  Temperature -= (float)INTERNAL_TEMP_V25;
-  Temperature /= (float)(INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
-  Temperature += (float)25;
-  MCU_temperature.temperature = Temperature * INTERNAL_TEMP_MULTIPLIER;
-}
-uint16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)
-{
-  /* returned value is multipled 100 times, which means that it carries two digits after dot */
-  return &MCU_temperature.temperature;
-}
-
+/* ADC buffer operations */
 void nECU_ADC_AverageDMA(ADC_HandleTypeDef *hadc, uint16_t *inData, uint16_t inLength, uint16_t *outData, float smoothAlpha) // average out dma buffer
 {
   uint32_t numChannels = hadc->Init.NbrOfConversion;

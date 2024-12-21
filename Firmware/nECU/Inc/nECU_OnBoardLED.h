@@ -37,6 +37,7 @@ extern "C"
     void OnBoard_LED_Que_Init(OnBoardLED *inst);                                  // initialize que data struct
     void OnBoard_LED_Que_Add(OnBoardLED *inst, OnBoardLED_Animate *animation);    // adds to the que
     void OnBoard_LED_Que_Remove(OnBoardLED *inst, OnBoardLED_Animate *animation); // removes from the que
+    void OnBoard_LED_Que_Check(OnBoardLED *inst);                                 // check if current animation is done, move que
     /* General */
     void OnBoard_LED_Init(void);                      // initialize structures for on board LEDs
     void OnBoard_LED_Update(void);                    // update on board LEDs states

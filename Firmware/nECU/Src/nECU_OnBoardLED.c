@@ -41,6 +41,11 @@ void OnBoard_LED_Animation_BlinkSetDelay(OnBoardLED_Animate *inst, uint32_t dela
 }
 void OnBoard_LED_Animation_BlinkStart(OnBoardLED_Animate *inst, uint32_t delay, uint8_t count) // starts blink animation
 {
+    if (inst->blink_active == true) // break if animation is ongoing
+    {
+        return;
+    }
+
     OnBoard_LED_Animation_BlinkSetDelay(inst, delay);
     inst->blink_active = true;
     nECU_Delay_Start(&(inst->blink_delay));
@@ -180,6 +185,18 @@ void OnBoard_LED_Que_Remove(OnBoardLED *inst, OnBoardLED_Animate *animation) // 
         }
     }
 }
+void OnBoard_LED_Que_Check(OnBoardLED *inst) // check if current animation is done, move que
+{
+    if ((inst->Animation->blink_active == false || inst->Animation->priority == LED_ANIMATE_ERROR_ID) && inst->Que_len > 0) // check if animation is done and que has new animations waiting
+    {
+        inst->Animation = inst->Que[0]; // add new animation as a current one
+        inst->Que_len--;
+        for (uint8_t que_index = 1; que_index < (inst->Que_len); que_index++) // move que
+        {
+            inst->Que[que_index - 1] = inst->Que[que_index];
+        }
+    }
+}
 /* General */
 void OnBoard_LED_Init(void) // initialize structures for on board LEDs
 {
@@ -212,6 +229,7 @@ void OnBoard_LED_Update(void) // update on board LEDs states
 }
 void OnBoard_LED_Update_Single(OnBoardLED *inst) // update of all internal variables
 {
+    OnBoard_LED_Que_Check(inst);
     OnBoard_LED_Animation_Update((inst->Animation)); // update only current animation
     OnBoard_LED_GPIO_Update(&(inst->LEDPin), inst->Animation->state);
 }

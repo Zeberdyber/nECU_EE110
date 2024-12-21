@@ -62,6 +62,11 @@ extern "C"
     void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message); // add message to debug que
     void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message);  // read newest message from debug que
 
+    /* Program Block */
+    void nECU_Debug_ProgramBlock_Init(void);                              // Initialize 'ProgramBlock' tracking
+    void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst);  // Clear structure 'ProgramBlockData'
+    void nECU_Debug_ProgramBlockData_Update(nECU_ProgramBlockData *inst); // Update tick tracking and check for timeout
+
 #ifdef __cplusplus
 }
 #endif

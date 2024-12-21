@@ -95,6 +95,7 @@ void nECU_stock_GPIO_Init(void) // initialize structure variables
 
         stk_in.Lights_ON.GPIO_Pin = Lights_ON_Pin;
         stk_in.Lights_ON.GPIOx = Lights_ON_GPIO_Port;
+        GPIO_Initialized = true;
     }
     if (GPIO_Working == false && GPIO_Initialized == true)
     {

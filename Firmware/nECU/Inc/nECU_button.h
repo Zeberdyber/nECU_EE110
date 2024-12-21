@@ -38,29 +38,21 @@ extern "C"
   void Button_Stop(void);
 
   /* Output functions */
-  void ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonLight object with corresponding timer
-  void ButtonLight_Update(ButtonLight *Light);                                         // periodic animation update function
-  void ButtonLight_Set_Blink(ButtonLight *Light, uint8_t Speed, uint16_t Count);       // setup blinking animation
-  void ButtonLight_Set_Breathe(ButtonLight *Light, uint8_t Speed, uint16_t Count);     // setup breathing animation
-  void ButtonLight_Set_Mode(ButtonLight *Light, ButtonLight_Mode Mode);                // setup mode (animation type)
-  void ButtonLight_UpdateAll(void);                                                    // function to launch updates for all buttons
-  void ButtonLight_TimeTrack(ButtonLight *Light);                                      // funtion called to update time passed
-  void ButtonLight_TimeTrack_All(void);                                                // function called to update time in all buttons
-  void ButtonLight_Stop(ButtonLight *Light);                                           // stops button code
+  static bool ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonLight object with corresponding timer
+  static void ButtonLight_Update(ButtonLight *Light);                                         // periodic animation update function
+  static void ButtonLight_TimeTrack(ButtonLight *Light);                                      // funtion called to update time passed
+  static void ButtonLight_Stop(ButtonLight *Light);                                           // stops button code
+  void ButtonLight_UpdateAll(void);                                                           // function to launch updates for all buttons
 
   /* Input functions */
-  void ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonInput object with corresponding timer and GPIO
-  void ButtonInput_TimingEvent(TIM_HandleTypeDef *htim);                                // funtion called after input capture interrupt from timer
-  void ButtonInput_Identify(TIM_HandleTypeDef *htim);                                   // function to identify to which button is pressed
-  void ButtonInput_InterruptRoutine(ButtonInput *button);                               // routine to be called after input capture callback (updates button structure)
-  Button_ClickType ButtonInput_GetType(Button_ID id);                                   // get click type if avaliable
-  void ButtonInput_Stop(ButtonInput *button);                                           // stop Input Capture for selected button
+  static bool ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonInput object with corresponding timer and GPIO
+  static void ButtonInput_Stop(ButtonInput *button);                                           // stop Input Capture for selected button
+  void ButtonInput_Identify(TIM_HandleTypeDef *htim);                                          // function to identify to which button is pressed
+  static void ButtonInput_InterruptRoutine(ButtonInput *button);                               // routine to be called after input capture callback (updates button structure)
+  Button_ClickType ButtonInput_GetType(Button_ID id);                                          // get click type if avaliable
 
   /* Animations */
-  void ButtonLight_BreathAllOnce(void);                                 // breath all button lights once
-  void ButtonLight_BlinkAllOnce(void);                                  // blink all button lights once
-  void ButtonLight_BreathOneOnce(Button_ID id);                         // breath selected button once
-  void ButtonLight_BlinkOneOnce(Button_ID id);                          // blink selected button once
+  static bool ButtonLight_Identify(Button_ID id, ButtonLight *light);   // find corresponding light structrue, return if ok
   void ButtonLight_SetOne(Button_ID id, bool state);                    // set selected button
   void ButtonLight_Breath(Button_ID id, uint8_t Speed, uint16_t Count); // breath one button
   void ButtonLight_Blink(Button_ID id, uint8_t Speed, uint16_t Count);  // blink one button

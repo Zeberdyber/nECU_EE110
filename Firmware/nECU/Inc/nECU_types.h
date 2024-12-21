@@ -123,7 +123,6 @@ typedef struct
 {
     uint16_t in_buffer[KNOCK_DMA_LEN]; // input buffer (from DMA)
     nECU_ADC_Status status;            // statuses
-    bool *UART_transmission;           // flag, UART transmission ongoing
     TIM_HandleTypeDef *samplingTimer;  // timer used for sampling
 } nECU_ADC3;
 typedef struct
@@ -188,36 +187,6 @@ typedef struct
     ButtonLight light;
     ButtonInput input;
 } Button;
-
-/* Debug */
-typedef enum
-{
-    LED_ANIMATE_TEST_ID = 3,
-    LED_ANIMATE_ERROR_ID = 2,
-    LED_ANIMATE_UART_ID = 1,
-    LED_ANIMATE_NONE_ID
-} OnBoardLED_Animate_ID;
-typedef struct
-{
-    GPIO_PinState state;            // state to be displayed
-    nECU_Delay blink_delay;         // delay structure for non-blocking blinking
-    bool blink_active;              // ON/OFF for blinking animation
-    uint8_t blink_count;            // number of blinks to do
-    OnBoardLED_Animate_ID priority; // ID determines which animation will be used for the output
-} OnBoardLED_Animate;
-typedef struct
-{
-    GPIO_struct LEDPin;                                     // pin of the LED structure
-    OnBoardLED_Animate *Animation;                          // variables used to determine what should be shown
-    OnBoardLED_Animate *Que[ONBOARD_LED_ANIMATION_QUE_LEN]; // que for animations (if multiple want to access)
-    uint8_t Que_len;                                        // number of animations in que
-} OnBoardLED;
-typedef struct
-{
-    nECU_TickTrack tracker;
-    uint32_t time;    // time of whole loop [ms]
-    uint32_t counter; // loop counter
-} nECU_LoopCounter;
 
 /* EGT */
 typedef enum
@@ -508,18 +477,7 @@ typedef struct
     bool pending;
 } nECU_UART;
 
-/* PC */
-typedef struct
-{
-    nECU_UART output;
-    nECU_UART input;
-    char out_buf[PC_UART_BUF_LEN];
-    char in_buf[PC_UART_BUF_LEN];
-    OnBoardLED_Animate Tx_LED;
-    OnBoardLED_Animate Rx_LED;
-} nECU_PC;
-
-/* Debug develop */
+/* Debug */
 typedef enum
 {
     // internal temperature out of spec
@@ -605,5 +563,63 @@ typedef struct
     nECU_Debug_IC_temp device_temperature; // error due to over/under temperature of ICs
     nECU_Debug_error_que error_que;        // que of active error messages
 } nECU_Debug;
+typedef enum
+{
+    LED_ANIMATE_TEST_ID = 3,
+    LED_ANIMATE_ERROR_ID = 2,
+    LED_ANIMATE_UART_ID = 1,
+    LED_ANIMATE_NONE_ID
+} OnBoardLED_Animate_ID;
+typedef struct
+{
+    GPIO_PinState state;            // state to be displayed
+    nECU_Delay blink_delay;         // delay structure for non-blocking blinking
+    bool blink_active;              // ON/OFF for blinking animation
+    uint8_t blink_count;            // number of blinks to do
+    OnBoardLED_Animate_ID priority; // ID determines which animation will be used for the output
+} OnBoardLED_Animate;
+typedef struct
+{
+    GPIO_struct LEDPin;                                     // pin of the LED structure
+    OnBoardLED_Animate *Animation;                          // variables used to determine what should be shown
+    OnBoardLED_Animate *Que[ONBOARD_LED_ANIMATION_QUE_LEN]; // que for animations (if multiple want to access)
+    uint8_t Que_len;                                        // number of animations in que
+} OnBoardLED;
+typedef struct
+{
+    nECU_TickTrack tracker;
+    uint32_t time;    // time of whole loop [ms]
+    uint32_t counter; // loop counter
+} nECU_LoopCounter;
+typedef enum
+{
+    D_BLOCK_STOP = 0,
+    D_BLOCK_INITIALIZED = 1,
+    D_BLOCK_WORKING = 2,
+    D_BLOCK_INITIALIZED_WORKING = 3,
+    D_BLOCK_SPARE_1 = 4,
+    D_BLOCK_SPARE_2 = 8,
+    D_BLOCK_SPARE_3 = 16,
+    D_BLOCK_SPARE_4 = 32,
+    D_BLOCK_CODE_ERROR = 64,
+    D_BLOCK_ERROR = 128,
+    D_BLOCK_NONE
+} nECU_ProgramBlock_Status;
+typedef struct
+{
+    nECU_ProgramBlock_Status Status; // Status code
+    nECU_TickTrack Update_ticks;     // Ticks it taken since last update call
+} nECU_ProgramBlockData;
+
+/* PC */
+typedef struct
+{
+    nECU_UART output;
+    nECU_UART input;
+    char out_buf[PC_UART_BUF_LEN];
+    char in_buf[PC_UART_BUF_LEN];
+    OnBoardLED_Animate Tx_LED;
+    OnBoardLED_Animate Rx_LED;
+} nECU_PC;
 
 #endif // _nECU_types_H_

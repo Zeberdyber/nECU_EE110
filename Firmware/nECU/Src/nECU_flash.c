@@ -8,13 +8,13 @@
 #include "nECU_flash.h"
 
 nECU_FlashContent Flash;
-bool FlashdataInitialized = false;
+extern nECU_ProgramBlockData D_Flash; // diagnostic and flow control data
 
 /* Speed calibration data functions (flash function interface) */
 void nECU_saveSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4)
 {
     // check if data was initialized
-    if (FlashdataInitialized == false)
+    if (!(D_Flash.Status & D_BLOCK_WORKING))
     {
         nECU_FLASH_getAllMemory();
     }
@@ -29,7 +29,7 @@ void nECU_saveSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, f
 void nECU_readSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4)
 {
     // check if data was initialized
-    if (FlashdataInitialized == false)
+    if (!(D_Flash.Status & D_BLOCK_WORKING))
     {
         nECU_FLASH_getAllMemory();
     }
@@ -44,7 +44,7 @@ void nECU_readSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, f
 void nECU_saveUserSettings(bool *pAntiLag, bool *pTractionOFF)
 {
     // check if data was initialized
-    if (FlashdataInitialized == false)
+    if (!(D_Flash.Status & D_BLOCK_WORKING))
     {
         nECU_FLASH_getAllMemory();
     }
@@ -56,7 +56,7 @@ void nECU_saveUserSettings(bool *pAntiLag, bool *pTractionOFF)
 void nECU_readUserSettings(bool *pAntiLag, bool *pTractionOFF)
 {
     // check if data was initialized
-    if (FlashdataInitialized == false)
+    if (!(D_Flash.Status & D_BLOCK_WORKING))
     {
         nECU_FLASH_getAllMemory();
     }
@@ -80,9 +80,13 @@ void nECU_FLASH_getAllMemory(void) // get data from flash
     /* copy data to the RAM */
     memcpy(&(Flash.speedData), (const void *)FLASH_DATA_START_ADDRESS, sizeof(nECU_SpeedCalibrationData));                            // speed data to RAM
     memcpy(&(Flash.userData), (const void *)FLASH_DATA_START_ADDRESS + sizeof(nECU_SpeedCalibrationData), sizeof(nECU_UserSettings)); // user settings to RAM
-    if (FlashdataInitialized == false)
+    if (D_Flash.Status == D_BLOCK_STOP)
     {
-        FlashdataInitialized = true;
+        D_Flash.Status |= D_BLOCK_INITIALIZED;
+    }
+    if (D_Flash.Status & D_BLOCK_INITIALIZED)
+    {
+        D_Flash.Status |= D_BLOCK_WORKING;
     }
 }
 void nECU_FLASH_saveFlashSector(void) // save everything, then read to RAM

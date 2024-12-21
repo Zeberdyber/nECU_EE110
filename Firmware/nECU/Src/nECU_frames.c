@@ -13,14 +13,12 @@ Frame0_struct F0_var;
 Frame1_struct F1_var;
 Frame2_struct F2_var;
 
-static bool F0_Initialized = false, F0_Working = false;
-static bool F1_Initialized = false, F1_Working = false;
-static bool F2_Initialized = false, F2_Working = false;
+extern nECU_ProgramBlockData D_F0, D_F1, D_F2; // diagnostic and flow control data
 
 /* Frame 0 */
 void Frame0_Init(void) // initialization of data structure
 {
-    if (F0_Initialized == false)
+    if (D_F0.Status == D_BLOCK_STOP)
     {
         Speed_Start();
         F0_var.Speed_FL = Speed_GetSpeed(SPEED_SENSOR_FRONT_LEFT);
@@ -47,16 +45,21 @@ void Frame0_Init(void) // initialization of data structure
         // add immo init (when implemented)
         F0_var.IgnitionKey = nECU_Immo_getPointer();
 
-        F0_Initialized = true;
+        D_F0.Status |= D_BLOCK_INITIALIZED;
     }
-    if (F0_Working == false && F0_Initialized == true)
+    if (D_F0.Status & D_BLOCK_INITIALIZED)
     {
         Speed_Start();
-        F0_Working = true;
+        D_F0.Status |= D_BLOCK_WORKING;
     }
 }
 void Frame0_Update(void) // update variables for frame 0
 {
+    if (!(D_F0.Status & D_BLOCK_WORKING))
+    {
+        return;
+    }
+
     Speed_TimingEvent();
     nECU_stock_GPIO_update();
     TachoValue_Update_All();
@@ -87,7 +90,7 @@ void Frame0_Update(void) // update variables for frame 0
 }
 void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
-    if (F0_Working == false)
+    if (!(D_F0.Status & D_BLOCK_WORKING))
     {
         return;
     }
@@ -112,15 +115,11 @@ void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4,
     buffer[0] |= (*B3 & 1) << 5;
     buffer[0] |= (*B4 & 1) << 4;
 }
-bool Frame0_Working(void) // return if frame is operational
-{
-    return F0_Working;
-}
 
 /* Frame 1 */
 void Frame1_Init(void) // initialization of data structure
 {
-    if (F1_Initialized == false)
+    if (D_F1.Status == D_BLOCK_STOP)
     {
         EGT_Init();
         F1_var.EGT1 = EGT_GetTemperaturePointer(EGT_CYL1);
@@ -136,22 +135,27 @@ void Frame1_Init(void) // initialization of data structure
         Button_Menu_Init();
         F1_var.TuneSelector = Button_Menu_getPointer_TuneSelector();
 
-        F1_Initialized = true;
+        D_F1.Status |= D_BLOCK_INITIALIZED;
     }
-    if (F1_Working == false && F1_Initialized == true)
+    if (D_F1.Status & D_BLOCK_INITIALIZED)
     {
         EGT_Start();
-        F1_Working = true;
+        D_F1.Status |= D_BLOCK_WORKING;
     }
 }
 void Frame1_Update(void) // update variables for frame 1
 {
+    if (!(D_F1.Status & D_BLOCK_WORKING))
+    {
+        return;
+    }
+
     EGT_RequestUpdate();
     TachoValue_Update_All();
 }
 void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
-    if (F1_Working == false)
+    if (!(D_F1.Status & D_BLOCK_WORKING))
     {
         return;
     }
@@ -176,15 +180,11 @@ void Frame1_ComposeWord(uint8_t *buffer, uint8_t *Val6Bit, uint16_t *Val10Bit) /
     buffer[0] = Converter.byteArray[1] & 0x3;
     buffer[0] |= (*Val6Bit << 2) & 0xFC;
 }
-bool Frame1_Working(void) // return if frame is operational
-{
-    return F1_Working;
-}
 
 /* Frame 2 */
 void Frame2_Init(void) // initialization of data structure
 {
-    if (F2_Initialized == false)
+    if (D_F2.Status == D_BLOCK_STOP)
     {
         nECU_BackPressure_Init();
         F2_var.Backpressure = nECU_BackPressure_GetPointer();
@@ -198,17 +198,22 @@ void Frame2_Init(void) // initialization of data structure
         F2_var.VSS = nECU_VSS_GetPointer();
         nECU_mainLoop_Init();
         F2_var.loop_count = nECU_mainLoop_getValue();
-        F2_Initialized = true;
+        D_F2.Status |= D_BLOCK_INITIALIZED;
     }
-    if (F2_Working == false && F2_Initialized == true)
+    if (D_F2.Status & D_BLOCK_INITIALIZED)
     {
         ADC1_START();
         nECU_Stock_Start();
-        F2_Working = true;
+        D_F2.Status |= D_BLOCK_WORKING;
     }
 }
 void Frame2_Update(void) // update variables for frame 2
 {
+    if (!(D_F2.Status & D_BLOCK_WORKING))
+    {
+        return;
+    }
+
     nECU_BackPressure_Update();
     nECU_MAP_Update();
     nECU_OX_Update();
@@ -217,7 +222,7 @@ void Frame2_Update(void) // update variables for frame 2
 }
 void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
-    if (F2_Working == false)
+    if (!(D_F2.Status & D_BLOCK_WORKING))
     {
         return;
     }
@@ -241,8 +246,4 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     TxFrame[6] = Converter.byteArray[1]; // spare
     TxFrame[7] = Converter.byteArray[0]; // spare
     nECU_CAN_WriteToBuffer(nECU_Frame_Stock, TxFrame);
-}
-bool Frame2_Working(void) // return if frame is operational
-{
-    return F2_Working;
 }

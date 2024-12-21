@@ -34,7 +34,6 @@ extern "C"
     void nECU_Knock_DeInit(void);                         // stop
     uint8_t *nECU_Knock_GetPointer(void);                 // returns pointer to knock retard percentage
     nECU_UART *nECU_Knock_UART_Pointer(void);             // returns pointer to Tx UART object
-    bool *nECU_Knock_Transmission_Flag(void);             // returns ponter to Tx UART transmission flag
     void nECU_Knock_Send_UART(uint16_t *ADC_data);        // sends RAW ADC data over UART
 
 #ifdef __cplusplus
