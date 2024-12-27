@@ -36,22 +36,19 @@ extern "C"
     uint16_t *Speed_GetSpeedSlow(Speed_Sensor_ID ID); // get slower (average) speed
     void Speed_SetWheelSetup(uint8_t WheelSetup);     // set wheel setup for all sensors
 
-    /* Averaging */
-    void Speed_AverageCalc(Speed_Sensor *Sensor); // routine to calculate averaged speed
-    void Speed_AverageInit(Speed_Sensor *Sensor); // Initialize averaging structure
-
     /* General functions */
-    bool Speed_Start(void);                          // function to start Speed function set
-    void Speed_Update(void);                         // perform update of all sensors
-    void Speed_SensorUpdate(Speed_Sensor *Sensor);   // update one sensors data
-    void Speed_CorrectToCalib(Speed_Sensor *Sensor); // correct data to calibration multiplier
-    void Speed_ADCToSpeed(Speed_Sensor *Sensor);     // function to convert RAW ADC data to real speed in km/h
+    bool Speed_Start(void);                                                  // function to start Speed function set
+    static bool Speed_Init_Single(Speed_Sensor *Sensor, Speed_Sensor_ID id); // initializes structure for single sensor
+    static void Speed_Update(void);                                          // perform update of all sensors
+    void Speed_SensorUpdate(Speed_Sensor *Sensor);                           // update one sensors data
+    static void Speed_CorrectToCalib(Speed_Sensor *Sensor);                  // correct data to calibration multiplier
+    static void Speed_ADCToSpeed(Speed_Sensor *Sensor);                      // function to convert RAW ADC data to real speed in km/h
 
     /* Calibration functions */
-    void Speed_CalibrateSingle(Speed_Sensor *Sensor); // function to generate calibration multiplier
-    void Speed_CalibrateAll(void);                    // function to calibrate speed sensors (periodic function)
-    void Speed_CalibrateInit(void);                   // initialize calibration structure
-    void Speed_CalibrateStart(void);                  // start calibration process
+    static void Speed_CalibrateSingle(Speed_Sensor *Sensor); // function to generate calibration multiplier
+    static void Speed_CalibrateAll(void);                    // function to calibrate speed sensors (periodic function)
+    static void Speed_CalibrateInit(void);                   // initialize calibration structure
+    void Speed_CalibrateStart(void);                         // start calibration process
 
     /* Periodic functions */
     void Speed_TimingEvent(void); // function to be called periodicaly with desired data update rate

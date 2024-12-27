@@ -18,10 +18,9 @@ extern "C"
 #include "nECU_tim.h"
 
 /* Definitions */
-#define VSS_PULSES_PER_KM 5000      // number of pulses that will be recived for a kilometer traveled
-#define VSS_MAX_SPEED 220           // in km/h maximal speed that car can go
-#define VSS_SMOOTH_ALPHA 0.15       // smoothing factor for the data, the higher alpha the higher smoothing
-#define VSS_SMOOTH_BUFFER_LENGTH 75 // length of smoothing buffer
+#define VSS_PULSES_PER_KM 5000 // number of pulses that will be recived for a kilometer traveled
+#define VSS_MAX_SPEED 220      // in km/h maximal speed that car can go
+#define VSS_SMOOTH_ALPHA 0.15  // smoothing factor for the data, the higher alpha the higher smoothing
 
 #define IGF_MAX_RPM_RATE 3000 // rpm/s rate; used for missfire detection
 #define IGF_MAX_RPM 10000     // maximal rpm allowed
@@ -30,18 +29,19 @@ extern "C"
 
     /* Function Prototypes */
     /* VSS - Vehicle Speed Sensor */
-    uint8_t *nECU_VSS_GetPointer(void);                // returns pointer to resulting data
-    bool nECU_VSS_Init(void);                          // initialize VSS structure
-    void nECU_VSS_Update(void);                        // update VSS structure
-    void nECU_VSS_Validate(void);                      // checks if recived signal is correct
-    void nECU_VSS_DeInit(void);                        // deinitialize VSS structure
-    void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim); // detect if zero km/h
+    uint8_t *nECU_VSS_GetPointer(void);  // returns pointer to resulting data
+    bool nECU_VSS_Start(void);           // initialize VSS structure
+    void nECU_VSS_Update(void);          // update VSS structure
+    static void nECU_VSS_Validate(void); // checks if recived signal is correct
+    void nECU_VSS_Stop(void);            // deinitialize VSS structure
+
     /* IGF - Ignition feedback */
-    bool nECU_IGF_Init(void);   // initialize and start
-    void nECU_IGF_Calc(void);   // calculate RPM based on IGF signal, detect missfire
-    void nECU_IGF_DeInit(void); // stop
+    bool nECU_IGF_Start(void);  // initialize and start
+    void nECU_IGF_Update(void); // calculate RPM based on IGF signal, detect missfire
+    void nECU_IGF_Stop(void);   // stop
+
     /* General */
-    void nECU_Frequency_Start(void);  // start of frequency input functions
+    bool nECU_Frequency_Start(void);  // start of frequency input functions
     void nECU_Frequency_Stop(void);   // stop of frequency input functions
     void nECU_Frequency_Update(void); // update of frequency input functions
 

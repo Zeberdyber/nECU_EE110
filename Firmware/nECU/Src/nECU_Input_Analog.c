@@ -8,10 +8,10 @@
 #include "nECU_Input_Analog.h"
 
 // internal variables
-static AnalogSensor_Handle MAP;
-static AnalogSensor_Handle BackPressure;
-static nECU_InternalTemp MCU_temperature;
-static AnalogSensor_Handle AI1, AI2, AI3; // additional analog inputs
+static AnalogSensor_Handle MAP = {0};
+static AnalogSensor_Handle BackPressure = {0};
+static nECU_InternalTemp MCU_temperature = {0};
+static AnalogSensor_Handle AI1 = {0}, AI2 = {0}, AI3 = {0}; // additional analog inputs
 
 extern nECU_ProgramBlockData D_MAP, D_BackPressure, D_MCU_temperature, D_AdditionalAI, D_Input_Analog; // diagnostic and flow control data
 
@@ -106,6 +106,8 @@ void nECU_InternalTemp_Update(void) // perform update of output variables
     Temperature /= (float)(INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
     Temperature += (float)25;
     MCU_temperature.temperature = Temperature * INTERNAL_TEMP_MULTIPLIER;
+
+    nECU_Debug_ProgramBlockData_Update(&D_MCU_temperature);
 }
 uint16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)
 {
@@ -142,6 +144,8 @@ void nECU_MAP_Update(void) // update MAP structure
     }
     nECU_A_Input_Update(&MAP);
     MAP.output16bit = nECU_FloatToUint16_t(MAP.outputFloat, MAP_DECIMAL_POINT, 10); // manually update due to 10bit MAP resolution in CAN frame
+
+    nECU_Debug_ProgramBlockData_Update(&D_MAP);
 }
 
 /* BackPressure */
@@ -174,6 +178,8 @@ void nECU_BackPressure_Update(void) // update BackPressure structure
     }
     nECU_A_Input_Update(&(BackPressure));
     BackPressure.output8bit = nECU_FloatToUint8_t(BackPressure.outputFloat, BACKPRESSURE_DECIMAL_POINT, 8);
+
+    nECU_Debug_ProgramBlockData_Update(&D_BackPressure);
 }
 
 /* Addtional Analog inputs */
@@ -208,6 +214,8 @@ void nECU_A_Input_Update_All(void)
     nECU_A_Input_Update(&AI1);
     nECU_A_Input_Update(&AI2);
     nECU_A_Input_Update(&AI3);
+
+    nECU_Debug_ProgramBlockData_Update(&D_AdditionalAI);
 }
 bool nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inMin, float outMax, float outMin, uint16_t *ADC_Data) // function to setup the structure
 {
@@ -298,4 +306,6 @@ void nECU_Analog_Update(void) // update to all analog functions
     nECU_BackPressure_Update();
     nECU_InternalTemp_Callback();
     nECU_A_Input_Update_All();
+
+    nECU_Debug_ProgramBlockData_Update(&D_Input_Analog);
 }

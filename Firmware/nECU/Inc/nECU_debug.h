@@ -25,12 +25,9 @@ extern "C"
 
 #define BENCH_MODE true // set true if not connected to car harness
 
-    void nECU_TickTrack_Init(nECU_TickTrack *inst);   // initialize structure
-    void nECU_TickTrack_Update(nECU_TickTrack *inst); // callback to get difference
-
     /* Debug main functions */
-    void nECU_Debug_Start(void);              // starts up debugging functions
-    static void nECU_Debug_Init_Struct(void); // set values to variables in structure
+    bool nECU_Debug_Start(void);              // starts up debugging functions
+    static bool nECU_Debug_Init_Struct(void); // set values to variables in structure
     void nECU_Debug_Periodic(void);           // checks states of variables
 
     /* Check states routines */
@@ -47,7 +44,7 @@ extern "C"
     void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read); // indicate error from flash functions
 
     /* Debug que and messages */
-    static void nECU_Debug_Init_Que(void);                                                     // initializes que
+    static bool nECU_Debug_Init_Que(void);                                                     // initializes que
     void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message);                               // add message to debug que
     void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message);                                // read newest message from debug que
     static void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst);                        // zeros value inside of structure

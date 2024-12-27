@@ -7,11 +7,9 @@
 
 #include "nECU_frames.h"
 
-bool ZeroBool = 0; // Blank bit do not change value
-
-Frame0_struct F0_var;
-Frame1_struct F1_var;
-Frame2_struct F2_var;
+Frame0_struct F0_var = {0};
+Frame1_struct F1_var = {0};
+Frame2_struct F2_var = {0};
 
 extern nECU_ProgramBlockData D_F0, D_F1, D_F2; // diagnostic and flow control data
 extern nECU_ProgramBlockData D_Main;           // used only for loop time tracking
@@ -78,6 +76,8 @@ void Frame0_Update(void) // update variables for frame 0
     nECU_stock_GPIO_update();
     TachoValue_Update_All();
 
+    nECU_Debug_ProgramBlockData_Update(&D_F0);
+
     F0_var.LunchControl1 = false;
     F0_var.LunchControl2 = false;
     F0_var.LunchControl3 = false;
@@ -114,7 +114,7 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, F0_var.Speed_FL);
     Frame0_ComposeWord(&TxFrame[2], F0_var.ClearEngineCode, F0_var.TachoShow3, F0_var.TachoShow2, F0_var.TachoShow1, F0_var.Speed_FR);
     Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl3, &F0_var.LunchControl2, &F0_var.LunchControl1, F0_var.Speed_RL);
-    Frame0_ComposeWord(&TxFrame[6], &ZeroBool, &ZeroBool, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed_RR);
+    Frame0_ComposeWord(&TxFrame[6], (bool *)false, (bool *)false, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed_RR);
     nECU_CAN_WriteToBuffer(nECU_Frame_Speed, TxFrame);
 }
 void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4, uint16_t *Val12Bit) // function to create word for use in frame 0
@@ -184,6 +184,8 @@ void Frame1_Update(void) // update variables for frame 1
 
     EGT_RequestUpdate();
     TachoValue_Update_All();
+
+    nECU_Debug_ProgramBlockData_Update(&D_F1);
 }
 void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
@@ -238,13 +240,13 @@ bool Frame2_Init(void) // initialization of data structure
             F2_var.MAP_Stock_10bit = nECU_MAP_GetPointer();
         }
 
-        status |= nECU_Knock_Init();
+        status |= nECU_Knock_Start();
         if (!status) // do only if no error
         {
             F2_var.Knock = nECU_Knock_GetPointer();
         }
 
-        status |= nECU_VSS_Init();
+        status |= nECU_VSS_Start();
         if (!status) // do only if no error
         {
             F2_var.VSS = nECU_VSS_GetPointer();
@@ -276,6 +278,9 @@ void Frame2_Update(void) // update variables for frame 2
     nECU_BackPressure_Update();
     nECU_MAP_Update();
     nECU_OX_Update();
+    nECU_VSS_Update();
+
+    nECU_Debug_ProgramBlockData_Update(&D_F2);
 }
 void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {

@@ -8,53 +8,39 @@
 
 #include "nECU_debug.h"
 
-static nECU_Debug dbg_data;
+static nECU_Debug dbg_data = {0};
 
 // Program status control
-nECU_ProgramBlockData *Debug_Status_List[25]; // array of pointers to all nECU_ProgramBlockData
+nECU_ProgramBlockData *Debug_Status_List[28] = {0}; // array of pointers to all nECU_ProgramBlockData
 
 nECU_ProgramBlockData D_ADC1, D_ADC2, D_ADC3;                                                   // nECU_adc.c
 nECU_ProgramBlockData D_Button_Red, D_Button_Orange, D_Button_Green;                            // nECU_button.c
 nECU_ProgramBlockData D_CAN_TX, D_CAN_RX;                                                       // nECU_can.c
 nECU_ProgramBlockData D_Data_Processing;                                                        // nECU_data_processing.c
-nECU_ProgramBlockData D_Debug, D_Debug_Mainloop, D_Debug_Que;                                   // nECU_debug.c
+nECU_ProgramBlockData D_Debug, D_Debug_Que;                                                     // nECU_debug.c
 nECU_ProgramBlockData D_Flash;                                                                  // nECU_flash.c
 nECU_ProgramBlockData D_F0, D_F1, D_F2;                                                         // nECU_frames.c
 nECU_ProgramBlockData D_MAP, D_BackPressure, D_MCU_temperature, D_AdditionalAI, D_Input_Analog; // nECU_Input_Analog.c
 nECU_ProgramBlockData D_VSS, D_IGF, D_Input_Frequency;                                          // nECU_Input_Frequency.c
+nECU_ProgramBlockData D_Knock;                                                                  // nECU_Knock.c
 nECU_ProgramBlockData D_Main;                                                                   // nECU_main.c
-
-/* Used for simple time tracking */
-void nECU_TickTrack_Init(nECU_TickTrack *inst) // initialize structure
-{
-    inst->previousTick = HAL_GetTick();
-    inst->difference = 0;
-    inst->convFactor = HAL_GetTickFreq();
-}
-void nECU_TickTrack_Update(nECU_TickTrack *inst) // callback to get difference
-{
-    uint64_t tickNow = HAL_GetTick();
-    if (tickNow < inst->previousTick) // check if data roll over
-    {
-        inst->difference = (tickNow + UINT32_MAX) - inst->previousTick;
-    }
-    else
-    {
-        inst->difference = tickNow - inst->previousTick;
-    }
-    inst->previousTick = tickNow;
-}
+nECU_ProgramBlockData D_Tacho, D_Menu;                                                          // nECU_menu.c
+nECU_ProgramBlockData D_OnboardLED;                                                             // nECU_OnBoardLED.c
+nECU_ProgramBlockData D_PC;                                                                     // nECU_PC.c
+nECU_ProgramBlockData D_SS1, D_SS2, D_SS3, D_SS4;                                               // nECU_Speed.c
 
 /* Debug main functions */
-void nECU_Debug_Start(void) // starts up debugging functions
+bool nECU_Debug_Start(void) // starts up debugging functions
 {
+    bool status = false;
+
     nECU_Debug_ProgramBlock_Init();
 
     if (D_Debug.Status = D_BLOCK_STOP)
     {
-        nECU_Debug_Init_Struct();
-        nECU_Debug_Init_Que();
-        nECU_InternalTemp_Init();
+        status |= nECU_Debug_Init_Struct();
+        status |= nECU_Debug_Init_Que();
+        status |= nECU_InternalTemp_Init();
         D_Debug.Status |= D_BLOCK_INITIALIZED;
     }
 
@@ -62,9 +48,13 @@ void nECU_Debug_Start(void) // starts up debugging functions
     {
         D_Debug.Status |= D_BLOCK_WORKING;
     }
+
+    return status;
 }
-void nECU_Debug_Init_Struct(void) // set values to variables in structure
+static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
 {
+    bool status = false;
+
     /* Device temperature */
     dbg_data.device_temperature.MCU = nECU_InternalTemp_getTemperature();
     dbg_data.device_temperature.EGT_IC[0] = EGT_GetTemperatureInternalPointer(EGT_CYL1);
@@ -83,17 +73,22 @@ void nECU_Debug_Init_Struct(void) // set values to variables in structure
     dbg_data.egt_communication.EGT_IC[1] = EGT_GetErrorState(EGT_CYL2);
     dbg_data.egt_communication.EGT_IC[2] = EGT_GetErrorState(EGT_CYL3);
     dbg_data.egt_communication.EGT_IC[3] = EGT_GetErrorState(EGT_CYL4);
+
+    return status;
 }
 void nECU_Debug_Periodic(void) // checks states of variables
 {
-    if (D_Debug.Status & D_BLOCK_INITIALIZED_WORKING)
+    if (!(D_Debug.Status & D_BLOCK_INITIALIZED_WORKING))
     {
-        nECU_Debug_IntTemp_Check(&(dbg_data.device_temperature));
-        nECU_Debug_EGTTemp_Check(&(dbg_data.egt_temperature));
-        nECU_Debug_EGTsensor_error(&(dbg_data.egt_communication));
-        nECU_Debug_CAN_Check();
-        nECU_Debug_SPI_Check();
+        return;
     }
+
+    nECU_Debug_IntTemp_Check(&(dbg_data.device_temperature));
+    nECU_Debug_EGTTemp_Check(&(dbg_data.egt_temperature));
+    nECU_Debug_EGTsensor_error(&(dbg_data.egt_communication));
+    nECU_Debug_CAN_Check();
+    nECU_Debug_SPI_Check();
+    nECU_Debug_ProgramBlockData_Update(&D_Debug);
 }
 
 /* Check states routines */
@@ -227,8 +222,10 @@ void nECU_Debug_FLASH_error(nECU_Flash_Error_ID ID, bool write_read) // indicate
 }
 
 /* Debug que and messages */
-static void nECU_Debug_Init_Que(void) // initializes que
+static bool nECU_Debug_Init_Que(void) // initializes que
 {
+    bool status = false;
+
     if (D_Debug_Que.Status = D_BLOCK_STOP)
     {
         dbg_data.error_que.counter.preset = sizeof(dbg_data.error_que.messages) / sizeof(nECU_Debug_error_mesage); // calculate length of que
@@ -238,9 +235,11 @@ static void nECU_Debug_Init_Que(void) // initializes que
         {
             nECU_Debug_Message_Init(&(dbg_data.error_que.messages[que_index])); // clear each
         }
-        nECU_readDebugQue(&(dbg_data.error_que)); // on this run it will only set pointer for further reading/writing
+        status |= nECU_readDebugQue(&(dbg_data.error_que)); // on this run it will only set pointer for further reading/writing
         D_Debug_Que.Status |= D_BLOCK_INITIALIZED_WORKING;
     }
+
+    return status;
 }
 void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to debug que
 {
@@ -307,24 +306,27 @@ static void nECU_Debug_ProgramBlock_Init(void) // Initialize 'ProgramBlock' trac
     Debug_Status_List[7] = &D_CAN_RX;
     Debug_Status_List[8] = &D_Data_Processing;
     Debug_Status_List[9] = &D_Debug;
-    Debug_Status_List[10] = &D_Debug_Mainloop;
-    Debug_Status_List[11] = &D_Debug_Que;
-    Debug_Status_List[12] = &D_Flash;
-    Debug_Status_List[13] = &D_F0;
-    Debug_Status_List[14] = &D_F1;
-    Debug_Status_List[15] = &D_F2;
-    Debug_Status_List[16] = &D_MAP;
-    Debug_Status_List[17] = &D_BackPressure;
-    Debug_Status_List[18] = &D_MCU_temperature;
-    Debug_Status_List[19] = &D_AdditionalAI;
-    Debug_Status_List[20] = &D_Input_Analog;
-    Debug_Status_List[21] = &D_VSS;
-    Debug_Status_List[22] = &D_IGF;
-    Debug_Status_List[23] = &D_Input_Frequency;
+    Debug_Status_List[10] = &D_Debug_Que;
+    Debug_Status_List[11] = &D_Flash;
+    Debug_Status_List[12] = &D_F0;
+    Debug_Status_List[13] = &D_F1;
+    Debug_Status_List[14] = &D_F2;
+    Debug_Status_List[15] = &D_MAP;
+    Debug_Status_List[16] = &D_BackPressure;
+    Debug_Status_List[17] = &D_MCU_temperature;
+    Debug_Status_List[18] = &D_AdditionalAI;
+    Debug_Status_List[19] = &D_Input_Analog;
+    Debug_Status_List[20] = &D_VSS;
+    Debug_Status_List[21] = &D_IGF;
+    Debug_Status_List[22] = &D_Input_Frequency;
+    Debug_Status_List[23] = &D_Knock;
     Debug_Status_List[24] = &D_Main;
+    Debug_Status_List[25] = &D_Tacho;
+    Debug_Status_List[26] = &D_Menu;
+    Debug_Status_List[27] = &D_OnboardLED;
 
     // Initialize structures
-    for (uint8_t index = 0; index < 19; index++)
+    for (uint8_t index = 0; index < (sizeof(Debug_Status_List) / sizeof(Debug_Status_List[0])); index++)
     {
         nECU_Debug_ProgramBlockData_Clear(Debug_Status_List[index]);
     }

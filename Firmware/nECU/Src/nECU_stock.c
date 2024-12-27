@@ -8,8 +8,8 @@
 #include "nECU_stock.h"
 
 // internal variables
-Oxygen_Handle OX;
-static stock_GPIO stk_in;
+Oxygen_Handle OX = {0};
+static stock_GPIO stk_in = {0};
 
 // initialized flags
 static bool OX_Initialized = false, OX_Working = false,

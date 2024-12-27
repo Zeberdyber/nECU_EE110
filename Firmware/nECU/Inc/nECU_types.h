@@ -32,6 +32,7 @@
 #define SPEED_TARGET_UPDATE 25                                                                                                                                                                                             // time in ms how often should values be updated
 #define SPEED_DMA_LEN (((uint16_t)(((APB2_CLOCK * SPEED_TARGET_UPDATE) / 1000) / ((SPEED_ADC_RESOLUTIONCYCLES + SPEED_ADC_SAMPLINGCYCLES) * SPEED_ADC_CLOCKDIVIDER * SPEED_CHANNEL_COUNT))) / 2) * 2 * SPEED_CHANNEL_COUNT // length of DMA buffer for SPEED_ADC, '2' for divisibility by two
 #define SPEED_AVERAGE_BUFFER_SIZE 100                                                                                                                                                                                      // number of conversions to average
+#define VSS_SMOOTH_BUFFER_LENGTH 75                                                                                                                                                                                        // length of smoothing buffer
 
 #define KNOCK_CHANNEL_COUNT 1 // number of initialized channels of KNOCK_ADC
 #define KNOCK_DMA_LEN 512     // length of DMA buffer for KNOCK_ADC
@@ -64,6 +65,15 @@ typedef struct
     uint32_t value;  // current value
     uint32_t preset; // preset value
 } Counter;
+
+/* UART */
+typedef struct
+{
+    UART_HandleTypeDef *huart;
+    uint8_t *message;
+    uint8_t length;
+    bool pending;
+} nECU_UART;
 
 typedef struct
 {
@@ -243,8 +253,7 @@ typedef enum
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_TickTrack timer;      // used to track timing between frames
-    uint16_t timeElapsed;      // time passed since previous frame
+    nECU_Delay frame_delay;    // timing between frames
 
     bool LunchControl1, LunchControl2, LunchControl3, RollingLunch; // flags from decoding
 
@@ -258,8 +267,7 @@ typedef struct
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_TickTrack timer;      // used to track timing between frames
-    uint16_t timeElapsed;      // time passed since previous frame
+    nECU_Delay frame_delay;    // timing between frames
 
     // outside variables
     uint16_t *EGT1, *EGT2, *EGT3, *EGT4;
@@ -269,8 +277,7 @@ typedef struct
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_TickTrack timer;      // used to track timing between frames
-    uint16_t timeElapsed;      // time passed since previous frame
+    nECU_Delay frame_delay;    // timing between frames
 
     // outside variables
     uint8_t *Backpressure, *OX_Val;
@@ -325,7 +332,6 @@ typedef struct
 typedef struct
 {
     bool LevelWaiting;
-    bool *CycleDoneFlag;
 
     uint8_t Level;
     uint8_t RetardOut;
@@ -337,6 +343,14 @@ typedef struct
 
     // regression
     nECU_TickTrack regres;
+
+    // UART communication
+    bool UART_Transmission;
+    nECU_UART uart;
+    uint8_t UART_data_buffer[KNOCK_DMA_LEN];
+
+    // Delay
+    nECU_Delay delay; // Minimum time between each knock retard action (time to check if knock is gone after retard)
 } nECU_Knock;
 
 /* Menu */
@@ -361,7 +375,8 @@ typedef struct
     bool Antilag, TractionOFF, ClearEngineCode;
     uint16_t LunchControlLevel, TuneSelector;
     // internal variables
-    uint16_t MenuLevel;
+    uint16_t MenuLevel;    // Level of button menu
+    nECU_Delay save_delay; // Delay until data is saved to FLASH
 } ButtonMenu;
 
 /* Speed */
@@ -387,6 +402,7 @@ typedef struct
     uint16_t SpeedDataSlow; // output speed, averaged from multiple measuerements
     uint16_t WheelCirc;     // circumference of wheel (according to wheel setup)
     SpeedAverage Average;   // averaging structure
+    Speed_Sensor_ID id;     // id of this speed sensor
 } Speed_Sensor;
 typedef struct
 {
@@ -410,6 +426,9 @@ typedef struct
     nECU_InputCapture ic; // input capture structure
     uint8_t Speed;        // resulting speed
     bool overspeed_error; // flag to indicate speed reached maximal allowed
+
+    uint16_t VSS_Smooth_buffer[VSS_SMOOTH_BUFFER_LENGTH];
+    nECU_Delay VSS_ZeroDetect;
 } VSS_Handle;
 typedef struct
 {
@@ -446,15 +465,6 @@ typedef struct
     uint64_t counter_max;     // value which determines error state
     nECU_TickTrack timeTrack; // used to track time between clears
 } nECU_tim_Watchdog;
-
-/* UART */
-typedef struct
-{
-    UART_HandleTypeDef *huart;
-    uint8_t *message;
-    uint8_t length;
-    bool pending;
-} nECU_UART;
 
 /* Debug */
 typedef enum

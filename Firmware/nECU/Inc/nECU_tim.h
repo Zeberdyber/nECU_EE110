@@ -29,8 +29,6 @@ extern "C"
 #define KNOCK_ADC_SAMPLING_TIMER htim8
 #define FRAME_TIMER htim10
 
-#define FLASH_SAVE_DELAY_TIME 5000 // time to wait for before save happens in ms
-
 #define WATCHDOG_PERIOD_MULTIPLIER 2 // after how many missed callbacks an error will be called
 
   /* Function Prototypes */
@@ -41,6 +39,10 @@ extern "C"
   void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim);
   void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim);
 
+  /* Used for simple time tracking */
+  void nECU_TickTrack_Init(nECU_TickTrack *inst);   // initialize structure
+  void nECU_TickTrack_Update(nECU_TickTrack *inst); // callback to get difference
+
   /* Non-blocking delay */
   bool *nECU_Delay_DoneFlag(nECU_Delay *inst);            // return done flag pointer of non-blocking delay
   void nECU_Delay_Start(nECU_Delay *inst);                // start non-blocking delay
@@ -48,14 +50,6 @@ extern "C"
   void nECU_Delay_Update(nECU_Delay *inst);               // update current state of non-blocking delay
   void nECU_Delay_Stop(nECU_Delay *inst);                 // stop non-blocking delay
   void nECU_Delay_UpdateAll(void);                        // update all created non-blocking delays
-
-  /* Flash save user setting delay */
-  bool *nECU_Save_Delay_DoneFlag(void); // return flag if save is due
-  void nECU_Save_Delay_Start(void);     // start non-blocking delay for save
-
-  /* Delay knock update to next cycle */
-  bool *nECU_Knock_Delay_DoneFlag(void);   // return flag if knock is due
-  void nECU_Knock_Delay_Start(float *rpm); // start non-blocking delay for knock
 
   /* Delay for internal temperature update */
   bool *nECU_InternalTemp_Delay_DoneFlag(void);        // return flag if internal temperature updates is due

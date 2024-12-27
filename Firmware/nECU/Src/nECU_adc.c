@@ -8,9 +8,9 @@
 #include "nECU_adc.h"
 
 // local variables
-static nECU_ADC1 adc1_data;
-static nECU_ADC2 adc2_data;
-static nECU_ADC3 adc3_data;
+static nECU_ADC1 adc1_data = {0};
+static nECU_ADC2 adc2_data = {0};
+static nECU_ADC3 adc3_data = {0};
 
 extern nECU_ProgramBlockData D_ADC1, D_ADC2, D_ADC3; // diagnostic and flow control data
 

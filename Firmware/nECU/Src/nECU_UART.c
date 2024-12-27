@@ -8,8 +8,8 @@
 #include "nECU_UART.h"
 
 /* EOF variables */
-uint8_t timestamp;
-uint8_t delta_counter;
+uint8_t timestamp = 0;
+uint8_t delta_counter = 0;
 
 /* Rx UART objects */
 static nECU_UART *PC_UART_obj;

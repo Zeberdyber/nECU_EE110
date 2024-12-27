@@ -26,15 +26,13 @@ extern "C"
 #define KNOCK_FREQUENCY 8000 // in Hz
 
     /* Knock detection */
-    bool nECU_Knock_Init(void);                           // initialize and start
+    bool nECU_Knock_Start(void);                          // initialize and start
     void nECU_Knock_ADC_Callback(uint16_t *input_buffer); // periodic callback
-    void nECU_Knock_UpdatePeriodic(void);                 // function to perform time critical knock routines, call at regression timer interrupt
-    void nECU_Knock_DetectMagn(void);                     // function to detect knock based on ADC input
-    void nECU_Knock_Evaluate(float *magnitude);           // check if magnitude is of knock range
-    void nECU_Knock_DeInit(void);                         // stop
+    void nECU_Knock_UpdatePeriodic(void);                 // function to calculate current retard value
+    static void nECU_Knock_DetectMagn(void);              // function to detect knock based on ADC input
+    static void nECU_Knock_Evaluate(float *magnitude);    // check if magnitude is of knock range
+    void nECU_Knock_Stop(void);                           // stop
     uint8_t *nECU_Knock_GetPointer(void);                 // returns pointer to knock retard percentage
-    nECU_UART *nECU_Knock_UART_Pointer(void);             // returns pointer to Tx UART object
-    void nECU_Knock_Send_UART(uint16_t *ADC_data);        // sends RAW ADC data over UART
 
 #ifdef __cplusplus
 }

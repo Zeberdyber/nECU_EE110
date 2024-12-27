@@ -7,11 +7,9 @@
 
 #include "nECU_tim.h"
 
-static nECU_Delay Flash_save_delay;
-static nECU_Delay Knock_rotation_delay;
-static nECU_Delay MCU_temperature_Startup, MCU_temperature_Update;
+static nECU_Delay MCU_temperature_Startup = {0}, MCU_temperature_Update = {0};
 
-static nECU_tim_Watchdog Button_Out_Watchdog, Ox_Out_Watchdog;
+static nECU_tim_Watchdog Button_Out_Watchdog = {0}, Ox_Out_Watchdog = {0};
 
 extern VSS_Handle VSS;
 extern IGF_Handle IGF;
@@ -20,7 +18,7 @@ extern IGF_Handle IGF;
 extern Oxygen_Handle OX;
 extern Button Red;
 
-uint8_t nECU_Get_FrameTimer(void) // get current value of frame timer
+uint8_t nECU_Get_FrameTimer(void) // get current value of frame timer -> Used for UART frame timestamp
 {
   /* timer 11 is set to work with 0,1ms count up time, and have 8bit period*/
   if (HAL_TIM_STATE_READY == HAL_TIM_Base_GetState(&FRAME_TIMER)) // if not working (not busy)
@@ -60,6 +58,27 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
       break;
     }
   }
+}
+
+/* Used for simple time tracking */
+void nECU_TickTrack_Init(nECU_TickTrack *inst) // initialize structure
+{
+  inst->previousTick = HAL_GetTick();
+  inst->difference = 0;
+  inst->convFactor = HAL_GetTickFreq();
+}
+void nECU_TickTrack_Update(nECU_TickTrack *inst) // callback to get difference
+{
+  uint64_t tickNow = HAL_GetTick();
+  if (tickNow < inst->previousTick) // check if data roll over
+  {
+    inst->difference = (tickNow + UINT32_MAX) - inst->previousTick;
+  }
+  else
+  {
+    inst->difference = tickNow - inst->previousTick;
+  }
+  inst->previousTick = tickNow;
 }
 
 /* Non-blocking delay */
@@ -102,34 +121,8 @@ void nECU_Delay_Stop(nECU_Delay *inst) // stop non-blocking delay
 }
 void nECU_Delay_UpdateAll(void) // update all created non-blocking delays
 {
-  nECU_Delay_Update(&Flash_save_delay);
-  nECU_Delay_Update(&Knock_rotation_delay);
   nECU_Delay_Update(&MCU_temperature_Update);
   nECU_Delay_Update(&MCU_temperature_Startup);
-}
-
-/* Flash save user setting delay */
-bool *nECU_Save_Delay_DoneFlag(void) // return flag if save is due
-{
-  return nECU_Delay_DoneFlag(&Flash_save_delay);
-}
-void nECU_Save_Delay_Start(void) // start non-blocking delay for save
-{
-  uint32_t delay = FLASH_SAVE_DELAY_TIME;
-  nECU_Delay_Set(&Flash_save_delay, &delay);
-  nECU_Delay_Start(&Flash_save_delay);
-}
-
-/* Delay knock update to next cycle */
-bool *nECU_Knock_Delay_DoneFlag(void) // return flag if knock is due
-{
-  return nECU_Delay_DoneFlag(&Knock_rotation_delay);
-}
-void nECU_Knock_Delay_Start(float *rpm) // start non-blocking delay for knock
-{
-  uint32_t delay = (120000 / *rpm); // 120000 = 120 (Hz to rpm) * 1000 (ms to s)
-  nECU_Delay_Set(&Knock_rotation_delay, &delay);
-  nECU_Delay_Start(&Knock_rotation_delay);
 }
 
 /* Delay for internal temperature update */

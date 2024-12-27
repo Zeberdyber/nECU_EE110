@@ -9,7 +9,7 @@
 #include "nECU_EGT.h"
 
 /* EGT variables */
-nECU_EGT EGT_variables;
+nECU_EGT EGT_variables = {0};
 
 static bool *EGT_initialized; // pointer as delay function is used
 static bool EGT_Init_Called = false;

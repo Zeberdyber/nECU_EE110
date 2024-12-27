@@ -7,7 +7,7 @@
 
 #include "nECU_tests.h"
 
-static OnBoardLED_Animate test_fail_animation;
+static OnBoardLED_Animate test_fail_animation = {0};
 static bool Indicator_Initialized = false;
 
 /* Fail indication */
@@ -263,13 +263,13 @@ void nECU_IGF_Test(void) // checks readout compared to CAN frame data
     if (IGF_test_Initialized == false)
     {
         IGF_test_CAN_RPM = nECU_CAN_getRPMPointer();
-        nECU_IGF_Init();
+        nECU_IGF_Start();
         IGF_test_Initialized = true;
     }
     float CAN_RPM = *IGF_test_CAN_RPM * 20; // 20 is a divider value from MaxxECU config
     float RPM_difference = 0;               // difference between RPM data
 
-    nECU_IGF_Calc();       // update value
+    nECU_IGF_Update();     // update value
     if (CAN_RPM > IGF.RPM) // calculate difference
     {
         RPM_difference = CAN_RPM - IGF.RPM;

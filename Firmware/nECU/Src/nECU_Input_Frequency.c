@@ -8,52 +8,50 @@
 #include "nECU_Input_Frequency.h"
 
 // internal variables
-VSS_Handle VSS;
-IGF_Handle IGF;
-static uint16_t VSS_Smooth_buffer[VSS_SMOOTH_BUFFER_LENGTH] = {0};
-static nECU_Delay VSS_ZeroDetect;
+VSS_Handle VSS = {0};
+IGF_Handle IGF = {0};
 
-// initialized flags
-static bool VSS_Initialized = false, VSS_Working = false,
-            IGF_Initialized = false, IGF_Working = false;
+extern nECU_ProgramBlockData D_VSS, D_IGF, D_Input_Frequency; // diagnostic and flow control data
 
 /* VSS - Vehicle Speed Sensor */
 uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
 {
     return &VSS.Speed;
 }
-bool nECU_VSS_Init(void) // initialize VSS structure
+bool nECU_VSS_Start(void) // initialize VSS structure
 {
     bool status = false;
 
-    if (VSS_Initialized == false)
+    if (D_VSS.Status == D_BLOCK_STOP)
     {
         VSS.ic.previous_CCR = 0;
         VSS.tim.htim = &FREQ_INPUT_TIMER;
         nECU_tim_Init_struct(&VSS.tim);
         VSS.tim.Channel_Count = 1;
         VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
-        VSS_Initialized = true;
+
         uint32_t zero_delay = ((VSS.tim.htim->Init.Period + 1) * (VSS.tim.period * 1000)) + 10; // time for the whole timer count up + 10ms (* 1000 for sec to ms conversion);
-        nECU_Delay_Set(&VSS_ZeroDetect, &zero_delay);
+        nECU_Delay_Set(&VSS.VSS_ZeroDetect, &zero_delay);
+
+        D_VSS.Status |= D_BLOCK_INITIALIZED;
     }
-    if (VSS_Working == false && VSS_Initialized == true)
+    if (D_VSS.Status & D_BLOCK_INITIALIZED)
     {
         status |= nECU_tim_IC_start(&VSS.tim);
-        VSS_Working = true;
+        D_VSS.Status |= D_BLOCK_WORKING;
     }
 
     return status;
 }
 void nECU_VSS_Update(void) // update VSS structure
 {
-    if (VSS_Initialized == false || VSS_Working == false) // check if initialized
+    if (!(D_VSS.Status & D_BLOCK_WORKING)) // check if working
     {
         return;
     }
 
     float speed = (VSS.ic.frequency) * (3600.0f / VSS_PULSES_PER_KM); // 3600 for m/s to km/h
-    if (speed > (float)UINT8_MAX)
+    if (speed > (float)UINT8_MAX)                                     // check limits
     {
         speed = UINT8_MAX;
     }
@@ -64,14 +62,14 @@ void nECU_VSS_Update(void) // update VSS structure
 
     // data smoothing
     uint16_t speed_new = speed;
-    nECU_averageExpSmooth(VSS_Smooth_buffer, (uint16_t *)&VSS.Speed, &speed_new, VSS_SMOOTH_BUFFER_LENGTH, VSS_SMOOTH_ALPHA);
+    nECU_averageExpSmooth(VSS.VSS_Smooth_buffer, (uint16_t *)&VSS.Speed, &speed_new, VSS_SMOOTH_BUFFER_LENGTH, VSS_SMOOTH_ALPHA);
 
     VSS.Speed = (uint8_t)speed_new;
     nECU_VSS_Validate();
 }
-void nECU_VSS_Validate(void) // checks if recived signal is correct
+static void nECU_VSS_Validate(void) // checks if recived signal is correct
 {
-    if (VSS_Initialized == false || VSS_Working == false) // check if initialized
+    if (!(D_VSS.Status & D_BLOCK_WORKING)) // check if working
     {
         return;
     }
@@ -90,55 +88,53 @@ void nECU_VSS_Validate(void) // checks if recived signal is correct
     // zero speed detection
     if (VSS.ic.newData == false) // drop if no new data
     {
-        nECU_Delay_Update(&VSS_ZeroDetect);
-        if (VSS_ZeroDetect.done == true)
+        nECU_Delay_Update(&(VSS.VSS_ZeroDetect));
+        if (VSS.VSS_ZeroDetect.done == true)
         {
             VSS.ic.frequency = 0;
         }
     }
     else
     {
-        nECU_Delay_Start(&VSS_ZeroDetect);
+        nECU_Delay_Start(&(VSS.VSS_ZeroDetect));
         VSS.ic.newData = false;
     }
 }
-
-void nECU_VSS_DeInit(void) // deinitialize VSS structure
+void nECU_VSS_Stop(void) // deinitialize VSS structure
 {
-    if (VSS_Initialized == true)
+    if (D_VSS.Status & D_BLOCK_INITIALIZED)
     {
         HAL_TIM_Base_Stop_IT(VSS.tim.htim);
         HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.tim.Channel_List[0]);
     }
+    D_VSS.Status = D_BLOCK_STOP;
 }
-void nECU_VSS_Smooth_Update(void) // call this function to smooth the output data
-{
-}
+
 /* IGF - Ignition feedback */
-bool nECU_IGF_Init(void) // initialize and start
+bool nECU_IGF_Start(void) // initialize and start
 {
     bool status = false;
 
-    if (IGF_Initialized == false)
+    if (D_IGF.Status == D_BLOCK_STOP)
     {
         IGF.ic.previous_CCR = 0;
         IGF.tim.htim = &FREQ_INPUT_TIMER;
         nECU_tim_Init_struct(&IGF.tim);
         IGF.tim.Channel_Count = 1;
         IGF.tim.Channel_List[0] = TIM_CHANNEL_1;
-        IGF_Initialized = true;
+        D_IGF.Status |= D_BLOCK_INITIALIZED;
     }
-    if (IGF_Working == false && IGF_Initialized == true)
+    if (D_IGF.Status & D_BLOCK_INITIALIZED)
     {
         status |= (nECU_tim_IC_start(&IGF.tim) != TIM_OK);
-        IGF_Working = true;
+        D_IGF.Status |= D_BLOCK_WORKING;
     }
 
     return status;
 }
-void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
+void nECU_IGF_Update(void) // calculate RPM based on IGF signal
 {
-    if (IGF_Initialized == false || IGF_Working == false) // check if initialized
+    if (!(D_IGF.Status & D_BLOCK_WORKING)) // check if working
     {
         return;
     }
@@ -161,28 +157,50 @@ void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
     }
     IGF.RPM = RPM; // save current RPM
 }
-void nECU_IGF_DeInit(void) // stop
+void nECU_IGF_Stop(void) // stop
 {
-    if (IGF_Initialized == true)
+    if (D_IGF.Status & D_BLOCK_WORKING)
     {
         HAL_TIM_Base_Stop_IT(IGF.tim.htim);
         HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]);
     }
+
+    D_IGF.Status = D_BLOCK_STOP;
 }
 
 /* General */
-void nECU_Frequency_Start(void) // start of frequency input functions
+bool nECU_Frequency_Start(void) // start of frequency input functions
 {
-    nECU_VSS_Init();
-    nECU_IGF_Init();
+    bool status = false;
+
+    if (D_Input_Frequency.Status == D_BLOCK_STOP)
+    {
+        status |= nECU_VSS_Start();
+        status |= nECU_IGF_Start();
+
+        D_Input_Frequency.Status |= D_BLOCK_INITIALIZED_WORKING;
+    }
+    else
+    {
+        status |= true;
+    }
+
+    return status;
 }
 void nECU_Frequency_Stop(void) // stop of frequency input functions
 {
-    nECU_VSS_DeInit();
-    nECU_IGF_DeInit();
+    nECU_VSS_Stop();
+    nECU_IGF_Stop();
+
+    D_Input_Frequency.Status = D_BLOCK_STOP;
 }
 void nECU_Frequency_Update(void) // update of frequency input functions
 {
+    if (!(D_Input_Frequency.Status & D_BLOCK_WORKING))
+    {
+        return;
+    }
+
     nECU_VSS_Update();
-    nECU_IGF_Calc();
+    nECU_IGF_Update();
 }

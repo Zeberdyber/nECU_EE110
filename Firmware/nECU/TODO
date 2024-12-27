@@ -16,9 +16,14 @@
         [ ] debug data send
         [ ] sensor data send (variable tracing)
     [ ] can.c
-        [ ] clean up 'checktime' function
+        [X] clean up 'checktime' function
         [ ] separate RX buffers and filters for coolant/wheelsetup/rpm data
     [ ] EGT.c rewrite
+    [ ] Block initialized/working if function status is error
+    [ ] DeInit functions
+    [ ] Check if function should be called start/init
+    [ ] Set status error flag if already initialized & working
+    [ ] Set debug status to D_CODE_ERROR on "return" when not working
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected

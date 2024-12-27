@@ -7,9 +7,9 @@
 
 #include "nECU_button.h"
 
-static Button Red;
-static Button Orange;
-static Button Green;
+static Button Red = {0};
+static Button Orange = {0};
+static Button Green = {0};
 
 extern nECU_ProgramBlockData D_Button_Red, D_Button_Orange, D_Button_Green; // diagnostic and flow control data
 

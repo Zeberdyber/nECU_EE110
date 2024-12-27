@@ -11,9 +11,9 @@
 
 /* CAN RX */
 static bool Rx_Data_Frame0_Pending = false;
-static CAN_FilterTypeDef WheelSetupFilter;
-static uint8_t RxData_Frame0[8];
-static CAN_RxHeaderTypeDef CanRxFrame0;
+static CAN_FilterTypeDef WheelSetupFilter = {0};
+static uint8_t RxData_Frame0[8] = {0};
+static CAN_RxHeaderTypeDef CanRxFrame0 = {0};
 
 extern Frame0_struct F0_var;
 extern Frame1_struct F1_var;
@@ -34,12 +34,12 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
     status |= nECU_CAN_TX_InitFrame(nECU_Frame_EGT);
     status |= nECU_CAN_TX_InitFrame(nECU_Frame_Stock);
 
-    nECU_TickTrack_Init(&(F0_var.timer));
-    F0_var.timeElapsed = 0;
-    nECU_TickTrack_Init(&(F1_var.timer));
-    F1_var.timeElapsed = 0;
-    nECU_TickTrack_Init(&(F2_var.timer));
-    F2_var.timeElapsed = 0;
+    nECU_Delay_Set(&(F0_var.frame_delay), (uint32_t *)CAN_TX_FRAME0_TIME);
+    nECU_Delay_Start(&(F0_var.frame_delay));
+    nECU_Delay_Set(&(F1_var.frame_delay), (uint32_t *)CAN_TX_FRAME1_TIME);
+    nECU_Delay_Start(&(F1_var.frame_delay));
+    nECU_Delay_Set(&(F2_var.frame_delay), (uint32_t *)CAN_TX_FRAME2_TIME);
+    nECU_Delay_Start(&(F2_var.frame_delay));
 
     F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
     F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
@@ -122,32 +122,26 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
   }
 
   // update times
-  nECU_TickTrack_Update(&(F0_var.timer));
-  nECU_TickTrack_Update(&(F1_var.timer));
-  nECU_TickTrack_Update(&(F2_var.timer));
-
-  // add time to elapsed
-  F0_var.timeElapsed += F0_var.timer.difference * F0_var.timer.convFactor;
-  F1_var.timeElapsed += F1_var.timer.difference * F1_var.timer.convFactor;
-  F2_var.timeElapsed += F2_var.timer.difference * F2_var.timer.convFactor;
+  nECU_Delay_Update(&(F0_var.frame_delay));
+  nECU_Delay_Update(&(F1_var.frame_delay));
+  nECU_Delay_Update(&(F2_var.frame_delay));
 
   // check if time is above threshold
-  if (F0_var.timeElapsed >= CAN_TX_FRAME0_TIME && (D_F0.Status & D_BLOCK_WORKING))
+  if (*(nECU_Delay_DoneFlag(&(F0_var.frame_delay))) && (D_F0.Status & D_BLOCK_WORKING))
   {
     nECU_CAN_TX_TransmitFrame(nECU_Frame_Speed);
-    F0_var.timeElapsed = 0;
+    nECU_Delay_Start(&(F0_var.frame_delay));
     *F0_var.ClearEngineCode = false;
   }
-  if (F1_var.timeElapsed >= CAN_TX_FRAME1_TIME && (D_F1.Status & D_BLOCK_WORKING))
+  if (*(nECU_Delay_DoneFlag(&(F1_var.frame_delay))) && (D_F1.Status & D_BLOCK_WORKING))
   {
     nECU_CAN_TX_TransmitFrame(nECU_Frame_EGT);
-    F1_var.timeElapsed = 0;
+    nECU_Delay_Start(&(F1_var.frame_delay));
   }
-  if (F2_var.timeElapsed >= CAN_TX_FRAME2_TIME && (D_F2.Status & D_BLOCK_WORKING))
+  if (*(nECU_Delay_DoneFlag(&(F2_var.frame_delay))) && (D_F2.Status & D_BLOCK_WORKING))
   {
     nECU_CAN_TX_TransmitFrame(nECU_Frame_Stock);
-    F2_var.timeElapsed = 0;
-    nECU_VSS_Update();
+    nECU_Delay_Start(&(F2_var.frame_delay));
   }
 
   nECU_Debug_ProgramBlockData_Update(&D_CAN_TX);

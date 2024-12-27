@@ -7,7 +7,7 @@
 
 #include "nECU_flash.h"
 
-static nECU_FlashContent Flash;
+static nECU_FlashContent Flash = {0};
 extern nECU_ProgramBlockData D_Flash;     // diagnostic and flow control data
 extern nECU_ProgramBlockData D_Debug_Que; // data to  check if que was initialized
 
@@ -22,6 +22,14 @@ bool nECU_saveSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, f
         status |= true;
         return status;
     }
+
+    float tempSensor[] = {*Sensor1, *Sensor2, *Sensor3, *Sensor4};
+
+    if (memcmp(&(Flash.speedData), &tempSensor, sizeof(tempSensor))) // break if they are the same
+    {
+        return status;
+    }
+
     // copy config if needed to buffer
     Flash.speedData.SpeedSensor1 = *Sensor1;
     Flash.speedData.SpeedSensor2 = *Sensor2;
@@ -49,6 +57,8 @@ bool nECU_readSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, f
     *Sensor3 = Flash.speedData.SpeedSensor3;
     *Sensor4 = Flash.speedData.SpeedSensor4;
 
+    nECU_Debug_ProgramBlockData_Update(&D_Flash);
+
     return status;
 }
 
@@ -63,8 +73,17 @@ bool nECU_saveUserSettings(bool *pAntiLag, bool *pTractionOFF)
         status |= true;
         return status;
     }
-    // compress data to byte
+
+    // prepare buffers for comparison
     bool compressed[8] = {*pAntiLag, *pTractionOFF, 0, 0, 0, 0, 0, 0};
+    bool decompressed[8];
+    nECU_decompressBool(&(Flash.userData.boolByte1), decompressed);
+    if (memcmp(compressed, decompressed, sizeof(compressed))) // break if they are the same
+    {
+        return status;
+    }
+
+    // compress data to byte
     nECU_compressBool(compressed, &(Flash.userData.boolByte1));
 
     status |= (nECU_FLASH_saveFlashSector() != HAL_OK); // save and validate
@@ -87,6 +106,8 @@ bool nECU_readUserSettings(bool *pAntiLag, bool *pTractionOFF)
     nECU_decompressBool(&(Flash.userData.boolByte1), decompressed);
     *pAntiLag = decompressed[0];
     *pTractionOFF = decompressed[1];
+
+    nECU_Debug_ProgramBlockData_Update(&D_Flash);
 
     return status;
 }
@@ -128,6 +149,8 @@ bool nECU_readDebugQue(nECU_Debug_error_que *que)
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, false);
         status |= true;
     }
+
+    nECU_Debug_ProgramBlockData_Update(&D_Flash);
 
     return status;
 }
@@ -228,6 +251,8 @@ static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, th
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_USER, true);
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, true);
     }
+
+    nECU_Debug_ProgramBlockData_Update(&D_Flash);
 
     return status;
 }

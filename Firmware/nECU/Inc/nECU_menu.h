@@ -18,8 +18,9 @@ extern "C"
 #include "nECU_button.h"
 
 /* Definitions */
-#define TUNE_NUMBER 3           // number of programmed tunes
-#define LAUNCH_CONTROL_NUMBER 4 // number of avaliable launch control levels
+#define TUNE_NUMBER 3              // number of programmed tunes
+#define LAUNCH_CONTROL_NUMBER 4    // number of avaliable launch control levels
+#define FLASH_SAVE_DELAY_TIME 5000 // time to wait for before save happens in ms
 
   /* Button logic */
   bool Button_Menu_Init(void); // initialize button menu

@@ -8,10 +8,10 @@
 
 #include "nECU_OnBoardLED.h"
 
-static OnBoardLED LED_L, LED_R;
-static OnBoardLED_Animate LED_blank_animation;
+static OnBoardLED LED_L = {0}, LED_R = {0};
+static OnBoardLED_Animate LED_blank_animation = {0};
 
-static bool LED_Initialized = false;
+extern nECU_ProgramBlockData D_OnboardLED; // diagnostic and flow control data
 
 /* GPIO */
 void OnBoard_LED_GPIO_Init(OnBoardLED *inst, uint16_t GPIO_Pin, GPIO_TypeDef *GPIOx) // initializes single LED GPIO structure
@@ -35,7 +35,7 @@ void OnBoard_LED_Animation_Init(OnBoardLED_Animate *inst, OnBoardLED_Animate_ID 
     inst->blink_active = false;
     inst->priority = priority;
 }
-void OnBoard_LED_Animation_BlinkSetDelay(OnBoardLED_Animate *inst, uint32_t delay) // sets delay for blinking
+static void OnBoard_LED_Animation_BlinkSetDelay(OnBoardLED_Animate *inst, uint32_t delay) // sets delay for blinking
 {
     nECU_Delay_Set(&(inst->blink_delay), &delay);
 }
@@ -66,7 +66,7 @@ void OnBoard_LED_Animation_BlinkStop(OnBoardLED_Animate *inst) // stops blink an
     OnBoard_LED_State_Set(inst, GPIO_PIN_SET);
     inst->blink_count = ONBOARDLED_BLINK_CONTINOUS;
 }
-void OnBoard_LED_Animation_BlinkUpdate(OnBoardLED_Animate *inst) // updates the blinking animation
+static void OnBoard_LED_Animation_BlinkUpdate(OnBoardLED_Animate *inst) // updates the blinking animation
 {
     if (inst->blink_active == false)
     {
@@ -88,21 +88,21 @@ void OnBoard_LED_Animation_BlinkUpdate(OnBoardLED_Animate *inst) // updates the 
         }
     }
 }
-void OnBoard_LED_Animation_Update(OnBoardLED_Animate *inst) // function to perform logic behind blinking times and update to GPIO
+static void OnBoard_LED_Animation_Update(OnBoardLED_Animate *inst) // function to perform logic behind blinking times and update to GPIO
 {
     OnBoard_LED_Animation_BlinkUpdate(inst); // update blinking
 }
-void OnBoard_LED_State_Set(OnBoardLED_Animate *inst, GPIO_PinState State) // sets the current state
+static void OnBoard_LED_State_Set(OnBoardLED_Animate *inst, GPIO_PinState State) // sets the current state
 {
     inst->state = State;
 }
-void OnBoard_LED_State_Flip(OnBoardLED_Animate *inst) // flips the current state
+static void OnBoard_LED_State_Flip(OnBoardLED_Animate *inst) // flips the current state
 {
     inst->state = !(inst->state);
 }
 
 /* Animation que */
-void OnBoard_LED_Que_Init(OnBoardLED *inst) // initialize que data struct
+static void OnBoard_LED_Que_Init(OnBoardLED *inst) // initialize que data struct
 {
     inst->Que_len = 0;
     for (uint8_t i = 0; i < ONBOARD_LED_ANIMATION_QUE_LEN; i++)
@@ -111,8 +111,14 @@ void OnBoard_LED_Que_Init(OnBoardLED *inst) // initialize que data struct
     }
     inst->Animation = inst->Que[0]; // set current animation as the first in the que
 }
-void OnBoard_LED_Que_Add(OnBoardLED *inst, OnBoardLED_Animate *animation) // adds to the que
+static void OnBoard_LED_Que_Add(OnBoardLED *inst, OnBoardLED_Animate *animation) // adds to the que
 {
+    if (!(D_OnboardLED.Status & D_BLOCK_INITIALIZED_WORKING))
+    {
+        D_OnboardLED.Status |= D_BLOCK_CODE_ERROR;
+        return;
+    }
+
     if (animation->priority == LED_ANIMATE_NONE_ID) // if priority not set
     {
         return;
@@ -139,8 +145,14 @@ void OnBoard_LED_Que_Add(OnBoardLED *inst, OnBoardLED_Animate *animation) // add
     }
     return;
 }
-void OnBoard_LED_Que_Remove(OnBoardLED *inst, OnBoardLED_Animate *animation) // removes from the que
+static void OnBoard_LED_Que_Remove(OnBoardLED *inst, OnBoardLED_Animate *animation) // removes from the que
 {
+    if (!(D_OnboardLED.Status & D_BLOCK_INITIALIZED_WORKING))
+    {
+        D_OnboardLED.Status |= D_BLOCK_CODE_ERROR;
+        return;
+    }
+
     if (animation->priority == LED_ANIMATE_NONE_ID) // if priority not set
     {
         return;
@@ -185,7 +197,7 @@ void OnBoard_LED_Que_Remove(OnBoardLED *inst, OnBoardLED_Animate *animation) // 
         }
     }
 }
-void OnBoard_LED_Que_Check(OnBoardLED *inst) // check if current animation is done, move que
+static void OnBoard_LED_Que_Check(OnBoardLED *inst) // check if current animation is done, move que
 {
     if ((inst->Animation->blink_active == false || inst->Animation->priority == LED_ANIMATE_ERROR_ID) && inst->Que_len > 0) // check if animation is done and que has new animations waiting
     {
@@ -197,10 +209,11 @@ void OnBoard_LED_Que_Check(OnBoardLED *inst) // check if current animation is do
         }
     }
 }
+
 /* General */
 void OnBoard_LED_Init(void) // initialize structures for on board LEDs
 {
-    if (LED_Initialized == false)
+    if (D_OnboardLED.Status == D_BLOCK_STOP)
     {
         /* Left LED */
         OnBoard_LED_GPIO_Init(&(LED_L), LED1_Pin, LED1_GPIO_Port);
@@ -214,18 +227,21 @@ void OnBoard_LED_Init(void) // initialize structures for on board LEDs
         OnBoard_LED_Animation_Init((LED_R.Animation), LED_ANIMATE_NONE_ID);
         OnBoard_LED_Que_Init(&(LED_R));
 
-        LED_Initialized = true;
+        D_OnboardLED.Status |= D_BLOCK_INITIALIZED_WORKING;
     }
 }
 void OnBoard_LED_Update(void) // update on board LEDs states
 {
-    if (LED_Initialized == false)
+    if (!(D_OnboardLED.Status & D_BLOCK_INITIALIZED_WORKING))
     {
+        D_OnboardLED.Status |= D_BLOCK_CODE_ERROR;
         return;
     }
 
     OnBoard_LED_Update_Single(&LED_L);
     OnBoard_LED_Update_Single(&LED_R);
+
+    nECU_Debug_ProgramBlockData_Update(&D_OnboardLED);
 }
 void OnBoard_LED_Update_Single(OnBoardLED *inst) // update of all internal variables
 {
