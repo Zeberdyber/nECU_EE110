@@ -14,44 +14,58 @@ Frame1_struct F1_var;
 Frame2_struct F2_var;
 
 extern nECU_ProgramBlockData D_F0, D_F1, D_F2; // diagnostic and flow control data
+extern nECU_ProgramBlockData D_Main;           // used only for loop time tracking
 
 /* Frame 0 */
-void Frame0_Init(void) // initialization of data structure
+bool Frame0_Init(void) // initialization of data structure
 {
+    bool status = false;
+
     if (D_F0.Status == D_BLOCK_STOP)
     {
-        Speed_Start();
-        F0_var.Speed_FL = Speed_GetSpeed(SPEED_SENSOR_FRONT_LEFT);
-        F0_var.Speed_FR = Speed_GetSpeed(SPEED_SENSOR_FRONT_RIGHT);
-        F0_var.Speed_RL = Speed_GetSpeed(SPEED_SENSOR_REAR_LEFT);
-        F0_var.Speed_RR = Speed_GetSpeed(SPEED_SENSOR_REAR_RIGHT);
+        status |= Speed_Start();
+        if (!status) // do only if no error
+        {
+            F0_var.Speed_FL = Speed_GetSpeed(SPEED_SENSOR_FRONT_LEFT);
+            F0_var.Speed_FR = Speed_GetSpeed(SPEED_SENSOR_FRONT_RIGHT);
+            F0_var.Speed_RL = Speed_GetSpeed(SPEED_SENSOR_REAR_LEFT);
+            F0_var.Speed_RR = Speed_GetSpeed(SPEED_SENSOR_REAR_RIGHT);
+        }
 
-        TachoValue_Init_All();
-        F0_var.TachoShow1 = TachoValue_Get_ShowPointer(TACHO_SHOW_1);
-        F0_var.TachoShow2 = TachoValue_Get_ShowPointer(TACHO_SHOW_2);
-        F0_var.TachoShow3 = TachoValue_Get_ShowPointer(TACHO_SHOW_3);
+        status |= Button_Menu_Init();
+        if (!status) // do only if no error
+        {
+            F0_var.Antilag = Button_Menu_getPointer_Antilag();
+            F0_var.TractionOFF = Button_Menu_getPointer_TractionOFF();
+            F0_var.ClearEngineCode = Button_Menu_getPointer_ClearEngineCode();
+            F0_var.LunchControlLevel = Button_Menu_getPointer_LunchControlLevel();
+        }
 
-        Button_Menu_Init();
-        F0_var.Antilag = Button_Menu_getPointer_Antilag();
-        F0_var.TractionOFF = Button_Menu_getPointer_TractionOFF();
-        F0_var.ClearEngineCode = Button_Menu_getPointer_ClearEngineCode();
-        F0_var.LunchControlLevel = Button_Menu_getPointer_LunchControlLevel();
-
-        nECU_stock_GPIO_Init();
-        F0_var.Cranking = nECU_stock_GPIO_getPointer(INPUT_CRANKING_ID);
-        F0_var.Fan_ON = nECU_stock_GPIO_getPointer(INPUT_FAN_ON_ID);
-        F0_var.Lights_ON = nECU_stock_GPIO_getPointer(INPUT_LIGHTS_ON_ID);
+        status |= nECU_stock_GPIO_Init();
+        if (!status) // do only if no error
+        {
+            F0_var.Cranking = nECU_stock_GPIO_getPointer(INPUT_CRANKING_ID);
+            F0_var.Fan_ON = nECU_stock_GPIO_getPointer(INPUT_FAN_ON_ID);
+            F0_var.Lights_ON = nECU_stock_GPIO_getPointer(INPUT_LIGHTS_ON_ID);
+        }
 
         // add immo init (when implemented)
         F0_var.IgnitionKey = nECU_Immo_getPointer();
 
-        D_F0.Status |= D_BLOCK_INITIALIZED;
+        if (!status)
+        {
+            D_F0.Status |= D_BLOCK_INITIALIZED;
+        }
     }
     if (D_F0.Status & D_BLOCK_INITIALIZED)
     {
-        Speed_Start();
-        D_F0.Status |= D_BLOCK_WORKING;
+        status |= Speed_Start();
+        if (!status)
+        {
+            D_F0.Status |= D_BLOCK_WORKING;
+        }
     }
+    return status;
 }
 void Frame0_Update(void) // update variables for frame 0
 {
@@ -117,30 +131,48 @@ void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4,
 }
 
 /* Frame 1 */
-void Frame1_Init(void) // initialization of data structure
+bool Frame1_Init(void) // initialization of data structure
 {
+    bool status = false;
+
     if (D_F1.Status == D_BLOCK_STOP)
     {
-        EGT_Init();
-        F1_var.EGT1 = EGT_GetTemperaturePointer(EGT_CYL1);
-        F1_var.EGT2 = EGT_GetTemperaturePointer(EGT_CYL2);
-        F1_var.EGT3 = EGT_GetTemperaturePointer(EGT_CYL3);
-        F1_var.EGT4 = EGT_GetTemperaturePointer(EGT_CYL4);
+        status |= EGT_Init();
+        if (!status) // do only if no error
+        {
+            F1_var.EGT1 = EGT_GetTemperaturePointer(EGT_CYL1);
+            F1_var.EGT2 = EGT_GetTemperaturePointer(EGT_CYL2);
+            F1_var.EGT3 = EGT_GetTemperaturePointer(EGT_CYL3);
+            F1_var.EGT4 = EGT_GetTemperaturePointer(EGT_CYL4);
+        }
 
-        TachoValue_Init_All();
-        F1_var.TachoVal1 = TachoValue_Get_OutputPointer(TACHO_SHOW_1);
-        F1_var.TachoVal2 = TachoValue_Get_OutputPointer(TACHO_SHOW_2);
-        F1_var.TachoVal3 = TachoValue_Get_OutputPointer(TACHO_SHOW_3);
+        status |= TachoValue_Init_All();
+        if (!status) // do only if no error
+        {
+            F0_var.TachoShow1 = TachoValue_Get_ShowPointer(TACHO_SHOW_1);
+            F0_var.TachoShow2 = TachoValue_Get_ShowPointer(TACHO_SHOW_2);
+            F0_var.TachoShow3 = TachoValue_Get_ShowPointer(TACHO_SHOW_3);
+        }
 
-        Button_Menu_Init();
-        F1_var.TuneSelector = Button_Menu_getPointer_TuneSelector();
+        status |= Button_Menu_Init();
+        if (!status) // do only if no error
+        {
+            F1_var.TuneSelector = Button_Menu_getPointer_TuneSelector();
+        }
 
-        D_F1.Status |= D_BLOCK_INITIALIZED;
+        if (!status)
+        {
+            D_F1.Status |= D_BLOCK_INITIALIZED;
+        }
     }
     if (D_F1.Status & D_BLOCK_INITIALIZED)
     {
-        EGT_Start();
-        D_F1.Status |= D_BLOCK_WORKING;
+        status |= EGT_Start();
+
+        if (!status)
+        {
+            D_F1.Status |= D_BLOCK_WORKING;
+        }
     }
 }
 void Frame1_Update(void) // update variables for frame 1
@@ -182,30 +214,57 @@ void Frame1_ComposeWord(uint8_t *buffer, uint8_t *Val6Bit, uint16_t *Val10Bit) /
 }
 
 /* Frame 2 */
-void Frame2_Init(void) // initialization of data structure
+bool Frame2_Init(void) // initialization of data structure
 {
+    bool status = false;
+
     if (D_F2.Status == D_BLOCK_STOP)
     {
-        nECU_BackPressure_Init();
-        F2_var.Backpressure = nECU_BackPressure_GetPointer();
-        nECU_OX_Init();
-        F2_var.OX_Val = nECU_OX_GetPointer();
-        nECU_MAP_Init();
-        F2_var.MAP_Stock_10bit = nECU_MAP_GetPointer();
-        nECU_Knock_Init();
-        F2_var.Knock = nECU_Knock_GetPointer();
-        nECU_VSS_Init();
-        F2_var.VSS = nECU_VSS_GetPointer();
-        nECU_mainLoop_Init();
-        F2_var.loop_count = nECU_mainLoop_getValue();
+        status |= nECU_BackPressure_Init();
+        if (!status) // do only if no error
+        {
+            F2_var.Backpressure = nECU_BackPressure_GetPointer();
+        }
+
+        status |= nECU_OX_Init();
+        if (!status) // do only if no error
+        {
+            F2_var.OX_Val = nECU_OX_GetPointer();
+        }
+
+        status |= nECU_MAP_Init();
+        if (!status) // do only if no error
+        {
+            F2_var.MAP_Stock_10bit = nECU_MAP_GetPointer();
+        }
+
+        status |= nECU_Knock_Init();
+        if (!status) // do only if no error
+        {
+            F2_var.Knock = nECU_Knock_GetPointer();
+        }
+
+        status |= nECU_VSS_Init();
+        if (!status) // do only if no error
+        {
+            F2_var.VSS = nECU_VSS_GetPointer();
+        }
+
+        F2_var.loop_time = &(D_Main.Update_ticks.difference);
         D_F2.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_F2.Status & D_BLOCK_INITIALIZED)
     {
-        ADC1_START();
-        nECU_Stock_Start();
-        D_F2.Status |= D_BLOCK_WORKING;
+        status |= ADC1_START();
+        status |= nECU_Stock_Start();
+
+        if (!status)
+        {
+            D_F2.Status |= D_BLOCK_WORKING;
+        }
     }
+
+    return status;
 }
 void Frame2_Update(void) // update variables for frame 2
 {
@@ -217,8 +276,6 @@ void Frame2_Update(void) // update variables for frame 2
     nECU_BackPressure_Update();
     nECU_MAP_Update();
     nECU_OX_Update();
-
-    nECU_mainLoop_Update();
 }
 void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
@@ -242,7 +299,7 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     TxFrame[3] = *F2_var.Backpressure;
     TxFrame[4] = *F2_var.Knock;
     TxFrame[5] = *F2_var.VSS;
-    Converter.UintValue = (uint16_t)*F2_var.loop_count;
+    Converter.UintValue = (uint16_t)*F2_var.loop_time;
     TxFrame[6] = Converter.byteArray[1]; // spare
     TxFrame[7] = Converter.byteArray[0]; // spare
     nECU_CAN_WriteToBuffer(nECU_Frame_Stock, TxFrame);

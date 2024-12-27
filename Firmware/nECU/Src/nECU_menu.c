@@ -15,8 +15,10 @@ static bool Tacho_Initialized = false; // flag indicating structures initializat
 static bool Menu_Initialized = false, Menu_Working = false;
 
 /* Button logic */
-void Button_Menu_Init(void) // initialize button menu
+bool Button_Menu_Init(void) // initialize button menu
 {
+  bool status = false;
+
   if (Menu_Initialized == false)
   {
     Menu.Antilag = false;
@@ -25,18 +27,22 @@ void Button_Menu_Init(void) // initialize button menu
     Menu.MenuLevel = 0;
     Menu.TractionOFF = false;
     Menu.TuneSelector = 0;
-    nECU_readUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
+    status |= nECU_readUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
     Menu_Initialized = true;
   }
   if (Menu_Working == false && Menu_Initialized == true)
   {
-    Button_Start();
+    status |= Button_Start();
+
+    /* First animation */
     ButtonLight_Breath(RED_BUTTON_ID, 100, 1);
     ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
     ButtonLight_Breath(GREEN_BUTTON_ID, 100, 1);
 
     Menu_Working = true;
   }
+
+  return status;
 }
 void Button_Menu(void) // update function
 {
@@ -223,22 +229,29 @@ void TachoValue_Update_All(void) // update all TachoValue structures
   TachoValue_Update_Single(&Tacho2);
   TachoValue_Update_Single(&Tacho3);
 }
-void TachoValue_Init_All(void) // initialize tachometer value structures
+bool TachoValue_Init_All(void) // initialize tachometer value structures
 {
-  TachoValue_Init_Single(&Tacho1, Button_Menu_getPointer_TuneSelector(), 10);
-  TachoValue_Init_Single(&Tacho2, Button_Menu_getPointer_LunchControlLevel(), 10);
-  TachoValue_Init_Single(&Tacho3, &Menu.MenuLevel, 10);
+  bool status = false;
+  status |= TachoValue_Init_Single(&Tacho1, Button_Menu_getPointer_TuneSelector(), 10);
+  status |= TachoValue_Init_Single(&Tacho2, Button_Menu_getPointer_LunchControlLevel(), 10);
+  status |= TachoValue_Init_Single(&Tacho3, &Menu.MenuLevel, 10);
   Tacho_Initialized = true;
+
+  return status;
 }
 /* TachoValue internal functions */
-void TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier) // initialize single structure
+static bool TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier) // initialize single structure
 {
+  bool status = false;
+
   inst->showPending = false;
   inst->prev_input = *pinput_value;
   inst->input_value = pinput_value;
   inst->output_multiplier = multiplier;
+
+  return status;
 }
-void TachoValue_Update_Single(TachoValue *inst) // update variables when needed
+static void TachoValue_Update_Single(TachoValue *inst) // update variables when needed
 {
   if (*inst->input_value != inst->prev_input)
   {

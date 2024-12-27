@@ -226,27 +226,6 @@ typedef struct
     nECU_Delay startup_Delay;    // used as a delay to prevent spi communication until ICs turn on properly
 } nECU_EGT;
 
-/* Flash */
-typedef struct
-{
-    float SpeedSensor1;
-    float SpeedSensor2;
-    float SpeedSensor3;
-    float SpeedSensor4;
-} nECU_SpeedCalibrationData;
-typedef struct
-{
-    uint8_t boolByte1; // byte that holds states of user settings (combined boolean to bytes)
-    uint8_t boolByte2;
-    uint8_t boolByte3;
-    uint8_t boolByte4;
-} nECU_UserSettings;
-typedef struct
-{
-    nECU_SpeedCalibrationData speedData;
-    nECU_UserSettings userData;
-} nECU_FlashContent;
-
 /* Frames */
 typedef struct
 {
@@ -298,7 +277,7 @@ typedef struct
     uint16_t *MAP_Stock_10bit;
     uint8_t *Knock;
     uint8_t *VSS;
-    uint32_t *loop_count;
+    uint32_t *loop_time;
 } Frame2_struct;
 
 /* Input Analog */
@@ -525,10 +504,10 @@ typedef enum
 } nECU_Error_ID;
 typedef enum
 {
-    nECU_FLASH_ERROR_SPEED = 1,
-    nECU_FLASH_ERROR_USER = 2,
-    nECU_FLASH_ERROR_DBGQUE = 3,
-    nECU_FLASH_ERROR_ERASE = 4,
+    nECU_FLASH_ERROR_SPEED = 2,
+    nECU_FLASH_ERROR_USER = 4,
+    nECU_FLASH_ERROR_DBGQUE = 6,
+    nECU_FLASH_ERROR_ERASE = 7,
     nECU_FLASH_ERROR_NONE
 } nECU_Flash_Error_ID;
 typedef struct
@@ -610,6 +589,28 @@ typedef struct
     nECU_ProgramBlock_Status Status; // Status code
     nECU_TickTrack Update_ticks;     // Ticks it taken since last update call
 } nECU_ProgramBlockData;
+
+/* Flash */
+typedef struct
+{
+    float SpeedSensor1;
+    float SpeedSensor2;
+    float SpeedSensor3;
+    float SpeedSensor4;
+} nECU_SpeedCalibrationData;
+typedef struct
+{
+    uint8_t boolByte1; // byte that holds states of user settings (combined boolean to bytes)
+    uint8_t boolByte2;
+    uint8_t boolByte3;
+    uint8_t boolByte4;
+} nECU_UserSettings;
+typedef struct
+{
+    nECU_SpeedCalibrationData speedData;
+    nECU_UserSettings userData;
+    nECU_Debug_error_que *DebugQueData;
+} nECU_FlashContent;
 
 /* PC */
 typedef struct

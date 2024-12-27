@@ -41,7 +41,7 @@ extern "C"
     void Speed_AverageInit(Speed_Sensor *Sensor); // Initialize averaging structure
 
     /* General functions */
-    void Speed_Start(void);                          // function to start Speed function set
+    bool Speed_Start(void);                          // function to start Speed function set
     void Speed_Update(void);                         // perform update of all sensors
     void Speed_SensorUpdate(Speed_Sensor *Sensor);   // update one sensors data
     void Speed_CorrectToCalib(Speed_Sensor *Sensor); // correct data to calibration multiplier

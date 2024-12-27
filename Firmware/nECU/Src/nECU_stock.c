@@ -20,17 +20,14 @@ uint8_t *nECU_OX_GetPointer(void) // returns pointer to resulting data
 {
     return &OX.sensor.output8bit;
 }
-void nECU_OX_Init(void) // initialize narrowband lambda structure
+bool nECU_OX_Init(void) // initialize narrowband lambda structure
 {
+    bool status = false;
+
     if (OX_Initialized == false)
     {
         /* Sensor */
-        OX.sensor.calibrationData.ADC_MeasuredMax = VoltsToADC(OXYGEN_VOLTAGE_CALIB_MAX);
-        OX.sensor.calibrationData.ADC_MeasuredMin = VoltsToADC(OXYGEN_VOLTAGE_CALIB_MIN);
-        OX.sensor.calibrationData.OUT_MeasuredMax = OXYGEN_VOLTAGE_MAX;
-        OX.sensor.calibrationData.OUT_MeasuredMin = OXYGEN_VOLTAGE_MIN;
-        nECU_calculateLinearCalibration(&OX.sensor.calibrationData);
-        OX.sensor.ADC_input = getPointer_OX_ADC();
+        status |= nECU_A_Input_Init(&(OX.sensor), VoltsToADC(OXYGEN_VOLTAGE_CALIB_MAX), VoltsToADC(OXYGEN_VOLTAGE_CALIB_MIN), OXYGEN_VOLTAGE_MAX, OXYGEN_VOLTAGE_MIN, getPointer_OX_ADC());
         /* Heater */
         // timer configuration
         OX.Heater.htim = &OX_HEATER_TIMER;
@@ -49,10 +46,12 @@ void nECU_OX_Init(void) // initialize narrowband lambda structure
     }
     if (OX_Working == false && OX_Initialized == true)
     {
-        nECU_tim_PWM_start(&(OX.Heater));
-        ADC1_START();
+        status |= (nECU_tim_PWM_start(&(OX.Heater)) != TIM_OK);
+        status |= ADC1_START();
         OX_Working = true;
     }
+
+    return status;
 }
 void nECU_OX_Update(void) // update narrowband lambda structure
 {
@@ -83,8 +82,10 @@ void nECU_OX_PWM_Set(float *infill) // function to set PWM according to set infi
     OX.Heater.htim->Instance->CCR1 = (*infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 }
 /* GPIO inputs */
-void nECU_stock_GPIO_Init(void) // initialize structure variables
+bool nECU_stock_GPIO_Init(void) // initialize structure variables
 {
+    bool status = false;
+
     if (GPIO_Initialized == false)
     {
         stk_in.Cranking.GPIO_Pin = Cranking_Pin;
@@ -101,6 +102,8 @@ void nECU_stock_GPIO_Init(void) // initialize structure variables
     {
         GPIO_Working = true;
     }
+
+    return status;
 }
 void nECU_stock_GPIO_update(void) // update structure variables
 {
@@ -141,9 +144,13 @@ bool *nECU_Immo_getPointer(void) // returns pointer to immobilizer valid
     return &none;
 }
 /* General */
-void nECU_Stock_Start(void) // function to initialize all stock stuff
+bool nECU_Stock_Start(void) // function to initialize all stock stuff
 {
-    nECU_OX_Init();
+    bool status = false;
+
+    status |= nECU_OX_Init();
+
+    return status;
 }
 void nECU_Stock_Stop(void) // function to deinitialize all stock stuff
 {

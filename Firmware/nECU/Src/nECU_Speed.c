@@ -102,8 +102,10 @@ void Speed_AverageInit(Speed_Sensor *Sensor) // Initialize averaging structure
 }
 
 /* General functions */
-void Speed_Start(void) // function to start Speed function set
+bool Speed_Start(void) // function to start Speed function set
 {
+    bool status = false;
+
     if (SS1_Initialized == false || SS2_Initialized == false || SS3_Initialized == false || SS4_Initialized == false)
     {
         // Setup sensor objects input
@@ -113,7 +115,7 @@ void Speed_Start(void) // function to start Speed function set
         Speed_Sens_4.InputData = getPointer_SpeedSens_ADC(SPEED_SENSOR_REAR_RIGHT);
 
         // // Read calibraion from flash
-        nECU_readSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
+        status |= nECU_readSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
 
         // // Setup base parameters before first can recived frame
         Speed_Sens_1.WheelSetup = nECU_CAN_getWheelSetupPointer();
@@ -134,12 +136,14 @@ void Speed_Start(void) // function to start Speed function set
     }
     if (SS1_Working == false || SS2_Working == false || SS3_Working == false || SS4_Working == false)
     {
-        ADC2_START();
+        status |= ADC2_START();
         SS1_Working = true;
         SS2_Working = true;
         SS3_Working = true;
         SS4_Working = true;
     }
+
+    return status;
 }
 void Speed_Update(void) // perform update of all sensors
 {

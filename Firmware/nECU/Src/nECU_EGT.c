@@ -59,14 +59,16 @@ EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID) // get function returns poin
 }
 
 /* EGT functions */
-void EGT_Init(void) // initialize all sensors and start communication
+bool EGT_Init(void) // initialize all sensors and start communication
 {
+    bool status = false;
+
     if (EGT_Init_Called == false)
     {
-        MAX31855_Init(&EGT_variables.TC1, &SPI_PERIPHERAL_EGT, T1_CS_GPIO_Port, T1_CS_Pin);
-        MAX31855_Init(&EGT_variables.TC2, &SPI_PERIPHERAL_EGT, T2_CS_GPIO_Port, T2_CS_Pin);
-        MAX31855_Init(&EGT_variables.TC3, &SPI_PERIPHERAL_EGT, T3_CS_GPIO_Port, T3_CS_Pin);
-        MAX31855_Init(&EGT_variables.TC4, &SPI_PERIPHERAL_EGT, T4_CS_GPIO_Port, T4_CS_Pin);
+        status |= MAX31855_Init(&EGT_variables.TC1, &SPI_PERIPHERAL_EGT, T1_CS_GPIO_Port, T1_CS_Pin);
+        status |= MAX31855_Init(&EGT_variables.TC2, &SPI_PERIPHERAL_EGT, T2_CS_GPIO_Port, T2_CS_Pin);
+        status |= MAX31855_Init(&EGT_variables.TC3, &SPI_PERIPHERAL_EGT, T3_CS_GPIO_Port, T3_CS_Pin);
+        status |= MAX31855_Init(&EGT_variables.TC4, &SPI_PERIPHERAL_EGT, T4_CS_GPIO_Port, T4_CS_Pin);
         EGT_variables.EGT_CurrentSensor = 0;
         EGT_variables.updatePending = true; // to force first update
 
@@ -76,11 +78,17 @@ void EGT_Init(void) // initialize all sensors and start communication
         EGT_initialized = nECU_Delay_DoneFlag(&(EGT_variables.startup_Delay));
         EGT_Init_Called = true;
     }
+
+    return status;
 }
-void EGT_Start(void) // start the routines
+bool EGT_Start(void) // start the routines
 {
-    EGT_Init();
+    bool status = false;
+
+    status |= EGT_Init();
     EGT_working = true;
+
+    return status;
 }
 void EGT_Stop(void) // stop the routines
 {
@@ -202,8 +210,10 @@ void EGT_RequestUpdate(void) // indicate that update is needed
     EGT_variables.updatePending = true;
 }
 
-void MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin) // First initialization
+bool MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin) // First initialization
 {
+    bool status = false;
+
     inst->OC_Fault = false;
     inst->SCG_Fault = false;
     inst->SCV_Fault = false;
@@ -215,6 +225,8 @@ void MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx,
     inst->CS_pin.GPIOx = GPIOx;
     inst->CS_pin.GPIO_Pin = GPIO_Pin;
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, SET);
+
+    return status;
 }
 void MAX31855_collectError(MAX31855 *inst) // get current error value
 {

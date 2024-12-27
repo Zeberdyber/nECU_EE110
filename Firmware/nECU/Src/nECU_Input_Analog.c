@@ -61,8 +61,10 @@ uint8_t nECU_FloatToUint8_t(float input, uint8_t decimalPoint, uint8_t bitCount)
 }
 
 /* Internal Temperatre (MCU) */
-void nECU_InternalTemp_Init(void) // initialize structure
+bool nECU_InternalTemp_Init(void) // initialize structure
 {
+    bool status = false;
+
     if (D_MCU_temperature.Status == D_BLOCK_STOP)
     {
         MCU_temperature.ADC_data = getPointer_InternalTemp_ADC();
@@ -73,9 +75,11 @@ void nECU_InternalTemp_Init(void) // initialize structure
     {
         nECU_InternalTemp_Delay_Start();
         nECU_InternalTemp_StartupDelay_Start();
-        ADC1_START();
+        status |= ADC1_START();
         D_MCU_temperature.Status |= D_BLOCK_WORKING;
     }
+
+    return status;
 }
 void nECU_InternalTemp_Callback(void) // run when conversion ended
 {
@@ -114,18 +118,21 @@ uint16_t *nECU_MAP_GetPointer(void) // returns pointer to resulting data
 {
     return &MAP.output16bit;
 }
-void nECU_MAP_Init(void) // initialize MAP structure
+bool nECU_MAP_Init(void) // initialize MAP structure
 {
+    bool status = false;
+
     if (D_MAP.Status == D_BLOCK_STOP)
     {
-        nECU_A_Input_Init(&MAP, MAP_ADC_CALIB_MAX, MAP_ADC_CALIB_MIN, MAP_kPA_CALIB_MAX, MAP_kPA_CALIB_MIN, getPointer_MAP_ADC());
+        status |= nECU_A_Input_Init(&MAP, MAP_ADC_CALIB_MAX, MAP_ADC_CALIB_MIN, MAP_kPA_CALIB_MAX, MAP_kPA_CALIB_MIN, getPointer_MAP_ADC());
         D_MAP.Status = D_BLOCK_INITIALIZED;
     }
     if (D_MAP.Status == D_BLOCK_INITIALIZED)
     {
-        ADC1_START();
+        status |= ADC1_START();
         D_MAP.Status = D_BLOCK_WORKING;
     }
+    return status;
 }
 void nECU_MAP_Update(void) // update MAP structure
 {
@@ -142,18 +149,22 @@ uint8_t *nECU_BackPressure_GetPointer(void) // returns pointer to resulting data
 {
     return &BackPressure.output8bit;
 }
-void nECU_BackPressure_Init(void) // initialize BackPressure structure
+bool nECU_BackPressure_Init(void) // initialize BackPressure structure
 {
+    bool status = false;
+
     if (D_BackPressure.Status == D_BLOCK_STOP)
     {
-        nECU_A_Input_Init(&(BackPressure), BACKPRESSURE_ADC_CALIB_MAX, BACKPRESSURE_ADC_CALIB_MIN, BACKPRESSURE_kPA_CALIB_MAX, BACKPRESSURE_kPA_CALIB_MIN, getPointer_Backpressure_ADC());
+        status |= nECU_A_Input_Init(&(BackPressure), BACKPRESSURE_ADC_CALIB_MAX, BACKPRESSURE_ADC_CALIB_MIN, BACKPRESSURE_kPA_CALIB_MAX, BACKPRESSURE_kPA_CALIB_MIN, getPointer_Backpressure_ADC());
         D_BackPressure.Status = D_BLOCK_INITIALIZED;
     }
     if (D_BackPressure.Status == D_BLOCK_INITIALIZED)
     {
-        ADC1_START();
+        status |= ADC1_START();
         D_BackPressure.Status = D_BLOCK_WORKING;
     }
+
+    return status;
 }
 void nECU_BackPressure_Update(void) // update BackPressure structure
 {
@@ -198,8 +209,10 @@ void nECU_A_Input_Update_All(void)
     nECU_A_Input_Update(&AI2);
     nECU_A_Input_Update(&AI3);
 }
-void nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inMin, float outMax, float outMin, uint16_t *ADC_Data) // function to setup the structure
+bool nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inMin, float outMax, float outMin, uint16_t *ADC_Data) // function to setup the structure
 {
+    bool status = false;
+
     // setup basic parameters
     sensor->calibrationData.ADC_MeasuredMax = inMax;
     sensor->calibrationData.ADC_MeasuredMin = inMin;
@@ -218,6 +231,8 @@ void nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inM
     sensor->outputFloat = 0.0;
     sensor->output8bit = 0;
     sensor->output16bit = 0;
+
+    return status;
 }
 void nECU_A_Input_SetSmoothing(AnalogSensor_Handle *sensor, float alpha, uint16_t *smoothing_buffer, uint8_t buffer_length, uint16_t update_frequency) // setups filtering and smoothing
 {

@@ -16,12 +16,14 @@ static nECU_UART knock_uart;
 static uint8_t UART_data_buffer[512];
 
 /* Knock detection */
-void nECU_Knock_Init(void) // initialize and start
+bool nECU_Knock_Init(void) // initialize and start
 {
+    bool status = false;
+
     if (Knock_Initialized == false)
     {
         // UART
-        nECU_UART_Init(&knock_uart, &PC_UART, UART_data_buffer);
+        status |= nECU_UART_Init(&knock_uart, &PC_UART, UART_data_buffer);
 
         Knock.RetardPerc = 0; // initial value
         Knock.LevelWaiting = false;
@@ -41,7 +43,7 @@ void nECU_Knock_Init(void) // initialize and start
         Knock.fft.flag = false;
         float SamplingFreq = TIM_CLOCK / ((KNOCK_ADC_SAMPLING_TIMER.Init.Prescaler + 1) * (KNOCK_ADC_SAMPLING_TIMER.Init.Period + 1));
         Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * FFT_LENGTH) / (SamplingFreq)) * 2) - 1;
-        arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH);
+        status |= (arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH) != ARM_MATH_SUCCESS);
 
         // set initialized flag
         Knock_Initialized = true;
@@ -49,12 +51,14 @@ void nECU_Knock_Init(void) // initialize and start
     if (Knock_Working == false && Knock_Initialized == true)
     {
         // ADC start
-        ADC3_START();
+        status |= ADC3_START();
         // RPM reference
-        nECU_IGF_Init();
+        status |= nECU_IGF_Init();
         // set working flag
         Knock_Working = true;
     }
+
+    return status;
 }
 void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 {

@@ -117,8 +117,10 @@ uint8_t nECU_UART_KnockSuperFrame(uint16_t *input_buffer, uint8_t *output_buffer
 }
 
 /* UART interface */
-void nECU_UART_Init(nECU_UART *obj, UART_HandleTypeDef *huart, uint8_t *buffer) // initializes structure
+bool nECU_UART_Init(nECU_UART *obj, UART_HandleTypeDef *huart, uint8_t *buffer) // initializes structure
 {
+    bool status = false;
+
     obj->huart = huart;
     obj->message = buffer;
     obj->length = 0;
@@ -131,6 +133,12 @@ void nECU_UART_Init(nECU_UART *obj, UART_HandleTypeDef *huart, uint8_t *buffer) 
     {
         Immo_UART_obj = obj;
     }
+    else
+    {
+        status |= true;
+    }
+
+    return status;
 }
 HAL_StatusTypeDef nECU_UART_Tx(nECU_UART *obj) // sends the packet if possible
 {

@@ -53,10 +53,10 @@ Time ADC1 {/8, 12bit, 8 channels, 480 cycles each}
   void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc);
 
   /* Start functions */
-  void ADC_START_ALL(void);
-  void ADC1_START(void);
-  void ADC2_START(void);
-  void ADC3_START(void);
+  bool ADC_START_ALL(void);
+  bool ADC1_START(void);
+  bool ADC2_START(void);
+  bool ADC3_START(void);
   /* Stop functions */
   void ADC_STOP_ALL(void);
   void ADC1_STOP(void);

@@ -8,10 +8,14 @@
 
 #include "nECU_main.h"
 
+extern nECU_ProgramBlockData D_Main; // diagnostic and flow control data
+
 /* General code */
 void nECU_Start(void) // start executing program (mostly in main loop, some in background with interrupts)
 {
     nECU_Debug_Start(); // MUST BE THE FIRST EXECUTED LINE!!
+
+    nECU_FLASH_Init(); // initialize FLASH module -> copy from FLASH to RAM
 
     // nECU_systest_run();
     // nECU_codetest_run();
@@ -50,6 +54,8 @@ void nECU_main(void) // main rutine of the program
     nECU_IGF_Calc();
 
     test_uart();
+
+    nECU_Debug_ProgramBlockData_Update(&D_Main);
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {

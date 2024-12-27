@@ -26,7 +26,7 @@ extern "C"
 #define KNOCK_FREQUENCY 8000 // in Hz
 
     /* Knock detection */
-    void nECU_Knock_Init(void);                           // initialize and start
+    bool nECU_Knock_Init(void);                           // initialize and start
     void nECU_Knock_ADC_Callback(uint16_t *input_buffer); // periodic callback
     void nECU_Knock_UpdatePeriodic(void);                 // function to perform time critical knock routines, call at regression timer interrupt
     void nECU_Knock_DetectMagn(void);                     // function to detect knock based on ADC input

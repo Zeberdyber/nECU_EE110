@@ -29,17 +29,17 @@ extern "C"
 #define FRAME_MAP_OFFSET -100 // offset to the value
 
     /* Function Prototypes */
-    void Frame0_Init(void);                                                                               // initialization of data structure
+    bool Frame0_Init(void);                                                                               // initialization of data structure
     void Frame0_Update(void);                                                                             // update variables for frame 0
     void Frame0_PrepareBuffer(void);                                                                      // prepare Tx buffer for CAN transmission
     void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4, uint16_t *Val12Bit); // function to create word for use in frame 0
 
-    void Frame1_Init(void);                                                         // initialization of data structure
+    bool Frame1_Init(void);                                                         // initialization of data structure
     void Frame1_Update(void);                                                       // update variables for frame 1
     void Frame1_PrepareBuffer(void);                                                // prepare Tx buffer for CAN transmission
     void Frame1_ComposeWord(uint8_t *buffer, uint8_t *Val6Bit, uint16_t *Val10Bit); // function to create word for use in frame 1
 
-    void Frame2_Init(void);          // initialization of data structure
+    bool Frame2_Init(void);          // initialization of data structure
     void Frame2_Update(void);        // update variables for frame 2
     void Frame2_PrepareBuffer(void); // prepare Tx buffer for CAN transmission
 

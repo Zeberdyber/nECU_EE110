@@ -30,18 +30,18 @@ extern "C"
 
     /* Oxygen Sensor */
     uint8_t *nECU_OX_GetPointer(void);   // returns pointer to resulting data
-    void nECU_OX_Init(void);             // initialize narrowband lambda structure
+    bool nECU_OX_Init(void);             // initialize narrowband lambda structure
     void nECU_OX_Update(void);           // update narrowband lambda structure
     void nECU_OX_DeInit(void);           // deinitialize narrowband lambda structure
     void nECU_OX_PWM_Set(float *infill); // function to set PWM according to set infill
     /* GPIO inputs */
-    void nECU_stock_GPIO_Init(void);                      // initialize structure variables
+    bool nECU_stock_GPIO_Init(void);                      // initialize structure variables
     void nECU_stock_GPIO_update(void);                    // update structure variables
     bool *nECU_stock_GPIO_getPointer(stock_inputs_ID id); // return pointers of structure variables
     /* Immobilizer */
     bool *nECU_Immo_getPointer(void); // returns pointer to immobilizer valid
     /* General */
-    void nECU_Stock_Start(void);  // function to initialize all stock stuff
+    bool nECU_Stock_Start(void);  // function to initialize all stock stuff
     void nECU_Stock_Stop(void);   // function to deinitialize all stock stuff
     void nECU_Stock_Update(void); // function to update structures
 

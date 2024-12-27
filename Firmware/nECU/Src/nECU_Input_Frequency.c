@@ -22,8 +22,10 @@ uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
 {
     return &VSS.Speed;
 }
-void nECU_VSS_Init(void) // initialize VSS structure
+bool nECU_VSS_Init(void) // initialize VSS structure
 {
+    bool status = false;
+
     if (VSS_Initialized == false)
     {
         VSS.ic.previous_CCR = 0;
@@ -37,9 +39,11 @@ void nECU_VSS_Init(void) // initialize VSS structure
     }
     if (VSS_Working == false && VSS_Initialized == true)
     {
-        nECU_tim_IC_start(&VSS.tim);
+        status |= nECU_tim_IC_start(&VSS.tim);
         VSS_Working = true;
     }
+
+    return status;
 }
 void nECU_VSS_Update(void) // update VSS structure
 {
@@ -75,7 +79,6 @@ void nECU_VSS_Validate(void) // checks if recived signal is correct
     if (VSS.Speed > VSS_MAX_SPEED && VSS.overspeed_error == false) // set error
     {
         nECU_Debug_error_mesage temp;
-        nECU_Debug_Message_Init(&temp);
         nECU_Debug_Message_Set(&temp, VSS.Speed, nECU_ERROR_VSS_MAX);
         VSS.overspeed_error = true; // to spit the error only once
         VSS.Speed = 0;
@@ -112,8 +115,10 @@ void nECU_VSS_Smooth_Update(void) // call this function to smooth the output dat
 {
 }
 /* IGF - Ignition feedback */
-void nECU_IGF_Init(void) // initialize and start
+bool nECU_IGF_Init(void) // initialize and start
 {
+    bool status = false;
+
     if (IGF_Initialized == false)
     {
         IGF.ic.previous_CCR = 0;
@@ -125,9 +130,11 @@ void nECU_IGF_Init(void) // initialize and start
     }
     if (IGF_Working == false && IGF_Initialized == true)
     {
-        nECU_tim_IC_start(&IGF.tim);
+        status |= (nECU_tim_IC_start(&IGF.tim) != TIM_OK);
         IGF_Working = true;
     }
+
+    return status;
 }
 void nECU_IGF_Calc(void) // calculate RPM based on IGF signal
 {

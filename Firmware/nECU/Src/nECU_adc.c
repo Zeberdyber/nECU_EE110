@@ -77,14 +77,18 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 }
 
 /* Start functions */
-void ADC_START_ALL(void)
+bool ADC_START_ALL(void)
 {
-  ADC1_START();
-  ADC2_START();
-  ADC3_START();
+  bool status = false;
+  status |= ADC1_START();
+  status |= ADC2_START();
+  status |= ADC3_START();
+  return status;
 }
-void ADC1_START(void)
+bool ADC1_START(void)
 {
+  bool status = false;
+
   if (D_ADC1.Status == D_BLOCK_STOP)
   {
     /* List of data in buffer */
@@ -109,9 +113,13 @@ void ADC1_START(void)
     HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.in_buffer, sizeof(adc1_data.in_buffer) / sizeof(uint16_t));
     D_ADC1.Status |= D_BLOCK_WORKING;
   }
+
+  return status;
 }
-void ADC2_START(void)
+bool ADC2_START(void)
 {
+  bool status = false;
+
   if (D_ADC2.Status == D_BLOCK_STOP)
   {
     /* List of data in buffer */
@@ -132,9 +140,14 @@ void ADC2_START(void)
     HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.in_buffer, sizeof(adc2_data.in_buffer) / sizeof(uint16_t));
     D_ADC2.Status |= D_BLOCK_WORKING;
   }
+
+  return status;
 }
-void ADC3_START(void)
+bool ADC3_START(void)
 {
+  bool status = false;
+  HAL_StatusTypeDef status_HAL = HAL_OK;
+
   if (D_ADC3.Status == D_BLOCK_STOP)
   {
     adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
@@ -148,10 +161,11 @@ void ADC3_START(void)
   }
   if (D_ADC3.Status & D_BLOCK_INITIALIZED)
   {
-    HAL_TIM_Base_Start(adc3_data.samplingTimer);
+    status_HAL |= HAL_TIM_Base_Start(adc3_data.samplingTimer);
     HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t));
     D_ADC3.Status |= D_BLOCK_WORKING;
   }
+  return status || (status_HAL != HAL_OK);
 }
 /* Stop functions */
 void ADC_STOP_ALL(void)
@@ -217,7 +231,7 @@ void nECU_ADC1_Routine(void)
     nECU_ADC_AverageDMA(&GENERAL_ADC, &(adc1_data.in_buffer[GENERAL_DMA_LEN / 2]), GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
     adc1_data.status.callback_full = false; // clear flag
   }
-  nECU_TickTrack_Update(&D_ADC1.Update_ticks);
+  nECU_Debug_ProgramBlockData_Update(&D_ADC1);
 }
 void nECU_ADC2_Routine(void)
 {
@@ -232,7 +246,7 @@ void nECU_ADC2_Routine(void)
     nECU_ADC_AverageDMA(&SPEED_ADC, &adc2_data.in_buffer[(SPEED_DMA_LEN / 2) - 1], SPEED_DMA_LEN / 2, adc2_data.out_buffer, SPEED_SMOOTH_ALPHA);
     adc2_data.status.callback_full = false; // clear flag
   }
-  nECU_TickTrack_Update(&D_ADC2.Update_ticks);
+  nECU_Debug_ProgramBlockData_Update(&D_ADC2);
 }
 void nECU_ADC3_Routine(void)
 {
@@ -247,7 +261,7 @@ void nECU_ADC3_Routine(void)
     adc3_data.status.callback_full = false; // clear flag
     nECU_Knock_ADC_Callback(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
   }
-  nECU_TickTrack_Update(&D_ADC3.Update_ticks);
+  nECU_Debug_ProgramBlockData_Update(&D_ADC3);
 #if TEST_KNOCK_UART == true
   Send_Triangle_UART();
   return;

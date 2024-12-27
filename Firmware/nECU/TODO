@@ -15,6 +15,10 @@
         [ ] trafic indication
         [ ] debug data send
         [ ] sensor data send (variable tracing)
+    [ ] can.c
+        [ ] clean up 'checktime' function
+        [ ] separate RX buffers and filters for coolant/wheelsetup/rpm data
+    [ ] EGT.c rewrite
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected

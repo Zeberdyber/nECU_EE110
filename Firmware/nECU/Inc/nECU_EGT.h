@@ -34,8 +34,8 @@ extern "C"
     bool *EGT_GetWorking(void);                                    // get function to check if code was EGT_Initialized
     EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID);           // get function returns pointer to error code
 
-    void EGT_Init(void);                         // initialize all sensors and start communication
-    void EGT_Start(void);                        // start the routines
+    bool EGT_Init(void);                         // initialize all sensors and start communication
+    bool EGT_Start(void);                        // start the routines
     void EGT_Stop(void);                         // stop the routines
     void EGT_ConvertAll(void);                   // convert data if pending
     void EGT_TemperatureTo10bit(MAX31855 *inst); // function to convert temperature value to 10bit number for CAN transmission
@@ -46,7 +46,7 @@ extern "C"
     void EGT_SPI_Callback(bool error);                                                                   // callback from SPI_TX end callback
     void EGT_RequestUpdate(void);                                                                        // indicate that update is needed
                                                                                                          // function to convert temperature value to 10bit number for CAN transmission
-    void MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin); // First initialization
+    bool MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin); // First initialization
     void MAX31855_collectError(MAX31855 *inst);                                                          // get current error value
     void MAX31855_UpdateSimple(MAX31855 *inst);                                                          // Recive data over SPI and convert it into struct, dont use while in DMA mode
     void MAX31855_ConvertData(MAX31855 *inst);                                                           // For internal use bit decoding and data interpretation

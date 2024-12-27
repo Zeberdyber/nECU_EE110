@@ -14,32 +14,43 @@ static Button Green;
 extern nECU_ProgramBlockData D_Button_Red, D_Button_Orange, D_Button_Green; // diagnostic and flow control data
 
 /* All button functions */
-void Button_Start(void)
+bool Button_Start(void)
 {
+  bool status = false;
   if (D_Button_Red.Status == D_BLOCK_STOP)
   {
-    if (ButtonLight_Init(&Red.light, 1, &BUTTON_OUTPUT_TIMER) &&
-        ButtonInput_Init(&Red.input, 1, &BUTTON_INPUT_TIMER))
+    bool status_Red = false;
+    status_Red |= ButtonLight_Init(&Red.light, 1, &BUTTON_OUTPUT_TIMER);
+    status_Red |= ButtonInput_Init(&Red.input, 1, &BUTTON_INPUT_TIMER);
+    if (!status_Red)
     {
       D_Button_Red.Status |= D_BLOCK_INITIALIZED_WORKING;
     }
+    status |= status_Red;
   }
   if (D_Button_Orange.Status == D_BLOCK_STOP)
   {
-    if (ButtonLight_Init(&Orange.light, 2, &BUTTON_OUTPUT_TIMER) &&
-        ButtonInput_Init(&Orange.input, 2, &BUTTON_INPUT_TIMER))
+    bool status_Orange = false;
+    status_Orange |= ButtonLight_Init(&Orange.light, 2, &BUTTON_OUTPUT_TIMER);
+    status_Orange |= ButtonInput_Init(&Orange.input, 2, &BUTTON_INPUT_TIMER);
+    if (!status_Orange)
     {
       D_Button_Orange.Status |= D_BLOCK_INITIALIZED_WORKING;
     }
+    status |= status_Orange;
   }
   if (D_Button_Green.Status == D_BLOCK_STOP)
   {
-    if (ButtonLight_Init(&Green.light, 3, &BUTTON_OUTPUT_TIMER) &&
-        ButtonInput_Init(&Green.input, 3, &BUTTON_INPUT_TIMER))
+    bool status_Green = false;
+    status_Green |= ButtonLight_Init(&Green.light, 3, &BUTTON_OUTPUT_TIMER);
+    status_Green |= ButtonInput_Init(&Green.input, 3, &BUTTON_INPUT_TIMER);
+    if (!status_Green)
     {
       D_Button_Green.Status |= D_BLOCK_INITIALIZED_WORKING;
     }
+    status |= status_Green;
   }
+  return status;
 }
 void Button_Stop(void)
 {
@@ -61,6 +72,8 @@ void Button_Stop(void)
 /* BUTTON LIGHT BEGIN */
 static bool ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonLight object with corresponding timer
 {
+  bool status = false;
+
   Light->Timer.htim = htim;
   nECU_tim_Init_struct(&Light->Timer);
   Light->Timer.Channel_Count = 1;
@@ -82,15 +95,16 @@ static bool ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleType
     break;
 
   default:
-    return false;
+    status |= true;
+    return status;
   }
-  nECU_tim_PWM_start(&Light->Timer);
+  status |= (nECU_tim_PWM_start(&Light->Timer) != TIM_OK);
 
   nECU_TickTrack_Init(&(Light->TimeTracker));
 
   Light->Mode = BUTTON_MODE_OFF; // Turn off
 
-  return true;
+  return status;
 }
 static void ButtonLight_Update(ButtonLight *Light) // periodic animation update function
 {
@@ -212,17 +226,17 @@ void ButtonLight_UpdateAll(void) // function to launch updates for all buttons
   if (D_Button_Red.Status & D_BLOCK_WORKING)
   {
     ButtonLight_Update(&Red.light);
-    nECU_TickTrack_Update(&D_Button_Red.Update_ticks);
+    nECU_Debug_ProgramBlockData_Update(&D_Button_Red);
   }
   if (D_Button_Orange.Status & D_BLOCK_WORKING)
   {
     ButtonLight_Update(&Orange.light);
-    nECU_TickTrack_Update(&D_Button_Orange.Update_ticks);
+    nECU_Debug_ProgramBlockData_Update(&D_Button_Orange);
   }
   if (D_Button_Green.Status & D_BLOCK_WORKING)
   {
     ButtonLight_Update(&Green.light);
-    nECU_TickTrack_Update(&D_Button_Green.Update_ticks);
+    nECU_Debug_ProgramBlockData_Update(&D_Button_Green);
   }
 }
 /* BUTTON LIGHT END */
@@ -230,6 +244,7 @@ void ButtonLight_UpdateAll(void) // function to launch updates for all buttons
 /* BUTTON INPUT BEGIN */
 static bool ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonInput object with corresponding timer and GPIO
 {
+  bool status = false;
   button->Timer.htim = htim;
   nECU_tim_Init_struct(&button->Timer);
   button->Timer.Channel_Count = 1;
@@ -256,11 +271,12 @@ static bool ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTyp
     break;
 
   default:
-    return false;
+    status |= true;
+    return status;
   }
-  nECU_tim_IC_start(&button->Timer);
+  status |= (nECU_tim_IC_start(&button->Timer) != TIM_OK);
 
-  return true;
+  return status;
 }
 static void ButtonInput_Stop(ButtonInput *button) // stop Input Capture for selected button
 {

@@ -31,13 +31,13 @@ extern "C"
     /* Function Prototypes */
     /* VSS - Vehicle Speed Sensor */
     uint8_t *nECU_VSS_GetPointer(void);                // returns pointer to resulting data
-    void nECU_VSS_Init(void);                          // initialize VSS structure
+    bool nECU_VSS_Init(void);                          // initialize VSS structure
     void nECU_VSS_Update(void);                        // update VSS structure
     void nECU_VSS_Validate(void);                      // checks if recived signal is correct
     void nECU_VSS_DeInit(void);                        // deinitialize VSS structure
     void nECU_VSS_DetectZero(TIM_HandleTypeDef *htim); // detect if zero km/h
     /* IGF - Ignition feedback */
-    void nECU_IGF_Init(void);   // initialize and start
+    bool nECU_IGF_Init(void);   // initialize and start
     void nECU_IGF_Calc(void);   // calculate RPM based on IGF signal, detect missfire
     void nECU_IGF_DeInit(void); // stop
     /* General */

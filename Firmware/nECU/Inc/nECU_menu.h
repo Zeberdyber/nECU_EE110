@@ -22,7 +22,7 @@ extern "C"
 #define LAUNCH_CONTROL_NUMBER 4 // number of avaliable launch control levels
 
   /* Button logic */
-  void Button_Menu_Init(void); // initialize button menu
+  bool Button_Menu_Init(void); // initialize button menu
   void Button_Menu(void);      // update function
   /* Interface functions */
   bool *Button_Menu_getPointer_Antilag(void);
@@ -36,10 +36,10 @@ extern "C"
   bool *TachoValue_Get_ShowPointer(Tacho_ID ID);      // get pointer to correct structure value
   void TachoValue_Clear_ShowPending(Tacho_ID ID);     // clear pending flag for selected struct
   void TachoValue_Update_All(void);                   // update all TachoValue structures
-  void TachoValue_Init_All(void);                     // initialize tachometer value structures
+  bool TachoValue_Init_All(void);                     // initialize tachometer value structures
   /* TachoValue internal functions */
-  void TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier); // initialize single structure
-  void TachoValue_Update_Single(TachoValue *inst);                                           // update variables when needed
+  static bool TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier); // initialize single structure
+  static void TachoValue_Update_Single(TachoValue *inst);                                           // update variables when needed
 
 #ifdef __cplusplus
 }

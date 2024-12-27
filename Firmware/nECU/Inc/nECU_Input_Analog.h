@@ -41,23 +41,23 @@ extern "C"
     uint8_t nECU_FloatToUint8_t(float input, uint8_t decimalPoint, uint8_t bitCount);   // convert float value to uint8_t value with correct decimal point and bit lenght
 
     /* Internal Temperatre (MCU) */
-    void nECU_InternalTemp_Init(void);                // initialize structure
+    bool nECU_InternalTemp_Init(void);                // initialize structure
     void nECU_InternalTemp_Callback(void);            // run when conversion ended
     void nECU_InternalTemp_Update(void);              // perform update of output variables
     uint16_t *nECU_InternalTemp_getTemperature(void); // return current temperature pointer (multiplied 100x)
 
     /* MAP */
     uint16_t *nECU_MAP_GetPointer(void); // returns pointer to resulting data
-    void nECU_MAP_Init(void);            // initialize MAP structure
+    bool nECU_MAP_Init(void);            // initialize MAP structure
     void nECU_MAP_Update(void);          // update MAP structure
     /* BackPressure */
     uint8_t *nECU_BackPressure_GetPointer(void); // returns pointer to resulting data
-    void nECU_BackPressure_Init(void);           // initialize BackPressure structure
+    bool nECU_BackPressure_Init(void);           // initialize BackPressure structure
     void nECU_BackPressure_Update(void);         // update BackPressure structure
 
     void nECU_A_Input_Init_All(void);                                                                                                                       // Initialize additional analog inputs
     void nECU_A_Input_Update_All(void);                                                                                                                     // Update additional analog inputs
-    void nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inMin, float outMax, float outMin, uint16_t *ADC_Data);                    // function to setup the structure
+    bool nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inMin, float outMax, float outMin, uint16_t *ADC_Data);                    // function to setup the structure
     void nECU_A_Input_SetSmoothing(AnalogSensor_Handle *sensor, float alpha, uint16_t *smoothing_buffer, uint8_t buffer_length, uint16_t update_frequency); // setups filtering and smoothing
     void nECU_A_Input_Update(AnalogSensor_Handle *sensor);                                                                                                  // update current value
 

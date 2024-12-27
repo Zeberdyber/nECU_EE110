@@ -34,7 +34,7 @@ extern "C"
 #define BUTTON_INPUT_DOUBLE_CLICK_TIME 700 // maximum time double click must be [ms]
 
   /* Start/Stop functions */
-  void Button_Start(void);
+  bool Button_Start(void);
   void Button_Stop(void);
 
   /* Output functions */

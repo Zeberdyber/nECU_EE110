@@ -93,7 +93,7 @@ void nECU_systest_run(void) // run tests of type systest
     if (SYSTEST_DO_FLASH)
     {
         HAL_Delay(FLASH_MINIMUM_RUN_TIME);
-        nECU_FLASH_cleanFlashSector();
+        nECU_FLASH_Erase();
         HAL_Delay(FLASH_MINIMUM_RUN_TIME);
         if (nECU_systest_Flash_UserSettings())
         {
