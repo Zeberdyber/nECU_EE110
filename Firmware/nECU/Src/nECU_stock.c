@@ -8,12 +8,10 @@
 #include "nECU_stock.h"
 
 // internal variables
-Oxygen_Handle OX = {0};
-static stock_GPIO stk_in = {0};
+static Oxygen_Handle OX = {0};
+static stock_GPIO Stock_GPIO = {0};
 
-// initialized flags
-static bool OX_Initialized = false, OX_Working = false,
-            GPIO_Initialized = false, GPIO_Working = false;
+extern nECU_ProgramBlockData D_GPIO, D_OX; // diagnostic and flow control data
 
 /* Oxygen Sensor */
 uint8_t *nECU_OX_GetPointer(void) // returns pointer to resulting data
@@ -24,7 +22,7 @@ bool nECU_OX_Init(void) // initialize narrowband lambda structure
 {
     bool status = false;
 
-    if (OX_Initialized == false)
+    if (D_OX.Status == D_BLOCK_STOP)
     {
         /* Sensor */
         status |= nECU_A_Input_Init(&(OX.sensor), VoltsToADC(OXYGEN_VOLTAGE_CALIB_MAX), VoltsToADC(OXYGEN_VOLTAGE_CALIB_MIN), OXYGEN_VOLTAGE_MAX, OXYGEN_VOLTAGE_MIN, getPointer_OX_ADC());
@@ -42,13 +40,13 @@ bool nECU_OX_Init(void) // initialize narrowband lambda structure
         OX.Coolant_max = OXYGEN_COOLANT_MAX;
         OX.Coolant_min = OXYGEN_COOLANT_MIN;
 
-        OX_Initialized = true;
+        D_OX.Status |= D_BLOCK_INITIALIZED;
     }
-    if (OX_Working == false && OX_Initialized == true)
+    if (D_OX.Status & D_BLOCK_INITIALIZED)
     {
         status |= (nECU_tim_PWM_start(&(OX.Heater)) != TIM_OK);
         status |= ADC1_START();
-        OX_Working = true;
+        D_OX.Status |= D_BLOCK_WORKING;
     }
 
     return status;
@@ -56,8 +54,9 @@ bool nECU_OX_Init(void) // initialize narrowband lambda structure
 void nECU_OX_Update(void) // update narrowband lambda structure
 {
     /* Sensor update */
-    if (OX_Initialized == false || OX_Working == false)
+    if (!(D_OX.Status & D_BLOCK_WORKING))
     {
+        D_OX.Status |= D_BLOCK_CODE_ERROR;
         return;
     }
 
@@ -69,15 +68,18 @@ void nECU_OX_Update(void) // update narrowband lambda structure
     float coolant = (float)*OX.Coolant;
     OX.Heater_Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
     nECU_OX_PWM_Set(&(OX.Heater_Infill));
+
+    nECU_Debug_ProgramBlockData_Update(&D_OX);
 }
 void nECU_OX_DeInit(void) // deinitialize narrowband lambda structure
 {
-    if (OX_Initialized == true)
+    if (D_OX.Status & D_BLOCK_INITIALIZED)
     {
         nECU_tim_PWM_stop(&(OX.Heater));
+        D_OX.Status -= D_BLOCK_INITIALIZED_WORKING;
     }
 }
-void nECU_OX_PWM_Set(float *infill) // function to set PWM according to set infill
+static void nECU_OX_PWM_Set(float *infill) // function to set PWM according to set infill
 {
     OX.Heater.htim->Instance->CCR1 = (*infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 }
@@ -86,53 +88,59 @@ bool nECU_stock_GPIO_Init(void) // initialize structure variables
 {
     bool status = false;
 
-    if (GPIO_Initialized == false)
+    if (D_GPIO.Status == D_BLOCK_STOP)
     {
-        stk_in.Cranking.GPIO_Pin = Cranking_Pin;
-        stk_in.Cranking.GPIOx = Cranking_GPIO_Port;
+        Stock_GPIO.Cranking.GPIO_Pin = Cranking_Pin;
+        Stock_GPIO.Cranking.GPIOx = Cranking_GPIO_Port;
 
-        stk_in.Fan_ON.GPIO_Pin = Fan_ON_Pin;
-        stk_in.Fan_ON.GPIOx = Fan_ON_GPIO_Port;
+        Stock_GPIO.Fan_ON.GPIO_Pin = Fan_ON_Pin;
+        Stock_GPIO.Fan_ON.GPIOx = Fan_ON_GPIO_Port;
 
-        stk_in.Lights_ON.GPIO_Pin = Lights_ON_Pin;
-        stk_in.Lights_ON.GPIOx = Lights_ON_GPIO_Port;
-        GPIO_Initialized = true;
+        Stock_GPIO.Lights_ON.GPIO_Pin = Lights_ON_Pin;
+        Stock_GPIO.Lights_ON.GPIOx = Lights_ON_GPIO_Port;
+
+        D_GPIO.Status |= D_BLOCK_INITIALIZED;
     }
-    if (GPIO_Working == false && GPIO_Initialized == true)
+    if (D_GPIO.Status & D_BLOCK_INITIALIZED)
     {
-        GPIO_Working = true;
+        D_GPIO.Status |= D_BLOCK_WORKING;
     }
 
     return status;
 }
 void nECU_stock_GPIO_update(void) // update structure variables
 {
-    if (GPIO_Initialized == false || GPIO_Working == false)
+    if (!(D_GPIO.Status & D_BLOCK_WORKING))
     {
+        D_GPIO.Status |= D_BLOCK_CODE_ERROR;
         return;
     }
-    stk_in.Cranking.State = HAL_GPIO_ReadPin(stk_in.Cranking.GPIOx, stk_in.Cranking.GPIO_Pin);
-    stk_in.Fan_ON.State = HAL_GPIO_ReadPin(stk_in.Fan_ON.GPIOx, stk_in.Fan_ON.GPIO_Pin);
-    stk_in.Lights_ON.State = HAL_GPIO_ReadPin(stk_in.Lights_ON.GPIOx, stk_in.Lights_ON.GPIO_Pin);
-    stk_in.Cranking_b = (bool)stk_in.Cranking.State;
-    stk_in.Fan_ON_b = (bool)stk_in.Fan_ON.State;
-    stk_in.Lights_ON_b = (bool)stk_in.Lights_ON.State;
+
+    Stock_GPIO.Cranking.State = HAL_GPIO_ReadPin(Stock_GPIO.Cranking.GPIOx, Stock_GPIO.Cranking.GPIO_Pin);
+    Stock_GPIO.Fan_ON.State = HAL_GPIO_ReadPin(Stock_GPIO.Fan_ON.GPIOx, Stock_GPIO.Fan_ON.GPIO_Pin);
+    Stock_GPIO.Lights_ON.State = HAL_GPIO_ReadPin(Stock_GPIO.Lights_ON.GPIOx, Stock_GPIO.Lights_ON.GPIO_Pin);
+    Stock_GPIO.Cranking_b = (bool)Stock_GPIO.Cranking.State;
+    Stock_GPIO.Fan_ON_b = (bool)Stock_GPIO.Fan_ON.State;
+    Stock_GPIO.Lights_ON_b = (bool)Stock_GPIO.Lights_ON.State;
+
+    nECU_Debug_ProgramBlockData_Update(&D_GPIO);
 }
 bool *nECU_stock_GPIO_getPointer(stock_inputs_ID id) // return pointers of structure variables
 {
     switch (id)
     {
     case INPUT_CRANKING_ID:
-        return &stk_in.Cranking_b;
+        return &Stock_GPIO.Cranking_b;
         break;
     case INPUT_FAN_ON_ID:
-        return &stk_in.Fan_ON_b;
+        return &Stock_GPIO.Fan_ON_b;
         break;
     case INPUT_LIGHTS_ON_ID:
-        return &stk_in.Lights_ON_b;
+        return &Stock_GPIO.Lights_ON_b;
         break;
 
     default:
+        D_GPIO.Status |= D_BLOCK_CODE_ERROR;
         break;
     }
     return NULL;
@@ -149,6 +157,7 @@ bool nECU_Stock_Start(void) // function to initialize all stock stuff
     bool status = false;
 
     status |= nECU_OX_Init();
+    status |= nECU_stock_GPIO_Init();
 
     return status;
 }

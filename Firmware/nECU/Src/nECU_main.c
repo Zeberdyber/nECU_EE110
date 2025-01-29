@@ -62,6 +62,7 @@ void nECU_main(void) // main rutine of the program
     test_uart();
 
     nECU_Debug_ProgramBlockData_Update(&D_Main);
+    nECU_Debug_ProgramBlockData_Check();
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {
@@ -71,5 +72,5 @@ void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
     nECU_CAN_Stop();
     nECU_Knock_Stop();
 
-    D_Main.Status += D_BLOCK_STOP;
+    D_Main.Status -= D_BLOCK_INITIALIZED_WORKING;
 }

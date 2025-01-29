@@ -111,7 +111,7 @@ void nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   HAL_CAN_Stop(&hcan1);
   nECU_CAN_RX_Stop();
-  D_CAN_TX.Status = D_BLOCK_STOP;
+  D_CAN_TX.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 void nECU_CAN_CheckTime(void) // checks if it is time to send packet
 {
@@ -274,7 +274,7 @@ static bool nECU_CAN_RX_InitFrame(void) // initialize reciving frames with corre
 void nECU_CAN_RX_Stop(void) // Disables Recive communication
 {
   HAL_CAN_DeactivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING); // Stop waiting for RX
-  D_CAN_RX.Status = D_BLOCK_STOP;
+  D_CAN_RX.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) // interrupt callback when new Rx frame in FIFO0
 {

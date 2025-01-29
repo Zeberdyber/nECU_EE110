@@ -510,6 +510,9 @@ typedef enum
     // VSS
     nECU_ERROR_VSS_MAX = 27,
 
+    // ProgramBlock
+    nECU_ERROR_PROGRAMBLOCK = 28,
+
     nECU_ERROR_NONE
 } nECU_Error_ID;
 typedef enum
@@ -589,15 +592,16 @@ typedef enum
     D_BLOCK_SPARE_1 = 4,
     D_BLOCK_SPARE_2 = 8,
     D_BLOCK_SPARE_3 = 16,
-    D_BLOCK_SPARE_4 = 32,
-    D_BLOCK_CODE_ERROR = 64,
-    D_BLOCK_ERROR = 128,
+    D_BLOCK_ERROR_OLD = 32,  // error stored in memory
+    D_BLOCK_CODE_ERROR = 64, // error in code
+    D_BLOCK_ERROR = 128,     // error active
     D_BLOCK_NONE
 } nECU_ProgramBlock_Status;
 typedef struct
 {
     nECU_ProgramBlock_Status Status; // Status code
     nECU_TickTrack Update_ticks;     // Ticks it taken since last update call
+    uint8_t timeout_value;           // time in seconds after which error should apear
 } nECU_ProgramBlockData;
 
 /* Flash */

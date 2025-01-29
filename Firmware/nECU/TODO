@@ -2,7 +2,8 @@
     [ ] Update Bench_mode
     [ ] System diagnostics
         Show all running components, lookup all data, prepare for UART diagnostics
-        [ ] Initialized/Working to be standardized
+        [X] Initialized/Working to be standardized
+        [ ] Timeout values for program blocks
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
             - igf:

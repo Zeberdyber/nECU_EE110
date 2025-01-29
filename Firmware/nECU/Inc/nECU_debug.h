@@ -19,9 +19,10 @@ extern "C"
 #include "nECU_spi.h"
 
 /* Definitions */
-#define DEVICE_TEMPERATURE_MAX 55  // in deg C
-#define DEVICE_TEMPERATURE_MIN -20 // in deg C
-#define TC_TEMPERATURE_MAX 1000    // in deg C
+#define DEVICE_TEMPERATURE_MAX 55      // in deg C
+#define DEVICE_TEMPERATURE_MIN -20     // in deg C
+#define TC_TEMPERATURE_MAX 1000        // in deg C
+#define PROGRAMBLOCK_TIMEOUT_DEFAULT 5 // number of seconds that will cause a timeout
 
 #define BENCH_MODE true // set true if not connected to car harness
 
@@ -45,15 +46,17 @@ extern "C"
 
     /* Debug que and messages */
     static bool nECU_Debug_Init_Que(void);                                                     // initializes que
-    void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message);                               // add message to debug que
+    static void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message);                        // add message to debug que
     void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message);                                // read newest message from debug que
     static void nECU_Debug_Message_Init(nECU_Debug_error_mesage *inst);                        // zeros value inside of structure
     void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Error_ID ID); // sets error values
 
     /* Program Block */
-    static void nECU_Debug_ProgramBlock_Init(void);                             // Initialize 'ProgramBlock' tracking
-    static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst); // Clear structure 'ProgramBlockData'
-    void nECU_Debug_ProgramBlockData_Update(nECU_ProgramBlockData *inst);       // Update tick tracking and check for timeout
+    static void nECU_Debug_ProgramBlock_Init(void);                                       // Initialize 'ProgramBlock' tracking
+    static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst);           // Clear structure 'ProgramBlockData'
+    void nECU_Debug_ProgramBlockData_Update(nECU_ProgramBlockData *inst);                 // Update tick tracking and check for timeout
+    void nECU_Debug_ProgramBlockData_Check(void);                                         // Perform error check for all blocks
+    static uint8_t nECU_Debug_ProgramBlockData_Check_Single(nECU_ProgramBlockData *inst); // returns if errors occur
 
 #ifdef __cplusplus
 }

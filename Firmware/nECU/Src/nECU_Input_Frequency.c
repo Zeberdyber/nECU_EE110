@@ -107,7 +107,7 @@ void nECU_VSS_Stop(void) // deinitialize VSS structure
         HAL_TIM_Base_Stop_IT(VSS.tim.htim);
         HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.tim.Channel_List[0]);
     }
-    D_VSS.Status = D_BLOCK_STOP;
+    D_VSS.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 
 /* IGF - Ignition feedback */
@@ -165,7 +165,7 @@ void nECU_IGF_Stop(void) // stop
         HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]);
     }
 
-    D_IGF.Status = D_BLOCK_STOP;
+    D_IGF.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 
 /* General */
@@ -192,7 +192,7 @@ void nECU_Frequency_Stop(void) // stop of frequency input functions
     nECU_VSS_Stop();
     nECU_IGF_Stop();
 
-    D_Input_Frequency.Status = D_BLOCK_STOP;
+    D_Input_Frequency.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 void nECU_Frequency_Update(void) // update of frequency input functions
 {

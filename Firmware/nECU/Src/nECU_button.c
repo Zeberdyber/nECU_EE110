@@ -64,9 +64,9 @@ void Button_Stop(void)
   ButtonInput_Stop(&Orange.input);
   ButtonInput_Stop(&Green.input);
 
-  D_Button_Red.Status = D_BLOCK_STOP;
-  D_Button_Orange.Status = D_BLOCK_STOP;
-  D_Button_Green.Status = D_BLOCK_STOP;
+  D_Button_Red.Status -= D_BLOCK_INITIALIZED_WORKING;
+  D_Button_Orange.Status -= D_BLOCK_INITIALIZED_WORKING;
+  D_Button_Green.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 
 /* BUTTON LIGHT BEGIN */

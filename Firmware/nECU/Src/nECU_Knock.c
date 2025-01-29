@@ -161,7 +161,7 @@ void nECU_Knock_Stop(void) // stop
 {
     ADC3_STOP();
     nECU_IGF_Stop();
-    D_Knock.Status = D_BLOCK_STOP;
+    D_Knock.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 uint8_t *nECU_Knock_GetPointer(void) // returns pointer to knock retard percentage
 {

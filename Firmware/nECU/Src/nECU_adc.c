@@ -187,19 +187,19 @@ void ADC1_STOP(void)
 {
   HAL_ADC_Stop_DMA(&GENERAL_ADC);
   nECU_ADC1_Routine(); // finish routine if flags pending
-  D_ADC1.Status = D_BLOCK_STOP;
+  D_ADC1.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 void ADC2_STOP(void)
 {
   HAL_ADC_Stop_DMA(&SPEED_ADC);
   nECU_ADC2_Routine(); // finish routine if flags pending
-  D_ADC2.Status = D_BLOCK_STOP;
+  D_ADC2.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 void ADC3_STOP(void)
 {
   HAL_TIM_Base_Stop(adc3_data.samplingTimer);
   HAL_ADC_Stop_DMA(&KNOCK_ADC);
-  D_ADC1.Status = D_BLOCK_STOP;
+  D_ADC1.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 /* ADC Rutines */
 void nECU_ADC_All_Routine(void)

@@ -29,11 +29,11 @@ extern "C"
 #define OXYGEN_DECIMAL_POINT 2       // how many numbers after decimal point
 
     /* Oxygen Sensor */
-    uint8_t *nECU_OX_GetPointer(void);   // returns pointer to resulting data
-    bool nECU_OX_Init(void);             // initialize narrowband lambda structure
-    void nECU_OX_Update(void);           // update narrowband lambda structure
-    void nECU_OX_DeInit(void);           // deinitialize narrowband lambda structure
-    void nECU_OX_PWM_Set(float *infill); // function to set PWM according to set infill
+    uint8_t *nECU_OX_GetPointer(void);          // returns pointer to resulting data
+    bool nECU_OX_Init(void);                    // initialize narrowband lambda structure
+    void nECU_OX_Update(void);                  // update narrowband lambda structure
+    void nECU_OX_DeInit(void);                  // deinitialize narrowband lambda structure
+    static void nECU_OX_PWM_Set(float *infill); // function to set PWM according to set infill
     /* GPIO inputs */
     bool nECU_stock_GPIO_Init(void);                      // initialize structure variables
     void nECU_stock_GPIO_update(void);                    // update structure variables

@@ -66,7 +66,7 @@ void nECU_PC_Stop(void) // call to stop transmission
     OnBoard_LED_L_Remove_Animation(&(PC.Tx_LED));
     OnBoard_LED_L_Remove_Animation(&(PC.Rx_LED));
 
-    D_PC.Status = D_BLOCK_STOP;
+    D_PC.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 
 /* Flow control */
