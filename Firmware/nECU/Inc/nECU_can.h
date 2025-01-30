@@ -52,7 +52,7 @@ extern "C"
   // Pointers
   uint8_t *nECU_CAN_getCoolantPointer(void);    // get pointer to the recived data of coolant variable
   uint8_t *nECU_CAN_getWheelSetupPointer(void); // get pointer to the recived data of wheel setup variable
-  uint8_t *nECU_CAN_getRPMPointer(void);        // get pointer to the recived data of RPM variable
+  uint16_t *nECU_CAN_getRPMPointer(void);       // get pointer to the recived data of RPM variable
 
 #ifdef __cplusplus
 }

@@ -77,6 +77,10 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
     }
   }
 
+  if (D_CAN_RX.Status & D_CAN_TX.Status & D_BLOCK_INITIALIZED_WORKING)
+  {
+    printf("CAN -> STARTED!\n");
+  }
   return status;
 }
 void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
@@ -111,6 +115,7 @@ void nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   HAL_CAN_Stop(&hcan1);
   nECU_CAN_RX_Stop();
+  printf("CAN -> STOPPED!\n");
   D_CAN_TX.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 void nECU_CAN_CheckTime(void) // checks if it is time to send packet
@@ -292,7 +297,7 @@ uint8_t *nECU_CAN_getCoolantPointer(void) // get pointer to the recived data of 
 {
   return &RxData_Frame0[1];
 }
-uint8_t *nECU_CAN_getRPMPointer(void) // get pointer to the recived data of RPM variable
+uint16_t *nECU_CAN_getRPMPointer(void) // get pointer to the recived data of RPM variable
 {
-  return &RxData_Frame0[2];
+  return (uint16_t *)&RxData_Frame0[2];
 }

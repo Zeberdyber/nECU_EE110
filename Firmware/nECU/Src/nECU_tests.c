@@ -39,6 +39,7 @@ void nECU_tests_error_display(void) // on board LEDs display
     }
     while (ERROR_HALT)
     {
+        printf("Program stopped at test error. ERROR_HALT == true");
         HAL_Delay(UINT32_MAX); // stop execition
     }
     nECU_tests_fail_deinit();
@@ -92,19 +93,31 @@ void nECU_systest_run(void) // run tests of type systest
 {
     if (SYSTEST_DO_FLASH)
     {
+        printf("Systest started: ");
         HAL_Delay(FLASH_MINIMUM_RUN_TIME);
+        printf("XX");
         nECU_FLASH_Erase();
+        printf("XX");
         HAL_Delay(FLASH_MINIMUM_RUN_TIME);
+        printf("XX");
         if (nECU_systest_Flash_UserSettings())
         {
+            printf("\nTest failed on UserSettings\n");
             nECU_systest_error();
         }
+        printf("XX");
 
         HAL_Delay(FLASH_MINIMUM_RUN_TIME);
         if (nECU_systest_Flash_SpeedCalibration())
         {
+            printf("\nTest failed on SpeedCalibration\n");
             nECU_systest_error();
         }
+        printf("   DONE!");
+    }
+    else
+    {
+        printf("Systest turned off\n");
     }
 }
 void nECU_systest_error(void) // function to call when error detected
@@ -229,35 +242,176 @@ bool nECU_codetest_Speed_SensorUpdate(void) // function to test Speed functions
 
     return false;
 }
+bool nECU_expSmooth_test(void) // tests nECU_expSmooth() function
+{
+    uint16_t A, B;
+    float alpha;
+
+    A = 100;
+    B = 0;
+    alpha = 0.5;
+    nECU_expSmooth(&A, &B, &B, alpha);
+    if (B != 50)
+    {
+        return false;
+    }
+    A = 0;
+    B = 100;
+    alpha = 0.5;
+    nECU_expSmooth(&A, &B, &B, alpha);
+    if (B != 50)
+    {
+        return false;
+    }
+    A = 100;
+    B = 200;
+    alpha = 0.2;
+    nECU_expSmooth(&A, &B, &B, alpha);
+    if (B != 180)
+    {
+        return false;
+    }
+    A = 100;
+    B = 200;
+    alpha = 0.8;
+    nECU_expSmooth(&A, &B, &B, alpha);
+    if (B != 120)
+    {
+        return false;
+    }
+    return true;
+}
+bool nECU_averageSmooth_test(void) // tests nECU_averageSmooth() function
+{
+    uint16_t buffer[10];
+    uint8_t bufferLen = 10;
+    for (uint8_t i = 0; i < 2 * 10; i += 2) // fills buffer with integers == {0,2,4,6,8,10,12,14,16,18}
+    {
+        buffer[i / 2] = i;
+    }
+    uint16_t A, B;
+    A = 0;
+    B = 0;
+    nECU_averageSmooth(buffer, &A, &B, bufferLen);
+    // buffer should have values == {2,4,6,8,10,12,14,16,18,0}
+    if (buffer[bufferLen - 1] != A) // check if last value matches
+    {
+        return false;
+    }
+    if (B != 9) // check if result correct
+    {
+        return false;
+    }
+    A = 22;
+    nECU_averageSmooth(buffer, &A, &B, bufferLen);
+    // buffer should have values == {4,6,8,10,12,14,16,18,0,22}
+    if (B != 11) // check if result correct
+    {
+        return false;
+    }
+    return true;
+}
+bool nECU_averageExpSmooth_test(void) // tests nECU_averageExpSmooth() function
+{
+    uint16_t buffer[10];
+    uint8_t bufferLen = 10;
+    for (uint8_t i = 0; i < 2 * 10; i += 2) // fills buffer with integers == {0,2,4,6,8,10,12,14,16,18}
+    {
+        buffer[i / 2] = i;
+    }
+    uint16_t A, B;
+    float alpha = 0.5;
+    A = 12;
+    B = 24;
+    nECU_averageExpSmooth(buffer, &A, &B, bufferLen, alpha);
+    // buffer should have values == {2,4,6,8,10,12,14,16,18,18}
+    if (B != 10) // check if result correct
+    {
+        return false;
+    }
+    A = 128;
+    alpha = 0.8;
+    nECU_averageExpSmooth(buffer, &A, &B, bufferLen, alpha);
+    // buffer should have values == {4,6,8,10,12,14,16,18,18,104}
+    if (B != 21) // check if result correct
+    {
+        return false;
+    }
+    return true;
+}
 void nECU_codetest_run(void) // run tests of type codetest
 {
+    printf("Code test started: ");
     if (nECU_codetest_Flash_compdecompBool())
     {
+        printf("\nTest failed on Flash_compdecompBool\n");
         nECU_codetest_error();
     }
+    printf("XX");
+
     if (nECU_codetest_ADC_AvgSmooth())
     {
+        printf("\nTest failed on ADC_AvgSmooth\n");
         nECU_codetest_error();
     }
+    printf("XX");
+
     if (nECU_codetest_Speed_SensorUpdate())
     {
+        printf("\nTest failed on Speed_SensorUpdate\n");
         nECU_codetest_error();
     }
+    printf("XX");
+
+    if (!nECU_expSmooth_test())
+    {
+        printf("\nTest failed on expSmooth_test\n");
+        nECU_codetest_error();
+    }
+    printf("XX");
+
+    if (!nECU_averageSmooth_test())
+    {
+        printf("\nTest failed on averageSmooth_test\n");
+        nECU_codetest_error();
+    }
+    printf("XX");
+
+    if (!nECU_averageExpSmooth_test())
+    {
+        printf("\nTest failed on averageExpSmooth_test\n");
+        nECU_codetest_error();
+    }
+    printf("   DONE!");
 }
 void nECU_codetest_error(void) // function to call when error detected
 {
     nECU_tests_error_display();
 }
 
+/* General */
+void nECU_test(void) // perform tests
+{
+    if (TEST_ENABLE)
+    {
+        nECU_codetest_run();
+        nECU_systest_run();
+    }
+    else
+    {
+        printf("Tests not configured\n");
+    }
+}
+
 /* temporary tests */
-#include "nECU_stock.h"
-#define IGF_test_max_difference 100 // in RPM
-extern IGF_Handle IGF;
-bool IGF_test_Initialized = false;
-uint8_t *IGF_test_CAN_RPM;
-uint8_t IGF_test_out_of_bounds = 0;
 void nECU_IGF_Test(void) // checks readout compared to CAN frame data
 {
+#include "nECU_stock.h"
+#define IGF_test_max_difference 100 // in RPM
+    extern IGF_Handle IGF;
+    static bool IGF_test_Initialized = false;
+    static uint16_t *IGF_test_CAN_RPM;
+    static uint8_t IGF_test_out_of_bounds = 0;
     // call this function only on CAN RX as latest data from CAN arrives
     // use only to check code, then delete this function
     if (IGF_test_Initialized == false)

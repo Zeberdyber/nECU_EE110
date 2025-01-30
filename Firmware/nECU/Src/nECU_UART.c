@@ -166,6 +166,8 @@ HAL_StatusTypeDef nECU_UART_Tx(nECU_UART *obj) // sends the packet if possible
 
     // clears the structure
     obj->pending = false;
+
+    return HAL_OK;
 }
 HAL_StatusTypeDef nECU_UART_Rx(nECU_UART *obj) // starts the recive on UART
 {
@@ -228,7 +230,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) // Rx completed
 {
     if (huart == &PC_UART)
     {
-        PC_UART_obj->pending = true;
         nECU_PC_Rx_Stop_Callback();
     }
     else if (huart == &IMMO_UART)

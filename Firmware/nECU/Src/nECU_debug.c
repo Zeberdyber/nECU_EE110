@@ -22,7 +22,7 @@ nECU_ProgramBlockData D_F0, D_F1, D_F2;                                         
 nECU_ProgramBlockData D_MAP, D_BackPressure, D_MCU_temperature, D_AdditionalAI, D_Input_Analog; // nECU_Input_Analog.c
 nECU_ProgramBlockData D_VSS, D_IGF, D_Input_Frequency;                                          // nECU_Input_Frequency.c
 nECU_ProgramBlockData D_Knock;                                                                  // nECU_Knock.c
-nECU_ProgramBlockData D_Main;                                                                   // nECU_main.c
+nECU_ProgramBlockData D_Main = {0};                                                             // nECU_main.c
 nECU_ProgramBlockData D_Tacho, D_Menu;                                                          // nECU_menu.c
 nECU_ProgramBlockData D_OnboardLED;                                                             // nECU_OnBoardLED.c
 nECU_ProgramBlockData D_PC;                                                                     // nECU_PC.c
@@ -40,7 +40,7 @@ bool nECU_Debug_Start(void) // starts up debugging functions
     {
         status |= nECU_Debug_Init_Struct();
         status |= nECU_Debug_Init_Que();
-        status |= nECU_InternalTemp_Init();
+        // status |= nECU_InternalTemp_Init();
         D_Debug.Status |= D_BLOCK_INITIALIZED;
     }
 
@@ -243,7 +243,7 @@ static bool nECU_Debug_Init_Que(void) // initializes que
 }
 static void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to debug que
 {
-    if (D_Debug_Que.Status & D_BLOCK_INITIALIZED_WORKING)
+    if (!(D_Debug_Que.Status & D_BLOCK_INITIALIZED_WORKING))
     {
         return;
     }
@@ -290,6 +290,7 @@ void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Err
     inst->value_at_flag = value;
     inst->ID = ID;
     nECU_Debug_Que_Write(inst);
+    printf("New error written to Debug_Que. Value at flag %9.2f, ID: %d\n", inst->value_at_flag, inst->ID);
 }
 
 /* Program Block */
@@ -344,7 +345,7 @@ static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst) // Cl
     memset(inst, 0, sizeof(nECU_ProgramBlockData));
     inst->Status = D_BLOCK_STOP;
     nECU_TickTrack_Init(&(inst->Update_ticks));
-    inst->timeout_value = PROGRAMBLOCK_TIMEOUT_DEFAULT;
+    inst->timeout_value = PROGRAMBLOCK_TIMEOUT_DEFAULT * (1000 / (inst->Update_ticks.convFactor));
 }
 void nECU_Debug_ProgramBlockData_Update(nECU_ProgramBlockData *inst) // Update tick tracking and check for timeout
 {
@@ -365,12 +366,12 @@ void nECU_Debug_ProgramBlockData_Check(void) // Perform error check for all bloc
         {
             nECU_Debug_error_mesage temp;
             float error_message = index;    // copy index to new float
-            error_message /= 1000;          // move index after 'dot'
+            error_message /= 100;           // move index after 'dot'
             error_message += HAL_GetTick(); // add current tick to the value
 
             /* Example of how message will work:
                 Error detected at index 31, current tick 123456
-                error_message == 123456.031;
+                error_message == 123456.31;
             */
             nECU_Debug_Message_Set(&temp, error_message, nECU_ERROR_PROGRAMBLOCK);
         }

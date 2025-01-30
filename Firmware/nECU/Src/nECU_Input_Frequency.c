@@ -38,6 +38,7 @@ bool nECU_VSS_Start(void) // initialize VSS structure
     if (D_VSS.Status & D_BLOCK_INITIALIZED)
     {
         status |= nECU_tim_IC_start(&VSS.tim);
+        printf("Stock VSS -> STARTED!\n");
         D_VSS.Status |= D_BLOCK_WORKING;
     }
 
@@ -107,6 +108,7 @@ void nECU_VSS_Stop(void) // deinitialize VSS structure
         HAL_TIM_Base_Stop_IT(VSS.tim.htim);
         HAL_TIM_IC_Stop_IT(VSS.tim.htim, VSS.tim.Channel_List[0]);
     }
+    printf("Stock VSS -> STOPPED!\n");
     D_VSS.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 
@@ -127,6 +129,7 @@ bool nECU_IGF_Start(void) // initialize and start
     if (D_IGF.Status & D_BLOCK_INITIALIZED)
     {
         status |= (nECU_tim_IC_start(&IGF.tim) != TIM_OK);
+        printf("Stock IGF -> STARTED!\n");
         D_IGF.Status |= D_BLOCK_WORKING;
     }
 
@@ -165,6 +168,7 @@ void nECU_IGF_Stop(void) // stop
         HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]);
     }
 
+    printf("Stock IGF -> STOPPED!\n");
     D_IGF.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 

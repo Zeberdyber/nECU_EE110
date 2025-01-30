@@ -21,6 +21,7 @@ extern "C"
 
 /* Definitions */
 #define PC_INDICATOR_SPEED 5 // how fast will LED blink in Hz
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 
     /* typedef */
 
@@ -33,6 +34,9 @@ extern "C"
     /* Flow control */
     static void nECU_PC_Transmit(void); // call to send a frame
     static void nECU_PC_Recieve(void);  // call to start listening for frames
+    /* Send */
+    // PUTCHAR_PROTOTYPE;
+    int _write(int fd, char *ptr, int len);
     /* Callbacks */
     void nECU_PC_Tx_Start_Callback(void); // to be called when Tx from PC has started
     void nECU_PC_Tx_Stop_Callback(void);  // to be called when Tx from PC is done

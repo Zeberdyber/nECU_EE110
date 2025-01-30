@@ -43,7 +43,7 @@ uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID) // get function that retur
     MAX31855 *inst = EGT_IdentifyID(ID);
     return &inst->EGT_Temperature;
 }
-uint16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID) // get function that returns pointer to internal temperature data of sensor
+int16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID) // get function that returns pointer to internal temperature data of sensor
 {
     MAX31855 *inst = EGT_IdentifyID(ID);
     return &inst->IC_Temperature;
@@ -120,7 +120,7 @@ void EGT_ConvertAll(void) // convert data if pending
 void EGT_TemperatureTo10bit(MAX31855 *inst) // function to convert temperature value to 10bit number for CAN transmission
 {
     float Input = inst->TcTemp;
-    for (uint8_t i = 0; i < EGT_DECIMAL_POINT; i++) // extend to desired decimal point
+    for (uint8_t i = 0; i <= EGT_DECIMAL_POINT; i++) // extend to desired decimal point
     {
         Input *= 10;
     }
@@ -156,19 +156,25 @@ void EGT_Periodic(void) // periodic function to be called every main loop execut
 }
 MAX31855 *EGT_SPI_getNext(uint8_t sensorNumber) // returns pointer to correct IC
 {
+    sensorNumber = sensorNumber;
     switch (EGT_variables.EGT_CurrentSensor) // assign next MAX31855
     {
     case EGT_CYL1:
         return &EGT_variables.TC1;
+        break;
     case EGT_CYL2:
         return &EGT_variables.TC2;
+        break;
     case EGT_CYL3:
         return &EGT_variables.TC3;
+        break;
     case EGT_CYL4:
         return &EGT_variables.TC4;
     default:
-        return &EGT_variables.TC1;
+        break;
     }
+
+    return NULL;
 }
 void EGT_SPI_startNext(void) // starts SPI communication for next IC
 {
@@ -184,7 +190,7 @@ void EGT_SPI_Callback(bool error) // callback from SPI_TX end callback
     }
 
     // Pull pin high to stop transmission
-    HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, SET);
+    HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, GPIO_PIN_SET);
 
     if (error == true) // if error
     {
@@ -224,7 +230,7 @@ bool MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx,
     inst->hspi = hspi;
     inst->CS_pin.GPIOx = GPIOx;
     inst->CS_pin.GPIO_Pin = GPIO_Pin;
-    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, SET);
+    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, GPIO_PIN_SET);
 
     return status;
 }
@@ -248,12 +254,12 @@ void MAX31855_collectError(MAX31855 *inst) // get current error value
 }
 void MAX31855_UpdateSimple(MAX31855 *inst) // Recive data over SPI and convert it into struct, dont use while in DMA mode
 {
-    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, RESET);
+    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, GPIO_PIN_RESET);
     // HAL_Delay(1);
     HAL_SPI_Receive_IT(inst->hspi, (uint8_t *)inst->in_buffer, sizeof(inst->in_buffer));
     inst->data_Pending++;
     HAL_Delay(1); // delay for callback
-    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, SET);
+    HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, GPIO_PIN_SET);
     MAX31855_ConvertData(inst);
 }
 void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and data interpretation

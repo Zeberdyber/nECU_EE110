@@ -76,6 +76,7 @@ bool nECU_InternalTemp_Init(void) // initialize structure
         nECU_InternalTemp_Delay_Start();
         nECU_InternalTemp_StartupDelay_Start();
         status |= ADC1_START();
+        printf("Internal MCU temperature -> STARTED!\n");
         D_MCU_temperature.Status |= D_BLOCK_WORKING;
     }
 
@@ -109,7 +110,7 @@ void nECU_InternalTemp_Update(void) // perform update of output variables
 
     nECU_Debug_ProgramBlockData_Update(&D_MCU_temperature);
 }
-uint16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)
+int16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)
 {
     /* returned value is multipled 100 times, which means that it carries two digits after dot */
     return &MCU_temperature.temperature;
@@ -132,6 +133,7 @@ bool nECU_MAP_Init(void) // initialize MAP structure
     if (D_MAP.Status == D_BLOCK_INITIALIZED)
     {
         status |= ADC1_START();
+        printf("Stock MAP -> STARTED!\n");
         D_MAP.Status = D_BLOCK_WORKING;
     }
     return status;
@@ -165,6 +167,7 @@ bool nECU_BackPressure_Init(void) // initialize BackPressure structure
     if (D_BackPressure.Status == D_BLOCK_INITIALIZED)
     {
         status |= ADC1_START();
+        printf("Backpressure sensing -> STARTED!\n");
         D_BackPressure.Status = D_BLOCK_WORKING;
     }
 
@@ -202,6 +205,7 @@ void nECU_A_Input_Init_All(void)
     if (D_AdditionalAI.Status == D_BLOCK_INITIALIZED)
     {
         ADC1_START();
+        printf("Additional AI -> STARTED!\n");
         D_AdditionalAI.Status = D_BLOCK_WORKING;
     }
 }
@@ -292,6 +296,7 @@ void nECU_A_Input_Update(AnalogSensor_Handle *sensor) // update current value
 /* General */
 void nECU_Analog_Start(void) // start of all analog functions
 {
+    nECU_InternalTemp_Init();
     nECU_MAP_Init();
     nECU_BackPressure_Init();
     nECU_A_Input_Init_All();

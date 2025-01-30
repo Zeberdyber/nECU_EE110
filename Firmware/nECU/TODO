@@ -25,6 +25,10 @@
     [ ] Check if function should be called start/init
     [ ] Set status error flag if already initialized & working
     [ ] Set debug status to D_CODE_ERROR on "return" when not working
+    [ ] Move test functions to corresponding files
+    [ ] Move data processing functions ex: nECU_ADC_expSmooth to data_processing.c (reuse functions)
+    [ ] Move "Started"/"Stopped" printf to debug.c
+    [ ] Add checking for NULL pointer
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected

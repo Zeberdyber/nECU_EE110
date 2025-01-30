@@ -28,11 +28,11 @@ extern "C"
 #define EGT_STARTUP_DELAY 250   // time in ms for MAX31855 startup
 
     /* Function Prototypes */
-    MAX31855 *EGT_IdentifyID(EGT_Sensor_ID ID);                    // returns pointer to appropriete structure
-    uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID);         // get function that returns pointer to output data of sensor, ready for can transmission
-    uint16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID); // get function that returns pointer to internal temperature data of sensor
-    bool *EGT_GetWorking(void);                                    // get function to check if code was EGT_Initialized
-    EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID);           // get function returns pointer to error code
+    MAX31855 *EGT_IdentifyID(EGT_Sensor_ID ID);                   // returns pointer to appropriete structure
+    uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID);        // get function that returns pointer to output data of sensor, ready for can transmission
+    int16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID); // get function that returns pointer to internal temperature data of sensor
+    bool *EGT_GetWorking(void);                                   // get function to check if code was EGT_Initialized
+    EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID);          // get function returns pointer to error code
 
     bool EGT_Init(void);                         // initialize all sensors and start communication
     bool EGT_Start(void);                        // start the routines

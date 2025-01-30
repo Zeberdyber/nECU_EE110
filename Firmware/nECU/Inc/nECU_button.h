@@ -52,7 +52,7 @@ extern "C"
   Button_ClickType ButtonInput_GetType(Button_ID id);                                          // get click type if avaliable
 
   /* Animations */
-  static bool ButtonLight_Identify(Button_ID id, ButtonLight *light);   // find corresponding light structrue, return if ok
+  static bool ButtonLight_Identify(Button_ID id, ButtonLight **light);  // find corresponding light structrue, return if ok
   void ButtonLight_SetOne(Button_ID id, bool state);                    // set selected button
   void ButtonLight_Breath(Button_ID id, uint8_t Speed, uint16_t Count); // breath one button
   void ButtonLight_Blink(Button_ID id, uint8_t Speed, uint16_t Count);  // blink one button

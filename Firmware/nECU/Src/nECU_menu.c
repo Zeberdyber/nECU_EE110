@@ -40,6 +40,7 @@ bool Button_Menu_Init(void) // initialize button menu
     ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
     ButtonLight_Breath(GREEN_BUTTON_ID, 100, 1);
 
+    printf("Button menu -> STARTED!\n");
     D_Menu.Status |= D_BLOCK_WORKING;
   }
 
@@ -190,6 +191,7 @@ uint8_t *TachoValue_Get_OutputPointer(Tacho_ID ID) // get pointer to correct str
   default:
     break;
   }
+  return NULL;
 }
 bool *TachoValue_Get_ShowPointer(Tacho_ID ID) // get pointer to correct structure value
 {
@@ -207,6 +209,8 @@ bool *TachoValue_Get_ShowPointer(Tacho_ID ID) // get pointer to correct structur
   default:
     break;
   }
+
+  return NULL;
 }
 void TachoValue_Clear_ShowPending(Tacho_ID ID) // clear pending flag for selected struct
 {
@@ -219,13 +223,13 @@ void TachoValue_Clear_ShowPending(Tacho_ID ID) // clear pending flag for selecte
   switch (ID)
   {
   case TACHO_SHOW_1:
-    Tacho1.showPending == false;
+    Tacho1.showPending = false;
     break;
   case TACHO_SHOW_2:
-    Tacho2.showPending == false;
+    Tacho2.showPending = false;
     break;
   case TACHO_SHOW_3:
-    Tacho3.showPending == false;
+    Tacho3.showPending = false;
     break;
   default:
     break;
@@ -253,6 +257,7 @@ bool TachoValue_Init_All(void) // initialize tachometer value structures
     status |= TachoValue_Init_Single(&Tacho1, Button_Menu_getPointer_TuneSelector(), 10);
     status |= TachoValue_Init_Single(&Tacho2, Button_Menu_getPointer_LunchControlLevel(), 10);
     status |= TachoValue_Init_Single(&Tacho3, &Menu.MenuLevel, 10);
+    printf("Tacho data -> STARTED!\n");
     D_Tacho.Status |= D_BLOCK_INITIALIZED_WORKING;
   }
 

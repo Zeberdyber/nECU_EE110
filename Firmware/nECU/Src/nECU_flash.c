@@ -177,7 +177,8 @@ static HAL_StatusTypeDef nECU_FLASH_cleanFlashSector_check(void) // check if era
 {
     HAL_StatusTypeDef status = HAL_OK;
 
-    if (memcmp((const void *)0, (const void *)FLASH_DATA_START_ADDRESS, (FLASH_DATA_END_ADDRESS - FLASH_DATA_START_ADDRESS)))
+    uint8_t empty_array[(FLASH_DATA_END_ADDRESS - FLASH_DATA_START_ADDRESS)] = {0};
+    if (memcmp(empty_array, (const void *)FLASH_DATA_START_ADDRESS, (FLASH_DATA_END_ADDRESS - FLASH_DATA_START_ADDRESS)))
     {
         status = HAL_ERROR;
     }

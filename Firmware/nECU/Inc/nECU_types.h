@@ -631,8 +631,8 @@ typedef struct
 {
     nECU_UART output;
     nECU_UART input;
-    char out_buf[PC_UART_BUF_LEN];
-    char in_buf[PC_UART_BUF_LEN];
+    uint8_t out_buf[PC_UART_BUF_LEN];
+    uint8_t in_buf[PC_UART_BUF_LEN];
     OnBoardLED_Animate Tx_LED;
     OnBoardLED_Animate Rx_LED;
 } nECU_PC;

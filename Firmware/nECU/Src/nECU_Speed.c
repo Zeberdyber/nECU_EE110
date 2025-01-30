@@ -79,7 +79,7 @@ bool Speed_Start(void) // function to start Speed function set
 
     if (D_SS1.Status == D_BLOCK_STOP)
     {
-        Speed_Init_Single(&Speed_Sens_1, SPEED_SENSOR_FRONT_LEFT);
+        status |= Speed_Init_Single(&Speed_Sens_1, SPEED_SENSOR_FRONT_LEFT);
         D_SS1.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_SS1.Status & D_BLOCK_INITIALIZED)
@@ -90,7 +90,7 @@ bool Speed_Start(void) // function to start Speed function set
 
     if (D_SS2.Status == D_BLOCK_STOP)
     {
-        Speed_Init_Single(&Speed_Sens_2, SPEED_SENSOR_FRONT_RIGHT);
+        status |= Speed_Init_Single(&Speed_Sens_2, SPEED_SENSOR_FRONT_RIGHT);
         D_SS2.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_SS2.Status & D_BLOCK_INITIALIZED)
@@ -101,7 +101,7 @@ bool Speed_Start(void) // function to start Speed function set
 
     if (D_SS3.Status == D_BLOCK_STOP)
     {
-        Speed_Init_Single(&Speed_Sens_3, SPEED_SENSOR_REAR_LEFT);
+        status |= Speed_Init_Single(&Speed_Sens_3, SPEED_SENSOR_REAR_LEFT);
         D_SS3.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_SS3.Status & D_BLOCK_INITIALIZED)
@@ -112,7 +112,7 @@ bool Speed_Start(void) // function to start Speed function set
 
     if (D_SS4.Status == D_BLOCK_STOP)
     {
-        Speed_Init_Single(&Speed_Sens_4, SPEED_SENSOR_REAR_RIGHT);
+        status |= Speed_Init_Single(&Speed_Sens_4, SPEED_SENSOR_REAR_RIGHT);
         D_SS4.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_SS4.Status & D_BLOCK_INITIALIZED)
@@ -130,6 +130,7 @@ static bool Speed_Init_Single(Speed_Sensor *Sensor, Speed_Sensor_ID id) // initi
     Sensor->WheelSetup = nECU_CAN_getWheelSetupPointer();
     Sensor->SpeedData = 0;
     Sensor->Average.BufferIndex = 0;
+    return false;
 }
 static void Speed_Update(void) // perform update of all sensors
 {

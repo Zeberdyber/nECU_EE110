@@ -60,6 +60,7 @@ bool Frame0_Init(void) // initialization of data structure
         status |= Speed_Start();
         if (!status)
         {
+            printf("Frame1 -> STARTED!\n");
             D_F0.Status |= D_BLOCK_WORKING;
         }
     }
@@ -168,12 +169,13 @@ bool Frame1_Init(void) // initialization of data structure
     if (D_F1.Status & D_BLOCK_INITIALIZED)
     {
         status |= EGT_Start();
-
         if (!status)
         {
+            printf("Frame0 -> STARTED!\n");
             D_F1.Status |= D_BLOCK_WORKING;
         }
     }
+    return status;
 }
 void Frame1_Update(void) // update variables for frame 1
 {
@@ -259,9 +261,9 @@ bool Frame2_Init(void) // initialization of data structure
     {
         status |= ADC1_START();
         status |= nECU_Stock_Start();
-
         if (!status)
         {
+            printf("Frame2 -> STARTED!\n");
             D_F2.Status |= D_BLOCK_WORKING;
         }
     }

@@ -14,12 +14,31 @@ extern nECU_ProgramBlockData D_PC; // diagnostic and flow control data
 
 void test_uart(void) // test function only
 {
-    static uint16_t cnt = 0; // Licznik wyslanych wiadomosci
-    nECU_PC_Init();
-    nECU_PC_Start();
-    PC.output.length = sprintf(&(PC.out_buf[0]), "Liczba wyslanych wiadomosci: %d.\n\r", cnt); // Stworzenie wiadomosci do wyslania oraz przypisanie ilosci wysylanych znakow do zmiennej size.
-    nECU_PC_Transmit();
-    ++cnt; // Zwiekszenie licznika wyslanych wiadomosci.
+    static bool first_scan = true;
+    if (first_scan)
+    {
+        static uint32_t start_tick, stop_tick, diff, sign_count;
+        nECU_PC_Init();
+        start_tick = HAL_GetTick();
+
+        for (uint16_t cnt = 0; cnt < 5000; cnt++)
+        {
+            sign_count += printf("Liczba wyslanych wiadomosci: %d.\n\r", cnt); // Stworzenie wiadomosci do wyslania oraz przypisanie ilosci wysylanych znakow do zmiennej size.
+        }
+
+        stop_tick = HAL_GetTick();
+        if (start_tick < stop_tick)
+        {
+            diff = stop_tick - start_tick;
+        }
+        else
+        {
+            diff = stop_tick + start_tick - UINT32_MAX;
+        }
+        float speed = ((float)sign_count / diff) * (1.170285714285714); // multiplier to account for 1024 bits in a kB and 1 parity bit in UART
+        printf("Test trwal %lu tickow, przeslano %lu znakow. Predkosc %d.%d kB/s.\n", diff, sign_count, (int)speed, (int)((speed - (int)speed) * 100));
+    }
+    first_scan = false;
 }
 
 /* General functions */
@@ -35,18 +54,19 @@ void nECU_PC_Init(void) // initializes structures for PC communication over UART
         nECU_UART_Init(&(PC.output), &PC_UART, (PC.out_buf));
         OnBoard_LED_Animation_Init(&(PC.Tx_LED), LED_ANIMATE_UART_ID);
         OnBoard_LED_Animation_Init(&(PC.Rx_LED), LED_ANIMATE_UART_ID);
+        OnBoard_LED_Init();
 
         D_PC.Status |= D_BLOCK_INITIALIZED;
     }
-    if (D_PC.Status & D_BLOCK_INITIALIZED)
+    if (D_PC.Status & D_BLOCK_INITIALIZED && !(D_PC.Status & D_BLOCK_WORKING))
     {
-        nECU_PC_Start();
         D_PC.Status |= D_BLOCK_WORKING;
+        nECU_PC_Start();
     }
 }
 void nECU_PC_Start(void) // call to start transmission
 {
-    if (!(D_PC.Status & D_BLOCK_WORKING))
+    if (!(D_PC.Status & D_BLOCK_INITIALIZED_WORKING))
     {
         D_PC.Status |= D_BLOCK_CODE_ERROR;
         return;
@@ -54,6 +74,7 @@ void nECU_PC_Start(void) // call to start transmission
 
     OnBoard_LED_L_Add_Animation(&(PC.Tx_LED));
     OnBoard_LED_R_Add_Animation(&(PC.Rx_LED));
+    printf("PC communication -> STARTED!\n");
 }
 void nECU_PC_Stop(void) // call to stop transmission
 {
@@ -67,6 +88,23 @@ void nECU_PC_Stop(void) // call to stop transmission
     OnBoard_LED_L_Remove_Animation(&(PC.Rx_LED));
 
     D_PC.Status -= D_BLOCK_INITIALIZED_WORKING;
+}
+
+/* Send */
+int _write(int fd, char *ptr, int len)
+{
+    fd = fd; // to "use" fd -> make compiler hapy
+
+    static uint8_t i = 0;
+    while (PC_UART.gState != HAL_UART_STATE_READY)
+    {
+        i++; // wait until UART is ready
+    }
+
+    memcpy(&(PC.out_buf), ptr, len);
+    PC.output.length = len;
+    nECU_PC_Transmit();
+    return len;
 }
 
 /* Flow control */

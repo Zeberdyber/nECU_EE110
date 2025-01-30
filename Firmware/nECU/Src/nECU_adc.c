@@ -91,7 +91,8 @@ bool ADC1_START(void)
 
   if (D_ADC1.Status == D_BLOCK_STOP)
   {
-    /* List of data in buffer */
+
+    /*    List of data in buffer
     &adc1_data.out_buffer[0]; // Stock MAP sensor data
     &adc1_data.out_buffer[1]; // Backpressure sensor data [spare]
     &adc1_data.out_buffer[2]; // OX sensor data [spare]
@@ -100,6 +101,7 @@ bool ADC1_START(void)
     &adc1_data.out_buffer[5]; // ANALOG_IN_3 input data [spare]
     &adc1_data.out_buffer[6]; // Internal_temperature data
     &adc1_data.out_buffer[7]; // VREF data
+    */
 
     /* Clear status flags */
     adc1_data.status.callback_half = false;
@@ -111,6 +113,7 @@ bool ADC1_START(void)
   if (D_ADC1.Status & D_BLOCK_INITIALIZED)
   {
     HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.in_buffer, sizeof(adc1_data.in_buffer) / sizeof(uint16_t));
+    printf("ADC1 DMA -> STARTED!\n");
     D_ADC1.Status |= D_BLOCK_WORKING;
   }
 
@@ -122,11 +125,12 @@ bool ADC2_START(void)
 
   if (D_ADC2.Status == D_BLOCK_STOP)
   {
-    /* List of data in buffer */
+    /* List of data in buffer
     &adc2_data.out_buffer[0]; // Speed sensor 1
     &adc2_data.out_buffer[1]; // Speed sensor 2
     &adc2_data.out_buffer[2]; // Speed sensor 3
     &adc2_data.out_buffer[3]; // Speed sensor 4
+    */
 
     /* Clear status flags */
     adc2_data.status.callback_half = false;
@@ -138,6 +142,7 @@ bool ADC2_START(void)
   if (D_ADC2.Status & D_BLOCK_INITIALIZED)
   {
     HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.in_buffer, sizeof(adc2_data.in_buffer) / sizeof(uint16_t));
+    printf("ADC2 DMA -> STARTED!\n");
     D_ADC2.Status |= D_BLOCK_WORKING;
   }
 
@@ -163,6 +168,7 @@ bool ADC3_START(void)
   {
     status_HAL |= HAL_TIM_Base_Start(adc3_data.samplingTimer);
     HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t));
+    printf("ADC3 DMA -> STARTED!\n");
     D_ADC3.Status |= D_BLOCK_WORKING;
   }
   return status || (status_HAL != HAL_OK);
@@ -187,18 +193,21 @@ void ADC1_STOP(void)
 {
   HAL_ADC_Stop_DMA(&GENERAL_ADC);
   nECU_ADC1_Routine(); // finish routine if flags pending
+  printf("ADC3 DMA -> STOPED!\n");
   D_ADC1.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 void ADC2_STOP(void)
 {
   HAL_ADC_Stop_DMA(&SPEED_ADC);
   nECU_ADC2_Routine(); // finish routine if flags pending
+  printf("ADC3 DMA -> STOPED!\n");
   D_ADC2.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 void ADC3_STOP(void)
 {
   HAL_TIM_Base_Stop(adc3_data.samplingTimer);
   HAL_ADC_Stop_DMA(&KNOCK_ADC);
+  printf("ADC3 DMA -> STOPED!\n");
   D_ADC1.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 /* ADC Rutines */
@@ -287,7 +296,7 @@ uint16_t *getPointer_InternalTemp_ADC(void)
 }
 uint16_t *getPointer_SpeedSens_ADC(Speed_Sensor_ID ID)
 {
-  if (ID = SPEED_SENSOR_NONE_ID)
+  if (ID == SPEED_SENSOR_NONE_ID)
   {
     return &adc2_data.out_buffer[0];
   }
@@ -295,7 +304,7 @@ uint16_t *getPointer_SpeedSens_ADC(Speed_Sensor_ID ID)
 }
 uint16_t *getPointer_AnalogInput(nECU_AnalogNumber ID)
 {
-  if (ID = ANALOG_IN_NONE)
+  if (ID == ANALOG_IN_NONE)
   {
     return &adc1_data.out_buffer[3];
   }

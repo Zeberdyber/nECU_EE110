@@ -41,10 +41,10 @@ extern "C"
     uint8_t nECU_FloatToUint8_t(float input, uint8_t decimalPoint, uint8_t bitCount);   // convert float value to uint8_t value with correct decimal point and bit lenght
 
     /* Internal Temperatre (MCU) */
-    bool nECU_InternalTemp_Init(void);                // initialize structure
-    void nECU_InternalTemp_Callback(void);            // run when conversion ended
-    void nECU_InternalTemp_Update(void);              // perform update of output variables
-    uint16_t *nECU_InternalTemp_getTemperature(void); // return current temperature pointer (multiplied 100x)
+    bool nECU_InternalTemp_Init(void);               // initialize structure
+    void nECU_InternalTemp_Callback(void);           // run when conversion ended
+    void nECU_InternalTemp_Update(void);             // perform update of output variables
+    int16_t *nECU_InternalTemp_getTemperature(void); // return current temperature pointer (multiplied 100x)
 
     /* MAP */
     uint16_t *nECU_MAP_GetPointer(void); // returns pointer to resulting data

@@ -50,6 +50,12 @@ bool Button_Start(void)
     }
     status |= status_Green;
   }
+
+  if (D_Button_Green.Status & D_Button_Orange.Status & D_Button_Red.Status & D_BLOCK_INITIALIZED_WORKING)
+  {
+    printf("Buttons -> STARTED!\n");
+  }
+
   return status;
 }
 void Button_Stop(void)
@@ -64,6 +70,7 @@ void Button_Stop(void)
   ButtonInput_Stop(&Orange.input);
   ButtonInput_Stop(&Green.input);
 
+  printf("Buttons -> STOPED!\n");
   D_Button_Red.Status -= D_BLOCK_INITIALIZED_WORKING;
   D_Button_Orange.Status -= D_BLOCK_INITIALIZED_WORKING;
   D_Button_Green.Status -= D_BLOCK_INITIALIZED_WORKING;
@@ -411,22 +418,25 @@ Button_ClickType ButtonInput_GetType(Button_ID id) // get click type if avaliabl
 /* BUTTON INPUT END */
 
 /* Animations */
-static bool ButtonLight_Identify(Button_ID id, ButtonLight *light) // find corresponding light structrue, return if ok
+static bool ButtonLight_Identify(Button_ID id, ButtonLight **light) // find corresponding light structrue, return if ok
 {
   // Find correct light by ID
   nECU_ProgramBlock_Status *status;
+
   switch (id)
   {
   case RED_BUTTON_ID:
-    light = &Red.light;
+    *light = &Red.light;
     status = &D_Button_Red.Status;
     break;
   case ORANGE_BUTTON_ID:
-    light = &Orange.light;
+    *light = &Orange.light;
     status = &D_Button_Orange.Status;
+    break;
   case GREEN_BUTTON_ID:
-    light = &Green.light;
+    *light = &Green.light;
     status = &D_Button_Green.Status;
+    break;
   default:
     D_Button_Red.Status = D_BLOCK_CODE_ERROR;
     D_Button_Orange.Status = D_BLOCK_CODE_ERROR;
@@ -453,7 +463,7 @@ void ButtonLight_SetOne(Button_ID id, bool state) // set selected button
 
   ButtonLight *temporary;
 
-  if (ButtonLight_Identify(id, temporary)) // do only if button exists and is working
+  if (ButtonLight_Identify(id, &temporary)) // do only if button exists and is working
   {
     /* Perform operation */
     if (temporary->Mode != BUTTON_MODE_ANIMATED)
@@ -467,7 +477,7 @@ void ButtonLight_Breath(Button_ID id, uint8_t Speed, uint16_t Count) // breath o
 {
   ButtonLight *temporary;
 
-  if (ButtonLight_Identify(id, temporary)) // do only if button exists and is working
+  if (ButtonLight_Identify(id, &temporary)) // do only if button exists and is working
   {
     /* Perform operation */
     temporary->Breathing.speed = Speed;
@@ -479,7 +489,7 @@ void ButtonLight_Blink(Button_ID id, uint8_t Speed, uint16_t Count) // blink one
 {
   ButtonLight *temporary;
 
-  if (ButtonLight_Identify(id, temporary)) // do only if button exists and is working
+  if (ButtonLight_Identify(id, &temporary)) // do only if button exists and is working
   {
     /* Perform operation */
     temporary->Blinking.speed = Speed;

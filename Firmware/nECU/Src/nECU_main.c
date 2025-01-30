@@ -17,11 +17,11 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     {
         nECU_Debug_Start(); // MUST BE THE FIRST EXECUTED LINE!!
 
+        nECU_PC_Init();
+
         nECU_FLASH_Init(); // initialize FLASH module -> copy from FLASH to RAM
 
-        // nECU_systest_run();
-        // nECU_codetest_run();
-        // nECU_smoothing_tests();
+        nECU_test(); // perform system and code tests
 
         Frame0_Init();
         Frame1_Init();
@@ -30,6 +30,7 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
 
         OnBoard_LED_Init();
 
+        printf("Main loop -> STARTED!\n");
         D_Main.Status |= D_BLOCK_INITIALIZED_WORKING;
     }
 }
@@ -72,5 +73,6 @@ void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
     nECU_CAN_Stop();
     nECU_Knock_Stop();
 
+    printf("Main loop -> STOPPED!\n");
     D_Main.Status -= D_BLOCK_INITIALIZED_WORKING;
 }

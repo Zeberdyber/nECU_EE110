@@ -25,11 +25,6 @@ extern "C"
     void nECU_expSmooth(uint16_t *in, uint16_t *in_previous, uint16_t *out, float alpha);                    // exponential smoothing algorithm
     void nECU_averageSmooth(uint16_t *Buffer, uint16_t *in, uint16_t *out, uint8_t dataLen);                 // averages whole buffer and adds to the input buffer (FIFO, moving average)
     void nECU_averageExpSmooth(uint16_t *Buffer, uint16_t *in, uint16_t *out, uint8_t dataLen, float alpha); // exponential smoothing before averaging
-    /* test functions */
-    bool nECU_smoothing_tests(void);       // tests all smoothing algorithms
-    bool nECU_expSmooth_test(void);        // tests nECU_expSmooth() function
-    bool nECU_averageSmooth_test(void);    // tests nECU_averageSmooth() function
-    bool nECU_averageExpSmooth_test(void); // tests nECU_averageExpSmooth() function
 
 #ifdef __cplusplus
 }

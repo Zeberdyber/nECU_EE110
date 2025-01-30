@@ -51,6 +51,7 @@ bool nECU_Knock_Start(void) // initialize and start
         // RPM reference
         status |= nECU_IGF_Start();
         // set working flag
+        printf("Knock sensing -> STARTED!\n");
         D_Knock.Status |= D_BLOCK_WORKING;
     }
 
@@ -81,7 +82,7 @@ void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
             Knock.fft.Index = 0;
         }
     }
-    if (Knock.fft.flag = true)
+    if (Knock.fft.flag == true)
     {
         nECU_Knock_DetectMagn();
         Knock.fft.flag = false;
@@ -161,6 +162,7 @@ void nECU_Knock_Stop(void) // stop
 {
     ADC3_STOP();
     nECU_IGF_Stop();
+    printf("Knock sensing -> STOPPED!\n");
     D_Knock.Status -= D_BLOCK_INITIALIZED_WORKING;
 }
 uint8_t *nECU_Knock_GetPointer(void) // returns pointer to knock retard percentage

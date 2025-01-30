@@ -227,6 +227,7 @@ void OnBoard_LED_Init(void) // initialize structures for on board LEDs
         OnBoard_LED_Animation_Init((LED_R.Animation), LED_ANIMATE_NONE_ID);
         OnBoard_LED_Que_Init(&(LED_R));
 
+        printf("Onboard LEDs -> STARTED!\n");
         D_OnboardLED.Status |= D_BLOCK_INITIALIZED_WORKING;
     }
 }

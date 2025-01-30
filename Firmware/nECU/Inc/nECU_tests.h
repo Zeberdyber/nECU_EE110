@@ -27,7 +27,8 @@ extern "C"
 #include "nECU_adc.h"
 
 /* Definitions */
-#define SYSTEST_DO_FLASH true // choose to do flas tests !they will delete any saved data!
+#define TEST_ENABLE true       // turn all tests on
+#define SYSTEST_DO_FLASH false // choose to do flash tests !they will delete any saved data!
 
 #define ERROR_HALT true       // should program stop on error
 #define ERROR_BLINK_TIMES 5   // number of blinks when error is detected
@@ -49,8 +50,14 @@ extern "C"
     bool nECU_codetest_Flash_compdecompBool(void); // test nECU_compressBool and nECU_decompressBool
     bool nECU_codetest_ADC_AvgSmooth(void);        // test script for general functions
     bool nECU_codetest_Speed_SensorUpdate(void);   // function to test Speed functions
+    bool nECU_expSmooth_test(void);                // tests nECU_expSmooth() function
+    bool nECU_averageSmooth_test(void);            // tests nECU_averageSmooth() function
+    bool nECU_averageExpSmooth_test(void);         // tests nECU_averageExpSmooth() function
     void nECU_codetest_run(void);                  // run tests of type codetest
     void nECU_codetest_error(void);                // function to call when error detected
+
+    /* General */
+    void nECU_test(void); // perform tests
 
     /* temporary tests */
     void nECU_IGF_Test(void); // checks readout compared to CAN frame data
