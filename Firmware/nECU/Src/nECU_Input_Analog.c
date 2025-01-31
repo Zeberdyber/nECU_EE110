@@ -13,8 +13,6 @@ static AnalogSensor_Handle BackPressure = {0};
 static nECU_InternalTemp MCU_temperature = {0};
 static AnalogSensor_Handle AI1 = {0}, AI2 = {0}, AI3 = {0}; // additional analog inputs
 
-extern nECU_ProgramBlockData D_MAP, D_BackPressure, D_MCU_temperature, D_AdditionalAI, D_Input_Analog; // diagnostic and flow control data
-
 /* Analog sensors */
 void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst) // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
 {
@@ -67,7 +65,7 @@ bool nECU_InternalTemp_Init(void) // initialize structure
 
     if (D_MCU_temperature.Status == D_BLOCK_STOP)
     {
-        MCU_temperature.ADC_data = getPointer_InternalTemp_ADC();
+        MCU_temperature.ADC_data = nECU_ADC_getPointer_InternalTemp();
         MCU_temperature.temperature = 0;
         D_MCU_temperature.Status |= D_BLOCK_INITIALIZED;
     }
@@ -75,8 +73,7 @@ bool nECU_InternalTemp_Init(void) // initialize structure
     {
         nECU_InternalTemp_Delay_Start();
         nECU_InternalTemp_StartupDelay_Start();
-        status |= ADC1_START();
-        printf("Internal MCU temperature -> STARTED!\n");
+        status |= nECU_ADC1_START();
         D_MCU_temperature.Status |= D_BLOCK_WORKING;
     }
 
@@ -101,6 +98,7 @@ void nECU_InternalTemp_Update(void) // perform update of output variables
         return;
     }
 
+    nECU_ADC1_Routine(); // Pull new data
     // convert to temperature
     float Temperature = ADCToVolts(*MCU_temperature.ADC_data);
     Temperature -= (float)INTERNAL_TEMP_V25;
@@ -127,13 +125,12 @@ bool nECU_MAP_Init(void) // initialize MAP structure
 
     if (D_MAP.Status == D_BLOCK_STOP)
     {
-        status |= nECU_A_Input_Init(&MAP, MAP_ADC_CALIB_MAX, MAP_ADC_CALIB_MIN, MAP_kPA_CALIB_MAX, MAP_kPA_CALIB_MIN, getPointer_MAP_ADC());
+        status |= nECU_A_Input_Init(&MAP, MAP_ADC_CALIB_MAX, MAP_ADC_CALIB_MIN, MAP_kPA_CALIB_MAX, MAP_kPA_CALIB_MIN, nECU_ADC_getPointer_MAP());
         D_MAP.Status = D_BLOCK_INITIALIZED;
     }
     if (D_MAP.Status == D_BLOCK_INITIALIZED)
     {
-        status |= ADC1_START();
-        printf("Stock MAP -> STARTED!\n");
+        status |= nECU_ADC1_START();
         D_MAP.Status = D_BLOCK_WORKING;
     }
     return status;
@@ -144,6 +141,7 @@ void nECU_MAP_Update(void) // update MAP structure
     {
         return;
     }
+    nECU_ADC1_Routine(); // Pull new data
     nECU_A_Input_Update(&MAP);
     MAP.output16bit = nECU_FloatToUint16_t(MAP.outputFloat, MAP_DECIMAL_POINT, 10); // manually update due to 10bit MAP resolution in CAN frame
 
@@ -161,13 +159,12 @@ bool nECU_BackPressure_Init(void) // initialize BackPressure structure
 
     if (D_BackPressure.Status == D_BLOCK_STOP)
     {
-        status |= nECU_A_Input_Init(&(BackPressure), BACKPRESSURE_ADC_CALIB_MAX, BACKPRESSURE_ADC_CALIB_MIN, BACKPRESSURE_kPA_CALIB_MAX, BACKPRESSURE_kPA_CALIB_MIN, getPointer_Backpressure_ADC());
+        status |= nECU_A_Input_Init(&(BackPressure), BACKPRESSURE_ADC_CALIB_MAX, BACKPRESSURE_ADC_CALIB_MIN, BACKPRESSURE_kPA_CALIB_MAX, BACKPRESSURE_kPA_CALIB_MIN, nECU_ADC_getPointer_Backpressure());
         D_BackPressure.Status = D_BLOCK_INITIALIZED;
     }
     if (D_BackPressure.Status == D_BLOCK_INITIALIZED)
     {
-        status |= ADC1_START();
-        printf("Backpressure sensing -> STARTED!\n");
+        status |= nECU_ADC1_START();
         D_BackPressure.Status = D_BLOCK_WORKING;
     }
 
@@ -179,6 +176,7 @@ void nECU_BackPressure_Update(void) // update BackPressure structure
     {
         return;
     }
+    nECU_ADC1_Routine(); // Pull new data
     nECU_A_Input_Update(&(BackPressure));
     BackPressure.output8bit = nECU_FloatToUint8_t(BackPressure.outputFloat, BACKPRESSURE_DECIMAL_POINT, 8);
 
@@ -197,14 +195,14 @@ void nECU_A_Input_Init_All(void)
         float outMin = 0;   // 0%
 
         // Initialize all
-        nECU_A_Input_Init(&AI1, inMax, inMin, outMax, outMin, getPointer_AnalogInput(ANALOG_IN_1));
-        nECU_A_Input_Init(&AI2, inMax, inMin, outMax, outMin, getPointer_AnalogInput(ANALOG_IN_2));
-        nECU_A_Input_Init(&AI3, inMax, inMin, outMax, outMin, getPointer_AnalogInput(ANALOG_IN_3));
+        nECU_A_Input_Init(&AI1, inMax, inMin, outMax, outMin, nECU_ADC_getPointer_AnalogInput(ANALOG_IN_1));
+        nECU_A_Input_Init(&AI2, inMax, inMin, outMax, outMin, nECU_ADC_getPointer_AnalogInput(ANALOG_IN_2));
+        nECU_A_Input_Init(&AI3, inMax, inMin, outMax, outMin, nECU_ADC_getPointer_AnalogInput(ANALOG_IN_3));
         D_AdditionalAI.Status = D_BLOCK_INITIALIZED;
     }
     if (D_AdditionalAI.Status == D_BLOCK_INITIALIZED)
     {
-        ADC1_START();
+        nECU_ADC1_START();
         printf("Additional AI -> STARTED!\n");
         D_AdditionalAI.Status = D_BLOCK_WORKING;
     }
@@ -215,6 +213,7 @@ void nECU_A_Input_Update_All(void)
     {
         return;
     }
+    nECU_ADC1_Routine(); // Pull new data
     nECU_A_Input_Update(&AI1);
     nECU_A_Input_Update(&AI2);
     nECU_A_Input_Update(&AI3);

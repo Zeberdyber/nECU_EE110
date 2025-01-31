@@ -10,24 +10,66 @@
 
 static nECU_Debug dbg_data = {0};
 
-// Program status control
-nECU_ProgramBlockData *Debug_Status_List[34] = {0};                                             // array of pointers to all nECU_ProgramBlockData
-nECU_ProgramBlockData D_ADC1, D_ADC2, D_ADC3;                                                   // nECU_adc.c
-nECU_ProgramBlockData D_Button_Red, D_Button_Orange, D_Button_Green;                            // nECU_button.c
-nECU_ProgramBlockData D_CAN_TX, D_CAN_RX;                                                       // nECU_can.c
-nECU_ProgramBlockData D_Data_Processing;                                                        // nECU_data_processing.c
-nECU_ProgramBlockData D_Debug, D_Debug_Que;                                                     // nECU_debug.c
-nECU_ProgramBlockData D_Flash;                                                                  // nECU_flash.c
-nECU_ProgramBlockData D_F0, D_F1, D_F2;                                                         // nECU_frames.c
-nECU_ProgramBlockData D_MAP, D_BackPressure, D_MCU_temperature, D_AdditionalAI, D_Input_Analog; // nECU_Input_Analog.c
-nECU_ProgramBlockData D_VSS, D_IGF, D_Input_Frequency;                                          // nECU_Input_Frequency.c
-nECU_ProgramBlockData D_Knock;                                                                  // nECU_Knock.c
-nECU_ProgramBlockData D_Main = {0};                                                             // nECU_main.c
-nECU_ProgramBlockData D_Tacho, D_Menu;                                                          // nECU_menu.c
-nECU_ProgramBlockData D_OnboardLED;                                                             // nECU_OnBoardLED.c
-nECU_ProgramBlockData D_PC;                                                                     // nECU_PC.c
-nECU_ProgramBlockData D_SS1, D_SS2, D_SS3, D_SS4;                                               // nECU_Speed.c
-nECU_ProgramBlockData D_GPIO, D_OX;                                                             // nECU_stock.c
+static nECU_ProgramBlockData Debug_Status_List[D_ID_MAX] = {0}; // array of all nECU_ProgramBlockData variables
+
+static char const *const D_ID_Strings[D_ID_MAX] = {
+    // nECU_adc.c
+    [D_ADC1] = "ADC1",
+    [D_ADC2] = "ADC2",
+    [D_ADC3] = "ADC3",
+    // nECU_button.c
+    [D_Button_Red] = "Button RED",
+    [D_Button_Orange] = "Button ORANGE",
+    [D_Button_Green] = "Button Green",
+    // nECU_can.c
+    [D_CAN_TX] = "CAN TX",
+    [D_CAN_RX] = "CAN RX",
+    // nECU_data_processing.c
+    [D_Data_Processing] = "Data Processing",
+    // nECU_debug.c
+    [D_Debug] = "Debug Main",
+    [D_Debug_Que] = "Debug Que",
+    // nECU_EGT.c
+    [D_EGT1] = "EGT1",
+    [D_EGT2] = "EGT2",
+    [D_EGT3] = "EGT3",
+    [D_EGT4] = "EGT4",
+    // nECU_flash.c
+    [D_Flash] = "Flash",
+    // nECU_frames.c
+    [D_F0] = "CAN Frame 0",
+    [D_F1] = "CAN Frame 1",
+    [D_F2] = "CAN Frame 2",
+    // nECU_Input_Analog.c
+    [D_MAP] = "Stock MAP",
+    [D_BackPressure] = "BackPressure",
+    [D_MCU_temperature] = "nECU temperature",
+    [D_AdditionalAI] = "Additional Analog Input",
+    [D_Input_Analog] = "Analog Input",
+    // nECU_Input_Frequency.c
+    [D_VSS] = "Stock VSS",
+    [D_IGF] = "Stock Ignition Fault Detection",
+    [D_Input_Frequency] = "Frequency Input",
+    // nECU_Knock.c
+    [D_Knock] = "Stock Knock sensing",
+    // nECU_main.c
+    [D_Main] = "Main Loop",
+    // nECU_menu.c
+    [D_Tacho] = "Tacho Display",
+    [D_Menu] = "Button Menu",
+    // nECU_OnBoardLED.c
+    [D_OnboardLED] = "LED on PCB",
+    // nECU_PC.c
+    [D_PC] = "PC communication",
+    // nECU_Speed.c
+    [D_SS1] = "ABS Speed Sensor 1",
+    [D_SS2] = "ABS Speed Sensor 2",
+    [D_SS3] = "ABS Speed Sensor 3",
+    [D_SS4] = "ABS Speed Sensor 4",
+    // nECU_stock.c
+    [D_GPIO] = "GPIO",
+    [D_OX] = "Stock Lambda sensor",
+}; // List of strings of corresponding IDs
 
 /* Debug main functions */
 bool nECU_Debug_Start(void) // starts up debugging functions
@@ -36,17 +78,26 @@ bool nECU_Debug_Start(void) // starts up debugging functions
 
     nECU_Debug_ProgramBlock_Init();
 
-    if (D_Debug.Status == D_BLOCK_STOP)
+    if (!nECU_FlowControl_Initialize_Check(D_Debug))
     {
         status |= nECU_Debug_Init_Struct();
         status |= nECU_Debug_Init_Que();
-        // status |= nECU_InternalTemp_Init();
-        D_Debug.Status |= D_BLOCK_INITIALIZED;
+        status |= nECU_InternalTemp_Init();
+        if (!status)
+        {
+            status |= !nECU_FlowControl_Initialize_Do(D_Debug);
+        }
     }
-
-    if (D_Debug.Status & D_BLOCK_INITIALIZED)
+    if (!nECU_FlowControl_Working_Check(D_Debug))
     {
-        D_Debug.Status |= D_BLOCK_WORKING;
+        if (!status)
+        {
+            status |= !nECU_FlowControl_Working_Do(D_Debug);
+        }
+    }
+    if (status)
+    {
+        nECU_FlowControl_Error_Do(D_Debug);
     }
 
     return status;
@@ -57,29 +108,46 @@ static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
 
     /* Device temperature */
     dbg_data.device_temperature.MCU = nECU_InternalTemp_getTemperature();
-    dbg_data.device_temperature.EGT_IC[0] = EGT_GetTemperatureInternalPointer(EGT_CYL1);
-    dbg_data.device_temperature.EGT_IC[1] = EGT_GetTemperatureInternalPointer(EGT_CYL2);
-    dbg_data.device_temperature.EGT_IC[2] = EGT_GetTemperatureInternalPointer(EGT_CYL3);
-    dbg_data.device_temperature.EGT_IC[3] = EGT_GetTemperatureInternalPointer(EGT_CYL4);
 
-    /* EGT temperature (thermocuple temperature) */
-    dbg_data.egt_temperature.EGT_IC[0] = EGT_GetTemperaturePointer(EGT_CYL1);
-    dbg_data.egt_temperature.EGT_IC[1] = EGT_GetTemperaturePointer(EGT_CYL2);
-    dbg_data.egt_temperature.EGT_IC[2] = EGT_GetTemperaturePointer(EGT_CYL3);
-    dbg_data.egt_temperature.EGT_IC[3] = EGT_GetTemperaturePointer(EGT_CYL4);
-
-    /* EGT communication */
-    dbg_data.egt_communication.EGT_IC[0] = EGT_GetErrorState(EGT_CYL1);
-    dbg_data.egt_communication.EGT_IC[1] = EGT_GetErrorState(EGT_CYL2);
-    dbg_data.egt_communication.EGT_IC[2] = EGT_GetErrorState(EGT_CYL3);
-    dbg_data.egt_communication.EGT_IC[3] = EGT_GetErrorState(EGT_CYL4);
+    // EGT sensors
+    for (uint8_t current_ID = 0; current_ID < EGT_ID_MAX; current_ID++) // Do for all EGT sensors
+    {
+        /* Device temperature */
+        if (EGT_GetTemperatureInternalPointer(current_ID)) // Check if pointer exists
+        {
+            dbg_data.device_temperature.EGT_IC[current_ID] = EGT_GetTemperatureInternalPointer(current_ID);
+        }
+        else
+        {
+            status |= nECU_FlowControl_Error_Do(D_Debug);
+        }
+        /* EGT temperature (thermocuple temperature) */
+        if (EGT_GetTemperaturePointer(current_ID)) // Check if pointer exists
+        {
+            dbg_data.egt_temperature.EGT_IC[current_ID] = EGT_GetTemperaturePointer(current_ID);
+        }
+        else
+        {
+            status |= nECU_FlowControl_Error_Do(D_Debug);
+        }
+        /* EGT communication */
+        if (EGT_GetErrorState(current_ID)) // Check if pointer exists
+        {
+            dbg_data.egt_communication.EGT_IC[current_ID] = EGT_GetErrorState(current_ID);
+        }
+        else
+        {
+            status |= nECU_FlowControl_Error_Do(D_Debug);
+        }
+    }
 
     return status;
 }
 void nECU_Debug_Periodic(void) // checks states of variables
 {
-    if (!(D_Debug.Status & D_BLOCK_INITIALIZED_WORKING))
+    if (!nECU_FlowControl_Working_Check(D_Debug))
     {
+        nECU_FlowControl_Error_Do(D_Debug);
         return;
     }
 
@@ -88,7 +156,7 @@ void nECU_Debug_Periodic(void) // checks states of variables
     nECU_Debug_EGTsensor_error(&(dbg_data.egt_communication));
     nECU_Debug_CAN_Check();
     nECU_Debug_SPI_Check();
-    nECU_Debug_ProgramBlockData_Update(&D_Debug);
+    nECU_Debug_ProgramBlockData_Update(D_Debug);
 }
 
 /* Check states routines */
@@ -161,15 +229,11 @@ static void nECU_Debug_EGTsensor_error(nECU_Debug_EGT_Comm *inst) // check EGT I
 }
 static void nECU_Debug_CAN_Check(void) // checks if CAN have any error pending
 {
-    if ((D_CAN_TX.Status | D_CAN_RX.Status) & D_BLOCK_WORKING) // Check if RX or TX is working
+    if (!nECU_FlowControl_Working_Check(D_CAN_TX) || !nECU_FlowControl_Working_Check(D_CAN_RX)) // Check if RX or TX is working
     {
-        uint32_t error = HAL_CAN_GetError(&hcan1);
-        if (error > HAL_CAN_ERROR_NONE)
+        if (nECU_CAN_GetError())
         {
-            D_CAN_TX.Status = D_BLOCK_ERROR;
-            D_CAN_RX.Status = D_BLOCK_ERROR;
-
-            HAL_CAN_ResetError(&hcan1);
+            uint32_t error = HAL_CAN_GetError(&hcan1);
             nECU_Debug_error_mesage temp;
             nECU_Debug_Message_Set(&temp, error, nECU_ERROR_CAN_ID);
         }
@@ -226,7 +290,7 @@ static bool nECU_Debug_Init_Que(void) // initializes que
 {
     bool status = false;
 
-    if (D_Debug_Que.Status == D_BLOCK_STOP)
+    if (!nECU_FlowControl_Initialize_Check(D_Debug_Que))
     {
         dbg_data.error_que.counter.preset = sizeof(dbg_data.error_que.messages) / sizeof(nECU_Debug_error_mesage); // calculate length of que
         dbg_data.error_que.counter.value = 0;
@@ -235,16 +299,28 @@ static bool nECU_Debug_Init_Que(void) // initializes que
         {
             nECU_Debug_Message_Init(&(dbg_data.error_que.messages[que_index])); // clear each
         }
-        status |= nECU_readDebugQue(&(dbg_data.error_que)); // on this run it will only set pointer for further reading/writing
-        D_Debug_Que.Status |= D_BLOCK_INITIALIZED_WORKING;
+        status |= nECU_Flash_DebugQue_read(&(dbg_data.error_que));
+        if (!status)
+        {
+            status |= !nECU_FlowControl_Initialize_Do(D_Debug_Que);
+        }
+    }
+    if (!nECU_FlowControl_Working_Check(D_Debug_Que))
+    {
+        status |= !nECU_FlowControl_Working_Do(D_Debug_Que);
+    }
+    if (status)
+    {
+        nECU_FlowControl_Error_Do(D_Debug_Que);
     }
 
     return status;
 }
 static void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to debug que
 {
-    if (!(D_Debug_Que.Status & D_BLOCK_INITIALIZED_WORKING))
+    if (!nECU_FlowControl_Working_Check(D_Debug_Que))
     {
+        nECU_FlowControl_Error_Do(D_Debug_Que);
         return;
     }
     if (dbg_data.error_que.counter.value == dbg_data.error_que.counter.preset) // check if reached maximum value
@@ -261,11 +337,11 @@ static void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add messag
 }
 void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message) // read newest message from debug que
 {
-    if (D_Debug_Que.Status & D_BLOCK_INITIALIZED_WORKING)
+    if (!nECU_FlowControl_Working_Check(D_Debug_Que))
     {
+        nECU_FlowControl_Error_Do(D_Debug_Que);
         return;
     }
-
     if (dbg_data.error_que.message_count == 0) // break if no messages in que
     {
         return;
@@ -296,48 +372,11 @@ void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Err
 /* Program Block */
 static void nECU_Debug_ProgramBlock_Init(void) // Initialize 'ProgramBlock' tracking
 {
-    // assign ProgramBlockData to list
-    Debug_Status_List[0] = &D_ADC1;
-    Debug_Status_List[1] = &D_ADC2;
-    Debug_Status_List[2] = &D_ADC3;
-    Debug_Status_List[3] = &D_Button_Red;
-    Debug_Status_List[4] = &D_Button_Orange;
-    Debug_Status_List[5] = &D_Button_Green;
-    Debug_Status_List[6] = &D_CAN_TX;
-    Debug_Status_List[7] = &D_CAN_RX;
-    Debug_Status_List[8] = &D_Data_Processing;
-    Debug_Status_List[9] = &D_Debug;
-    Debug_Status_List[10] = &D_Debug_Que;
-    Debug_Status_List[11] = &D_Flash;
-    Debug_Status_List[12] = &D_F0;
-    Debug_Status_List[13] = &D_F1;
-    Debug_Status_List[14] = &D_F2;
-    Debug_Status_List[15] = &D_MAP;
-    Debug_Status_List[16] = &D_BackPressure;
-    Debug_Status_List[17] = &D_MCU_temperature;
-    Debug_Status_List[18] = &D_AdditionalAI;
-    Debug_Status_List[19] = &D_Input_Analog;
-    Debug_Status_List[20] = &D_VSS;
-    Debug_Status_List[21] = &D_IGF;
-    Debug_Status_List[22] = &D_Input_Frequency;
-    Debug_Status_List[23] = &D_Knock;
-    Debug_Status_List[24] = &D_Main;
-    Debug_Status_List[25] = &D_Tacho;
-    Debug_Status_List[26] = &D_Menu;
-    Debug_Status_List[27] = &D_OnboardLED;
-    Debug_Status_List[28] = &D_SS1;
-    Debug_Status_List[29] = &D_SS2;
-    Debug_Status_List[30] = &D_SS3;
-    Debug_Status_List[31] = &D_SS4;
-    Debug_Status_List[32] = &D_GPIO;
-    Debug_Status_List[33] = &D_OX;
-
     // Initialize structures
-    for (uint8_t index = 0; index < (sizeof(Debug_Status_List) / sizeof(Debug_Status_List[0])); index++)
+    for (uint8_t index = 0; index < D_ID_MAX; index++)
     {
-        nECU_Debug_ProgramBlockData_Clear(Debug_Status_List[index]);
+        nECU_Debug_ProgramBlockData_Clear(&Debug_Status_List[index]);
     }
-
     // Configure timeout values
 }
 static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst) // Clear structure 'ProgramBlockData'
@@ -347,8 +386,9 @@ static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst) // Cl
     nECU_TickTrack_Init(&(inst->Update_ticks));
     inst->timeout_value = PROGRAMBLOCK_TIMEOUT_DEFAULT * (1000 / (inst->Update_ticks.convFactor));
 }
-void nECU_Debug_ProgramBlockData_Update(nECU_ProgramBlockData *inst) // Update tick tracking and check for timeout
+void nECU_Debug_ProgramBlockData_Update(nECU_Module_ID ID) // Update tick tracking and check for timeout
 {
+    nECU_ProgramBlockData *inst = &Debug_Status_List[ID];
     nECU_TickTrack_Update(&(inst->Update_ticks));
     if (inst->Update_ticks.difference > inst->timeout_value)
     {
@@ -359,9 +399,9 @@ void nECU_Debug_ProgramBlockData_Check(void) // Perform error check for all bloc
 {
     uint8_t single_result;
     // Perform for each one
-    for (uint8_t index = 0; index < (sizeof(Debug_Status_List) / sizeof(Debug_Status_List[0])); index++)
+    for (uint8_t index = 0; index < D_ID_MAX; index++)
     {
-        single_result = nECU_Debug_ProgramBlockData_Check_Single(Debug_Status_List[index]);
+        single_result = nECU_Debug_ProgramBlockData_Check_Single(&Debug_Status_List[index]);
         if (single_result == 2) // save error if major
         {
             nECU_Debug_error_mesage temp;
@@ -402,4 +442,96 @@ static uint8_t nECU_Debug_ProgramBlockData_Check_Single(nECU_ProgramBlockData *i
     }
 
     return result;
+}
+
+/* Flow control */
+bool nECU_FlowControl_Stop_Check(nECU_Module_ID ID) // Check if block has "initialized" status
+{
+    return (bool)(Debug_Status_List[ID].Status & D_BLOCK_STOP);
+}
+bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status if possible
+{
+    printf("Stopping %s.", D_ID_Strings[ID]);
+    if (nECU_FlowControl_Stop_Check(ID) || nECU_FlowControl_Working_Check(ID)) // check if already done
+    {
+        nECU_FlowControl_Error_Do(ID); // indicate error in code
+        return false;
+    }
+    Debug_Status_List[ID].Status &= ~D_BLOCK_WORKING; // Clear "STOP" flag
+    Debug_Status_List[ID].Status |= D_BLOCK_STOP;
+    return nECU_FlowControl_Initialize_Check(ID);
+}
+
+bool nECU_FlowControl_Initialize_Check(nECU_Module_ID ID) // Check if block has "initialized" status
+{
+    return (bool)(Debug_Status_List[ID].Status & D_BLOCK_INITIALIZED);
+}
+bool nECU_FlowControl_Initialize_Do(nECU_Module_ID ID) // Write "initialized" status if possible
+{
+    printf("Initializing %s.", D_ID_Strings[ID]);
+    if (nECU_FlowControl_Initialize_Check(ID) || !nECU_FlowControl_Stop_Check(ID)) // check if already done
+    {
+        nECU_FlowControl_Error_Do(ID); // indicate error in code
+        return false;
+    }
+
+    Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;       // Clear "STOP" flag
+    Debug_Status_List[ID].Status |= D_BLOCK_INITIALIZED; // Add "INITIALIZED" flag
+    return nECU_FlowControl_Initialize_Check(ID);
+}
+
+bool nECU_FlowControl_Working_Check(nECU_Module_ID ID) // Check if block has "working" status
+{
+    return (bool)(Debug_Status_List[ID].Status & D_BLOCK_WORKING);
+}
+bool nECU_FlowControl_Working_Do(nECU_Module_ID ID) // Write "working" status if possible
+{
+    printf("Starting %s.", D_ID_Strings[ID]);
+    if (nECU_FlowControl_Working_Check(ID) || !nECU_FlowControl_Initialize_Check(ID)) // check if already done
+    {
+        nECU_FlowControl_Error_Do(ID); // indicate error in code
+        return false;
+    }
+    Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;   // Clear "STOP" flag
+    Debug_Status_List[ID].Status |= D_BLOCK_WORKING; // Add "WORKING" flag
+    return nECU_FlowControl_Working_Check(ID);
+}
+
+bool nECU_FlowControl_Error_Check(nECU_Module_ID ID) // Check if block has "error" status
+{
+    return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR);
+}
+bool nECU_FlowControl_Error_Do(nECU_Module_ID ID) // Write "error" status if possible
+{
+    if (nECU_FlowControl_Error_Check(ID) && !nECU_FlowControl_Initialize_Check(ID)) // check if already done
+    {
+        // Perform action for error on non-initialized block
+        return false; // indicate error in code
+    }
+
+    Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;   // Clear "STOP" flag
+    Debug_Status_List[ID].Status |= D_BLOCK_WORKING; // Add "WORKING" flag
+    return nECU_FlowControl_Error_Check(ID);
+}
+
+bool nECU_FlowControl_DoubleError_Check(nECU_Module_ID ID) // Check if block has "error_old" status
+{
+    return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR_OLD);
+}
+bool nECU_FlowControl_DoubleError_Do(nECU_Module_ID ID) // Write "error_old" status if possible
+{
+    if (nECU_FlowControl_Error_Check(ID) && nECU_FlowControl_DoubleError_Check(ID)) // check if already done
+    {
+        // Perform action for recouring error!!!
+        return false; // indicate error in code
+    }
+    else if (!nECU_FlowControl_Error_Check(ID))
+    {
+        // Perform action for inproper function call
+        return false; // indicate error in code
+    }
+
+    Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;     // Clear "STOP" flag
+    Debug_Status_List[ID].Status |= D_BLOCK_ERROR_OLD; // Add "WORKING" flag
+    return nECU_FlowControl_DoubleError_Check(ID);
 }

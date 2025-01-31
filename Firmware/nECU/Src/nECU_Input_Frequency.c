@@ -11,8 +11,6 @@
 VSS_Handle VSS = {0};
 IGF_Handle IGF = {0};
 
-extern nECU_ProgramBlockData D_VSS, D_IGF, D_Input_Frequency; // diagnostic and flow control data
-
 /* VSS - Vehicle Speed Sensor */
 uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
 {

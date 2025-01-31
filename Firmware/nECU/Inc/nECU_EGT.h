@@ -28,24 +28,21 @@ extern "C"
 #define EGT_STARTUP_DELAY 250   // time in ms for MAX31855 startup
 
     /* Function Prototypes */
-    MAX31855 *EGT_IdentifyID(EGT_Sensor_ID ID);                   // returns pointer to appropriete structure
     uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID);        // get function that returns pointer to output data of sensor, ready for can transmission
     int16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID); // get function that returns pointer to internal temperature data of sensor
-    bool *EGT_GetWorking(void);                                   // get function to check if code was EGT_Initialized
     EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID);          // get function returns pointer to error code
 
-    bool EGT_Init(void);                         // initialize all sensors and start communication
-    bool EGT_Start(void);                        // start the routines
-    void EGT_Stop(void);                         // stop the routines
-    void EGT_ConvertAll(void);                   // convert data if pending
-    void EGT_TemperatureTo10bit(MAX31855 *inst); // function to convert temperature value to 10bit number for CAN transmission
+    bool EGT_Start(void);   // initialize all sensors and start communication
+    void EGT_Stop(void);    // stop the routines
+    void EGT_Routine(void); // periodic function to be called every main loop execution
 
-    void EGT_Periodic(void);                                                                             // periodic function to be called every main loop execution
-    MAX31855 *EGT_SPI_getNext(uint8_t sensorNumber);                                                     // returns pointer to correct IC
-    void EGT_SPI_startNext(void);                                                                        // starts SPI communication for next IC
-    void EGT_SPI_Callback(bool error);                                                                   // callback from SPI_TX end callback
-    void EGT_RequestUpdate(void);                                                                        // indicate that update is needed
-                                                                                                         // function to convert temperature value to 10bit number for CAN transmission
+    void EGT_ConvertAll(void);                       // convert data if pending
+    void EGT_TemperatureTo10bit(MAX31855 *inst);     // function to convert temperature value to 10bit number for CAN transmission
+    MAX31855 *EGT_SPI_getNext(uint8_t sensorNumber); // returns pointer to correct IC
+    void EGT_SPI_startNext(void);                    // starts SPI communication for next IC
+    void EGT_SPI_Callback(bool error);               // callback from SPI_TX end callback
+    void EGT_RequestUpdate(void);                    // indicate that update is needed
+
     bool MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin); // First initialization
     void MAX31855_collectError(MAX31855 *inst);                                                          // get current error value
     void MAX31855_UpdateSimple(MAX31855 *inst);                                                          // Recive data over SPI and convert it into struct, dont use while in DMA mode

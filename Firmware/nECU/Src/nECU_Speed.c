@@ -75,7 +75,7 @@ bool Speed_Start(void) // function to start Speed function set
     bool status = false;
 
     // Read calibraion from flash
-    status |= nECU_readSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
+    status |= nECU_Flash_SpeedCalibration_read(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
 
     if (D_SS1.Status == D_BLOCK_STOP)
     {
@@ -84,7 +84,7 @@ bool Speed_Start(void) // function to start Speed function set
     }
     if (D_SS1.Status & D_BLOCK_INITIALIZED)
     {
-        status |= ADC2_START();
+        status |= nECU_ADC2_START();
         D_SS1.Status |= D_BLOCK_WORKING;
     }
 
@@ -95,7 +95,7 @@ bool Speed_Start(void) // function to start Speed function set
     }
     if (D_SS2.Status & D_BLOCK_INITIALIZED)
     {
-        status |= ADC2_START();
+        status |= nECU_ADC2_START();
         D_SS2.Status |= D_BLOCK_WORKING;
     }
 
@@ -106,7 +106,7 @@ bool Speed_Start(void) // function to start Speed function set
     }
     if (D_SS3.Status & D_BLOCK_INITIALIZED)
     {
-        status |= ADC2_START();
+        status |= nECU_ADC2_START();
         D_SS3.Status |= D_BLOCK_WORKING;
     }
 
@@ -117,7 +117,7 @@ bool Speed_Start(void) // function to start Speed function set
     }
     if (D_SS4.Status & D_BLOCK_INITIALIZED)
     {
-        status |= ADC2_START();
+        status |= nECU_ADC2_START();
         D_SS4.Status |= D_BLOCK_WORKING;
     }
 
@@ -126,8 +126,8 @@ bool Speed_Start(void) // function to start Speed function set
 static bool Speed_Init_Single(Speed_Sensor *Sensor, Speed_Sensor_ID id) // initializes structure for single sensor
 {
     Sensor->id = id;
-    Sensor->InputData = getPointer_SpeedSens_ADC(id);
-    Sensor->WheelSetup = nECU_CAN_getWheelSetupPointer();
+    Sensor->InputData = nECU_ADC_getPointer_SpeedSens(id);
+    Sensor->WheelSetup = nECU_CAN_getPointer_WheelSetup();
     Sensor->SpeedData = 0;
     Sensor->Average.BufferIndex = 0;
     return false;
@@ -171,7 +171,7 @@ void Speed_SensorUpdate(Speed_Sensor *Sensor) // update one sensors data
         Sensor->WheelCirc = 1000; // 1 m
         break;
     }
-
+    nECU_ADC2_Routine(); // Pull new data
     Speed_ADCToSpeed(Sensor);
     Speed_CorrectToCalib(Sensor);
     nECU_averageSmooth(&(Sensor->Average.Buffer[0]), &(Sensor->SpeedData), &(Sensor->SpeedDataSlow), sizeof(Sensor->Average.Buffer) / sizeof(uint16_t));
@@ -206,7 +206,7 @@ static void Speed_ADCToSpeed(Speed_Sensor *Sensor) // function to convert RAW AD
     uint16_t speed_now = Speed;
 
     // smooth the signal
-    nECU_ADC_expSmooth(&(speed_now), &(Sensor->SpeedData), 1, SPEED_EXP_ALPHA); // 1 for only one variable to smooth
+    nECU_expSmooth(&speed_now, &(Sensor->SpeedData), &(Sensor->SpeedData), SPEED_EXP_ALPHA);
 }
 
 /* Calibration functions */
@@ -237,7 +237,7 @@ static void Speed_CalibrateAll(void) // function to calibrate speed sensors (per
         Speed_CalibrateSingle(&Speed_Sens_2);
         Speed_CalibrateSingle(&Speed_Sens_3);
         Speed_CalibrateSingle(&Speed_Sens_4);
-        nECU_saveSpeedCalibration(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
+        nECU_Flash_SpeedCalibration_save(&Speed_Sens_1.SensorCorrection, &Speed_Sens_2.SensorCorrection, &Speed_Sens_3.SensorCorrection, &Speed_Sens_4.SensorCorrection);
         Speed_CalibrateInit(); // clear calibration data
         calibrateRoutine.active = false;
     }

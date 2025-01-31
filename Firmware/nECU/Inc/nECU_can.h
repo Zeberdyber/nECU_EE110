@@ -50,9 +50,9 @@ extern "C"
   void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan); // interrupt callback when new Rx frame in FIFO0
 
   // Pointers
-  uint8_t *nECU_CAN_getCoolantPointer(void);    // get pointer to the recived data of coolant variable
-  uint8_t *nECU_CAN_getWheelSetupPointer(void); // get pointer to the recived data of wheel setup variable
-  uint16_t *nECU_CAN_getRPMPointer(void);       // get pointer to the recived data of RPM variable
+  uint8_t *nECU_CAN_getPointer_Coolant(void);    // get pointer to the recived data of coolant variable
+  uint8_t *nECU_CAN_getPointer_WheelSetup(void); // get pointer to the recived data of wheel setup variable
+  uint16_t *nECU_CAN_getPointer_RPM(void);       // get pointer to the recived data of RPM variable
 
 #ifdef __cplusplus
 }

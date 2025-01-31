@@ -9,7 +9,7 @@
 #include "nECU_menu.h"
 
 static ButtonMenu Menu = {0};
-static TachoValue Tacho1 = {0}, Tacho2 = {0}, Tacho3 = {0};
+static TachoValue Tacho[TACHO_ID_MAX];
 
 extern nECU_ProgramBlockData D_Tacho, D_Menu; // diagnostic and flow control data
 
@@ -26,19 +26,19 @@ bool Button_Menu_Init(void) // initialize button menu
     Menu.MenuLevel = 0;
     Menu.TractionOFF = false;
     Menu.TuneSelector = 0;
-    status |= nECU_readUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
+    status |= nECU_Flash_UserSettings_read(&(Menu.Antilag), &(Menu.TractionOFF));
     nECU_Delay_Set(&(Menu.save_delay), (uint32_t *)FLASH_SAVE_DELAY_TIME);
 
     D_Menu.Status |= D_BLOCK_INITIALIZED;
   }
   if (D_Menu.Status & D_BLOCK_INITIALIZED)
   {
-    status |= Button_Start();
+    status |= nECU_Button_Start();
 
     /* First animation */
-    ButtonLight_Breath(RED_BUTTON_ID, 100, 1);
-    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
-    ButtonLight_Breath(GREEN_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(RED_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(ORANGE_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(GREEN_BUTTON_ID, 100, 1);
 
     printf("Button menu -> STARTED!\n");
     D_Menu.Status |= D_BLOCK_WORKING;
@@ -54,26 +54,26 @@ void Button_Menu(void) // update function
     return;
   }
 
-  ButtonLight_UpdateAll();
+  nECU_Button_Light_Routine_All();
   nECU_Delay_Update(&(Menu.save_delay));
 
-  Button_ClickType RedType = ButtonInput_GetType(RED_BUTTON_ID);
-  Button_ClickType OrangeType = ButtonInput_GetType(ORANGE_BUTTON_ID);
-  Button_ClickType GreenType = ButtonInput_GetType(GREEN_BUTTON_ID);
+  Button_ClickType RedType = nECU_Button_Input_GetType(RED_BUTTON_ID);
+  Button_ClickType OrangeType = nECU_Button_Input_GetType(ORANGE_BUTTON_ID);
+  Button_ClickType GreenType = nECU_Button_Input_GetType(GREEN_BUTTON_ID);
 
   if (OrangeType == CLICK_TYPE_HOLD && Menu.MenuLevel < 1) // move up the menu
   {
     Menu.MenuLevel++;
-    ButtonLight_Breath(RED_BUTTON_ID, 100, 1);
-    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
-    ButtonLight_Breath(GREEN_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(RED_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(ORANGE_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(GREEN_BUTTON_ID, 100, 1);
   }
   else if ((OrangeType == CLICK_TYPE_DOUBLE_CLICK) && (Menu.MenuLevel > 0)) // move down the menu
   {
     Menu.MenuLevel--;
-    ButtonLight_Breath(RED_BUTTON_ID, 100, 1);
-    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
-    ButtonLight_Breath(GREEN_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(RED_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(ORANGE_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(GREEN_BUTTON_ID, 100, 1);
   }
 
   switch (Menu.MenuLevel)
@@ -81,41 +81,41 @@ void Button_Menu(void) // update function
   case 0:
     if (RedType == CLICK_TYPE_SINGLE_CLICK) // Traction control ON/OFF
     {
-      ButtonLight_Blink(RED_BUTTON_ID, 50, 1);
+      nECU_Button_Light_Blink(RED_BUTTON_ID, 50, 1);
       Menu.TractionOFF = !Menu.TractionOFF;
       nECU_Delay_Start(&(Menu.save_delay));
     }
     else if (RedType == CLICK_TYPE_HOLD) // Calibrate speed sensors
     {
-      ButtonLight_Breath(RED_BUTTON_ID, 100, 10); // temporary line as no speed sensor is working properly
+      nECU_Button_Light_Breath(RED_BUTTON_ID, 100, 10); // temporary line as no speed sensor is working properly
       // Speed_CalibrateStart();
     }
     if (OrangeType == CLICK_TYPE_SINGLE_CLICK) // Antilag ON/OFF
     {
-      ButtonLight_Blink(ORANGE_BUTTON_ID, 50, 1);
+      nECU_Button_Light_Blink(ORANGE_BUTTON_ID, 50, 1);
       Menu.Antilag = !Menu.Antilag;
       nECU_Delay_Start(&(Menu.save_delay));
     }
     if (GreenType == CLICK_TYPE_SINGLE_CLICK) // Lunch control level 1 ON/OFF
     {
-      ButtonLight_Blink(GREEN_BUTTON_ID, 50, 1);
+      nECU_Button_Light_Blink(GREEN_BUTTON_ID, 50, 1);
       Menu.LunchControlLevel = !Menu.LunchControlLevel;
     }
 
     // display state (if no animation)
-    ButtonLight_SetOne(RED_BUTTON_ID, Menu.TractionOFF);
-    ButtonLight_SetOne(ORANGE_BUTTON_ID, Menu.Antilag);
-    ButtonLight_SetOne(GREEN_BUTTON_ID, Menu.LunchControlLevel);
+    nECU_Button_Light_SetOne(RED_BUTTON_ID, Menu.TractionOFF);
+    nECU_Button_Light_SetOne(ORANGE_BUTTON_ID, Menu.Antilag);
+    nECU_Button_Light_SetOne(GREEN_BUTTON_ID, Menu.LunchControlLevel);
     break;
   case 1:
     if (RedType == CLICK_TYPE_SINGLE_CLICK) // Clear codes
     {
-      ButtonLight_Blink(RED_BUTTON_ID, 50, 1);
+      nECU_Button_Light_Blink(RED_BUTTON_ID, 50, 1);
       Menu.ClearEngineCode = true;
     }
     if ((OrangeType == CLICK_TYPE_SINGLE_CLICK) && (Menu.TuneSelector < TUNE_NUMBER)) // cycle threw tunes
     {
-      ButtonLight_Blink(ORANGE_BUTTON_ID, 50, 1);
+      nECU_Button_Light_Blink(ORANGE_BUTTON_ID, 50, 1);
       Menu.TuneSelector++;
       if (Menu.TuneSelector == TUNE_NUMBER)
       {
@@ -124,7 +124,7 @@ void Button_Menu(void) // update function
     }
     if ((GreenType == CLICK_TYPE_SINGLE_CLICK) && (Menu.LunchControlLevel < (LAUNCH_CONTROL_NUMBER + 1))) // cycle threw lunch control levels
     {
-      ButtonLight_Blink(GREEN_BUTTON_ID, 50, 1);
+      nECU_Button_Light_Blink(GREEN_BUTTON_ID, 50, 1);
       Menu.LunchControlLevel++;
       if (Menu.LunchControlLevel == (LAUNCH_CONTROL_NUMBER + 1)) // +1 for 0 state
       {
@@ -133,9 +133,9 @@ void Button_Menu(void) // update function
     }
 
     // display state (if no animation)
-    ButtonLight_SetOne(RED_BUTTON_ID, Menu.ClearEngineCode);
-    ButtonLight_SetOne(ORANGE_BUTTON_ID, Menu.TuneSelector);
-    ButtonLight_SetOne(GREEN_BUTTON_ID, Menu.LunchControlLevel);
+    nECU_Button_Light_SetOne(RED_BUTTON_ID, Menu.ClearEngineCode);
+    nECU_Button_Light_SetOne(ORANGE_BUTTON_ID, Menu.TuneSelector);
+    nECU_Button_Light_SetOne(GREEN_BUTTON_ID, Menu.LunchControlLevel);
     break;
   default:
     Menu.MenuLevel = 0;
@@ -145,8 +145,8 @@ void Button_Menu(void) // update function
   if (*nECU_Delay_DoneFlag(&(Menu.save_delay)) == true) // Perform save
   {
     nECU_Delay_Stop(&(Menu.save_delay));
-    nECU_saveUserSettings(&(Menu.Antilag), &(Menu.TractionOFF));
-    ButtonLight_Breath(ORANGE_BUTTON_ID, 100, 1);
+    nECU_Flash_UserSettings_save(&(Menu.Antilag), &(Menu.TractionOFF));
+    nECU_Button_Light_Breath(ORANGE_BUTTON_ID, 100, 1);
   }
 
   nECU_Debug_ProgramBlockData_Update(&D_Menu);
@@ -177,6 +177,12 @@ uint16_t *Button_Menu_getPointer_TuneSelector(void)
 /* TachoValue interface functions */
 uint8_t *TachoValue_Get_OutputPointer(Tacho_ID ID) // get pointer to correct structure value
 {
+  if (ID > TACHO_ID_MAX)
+  {
+
+    return NULL;
+  }
+
   switch (ID)
   {
   case TACHO_SHOW_1:

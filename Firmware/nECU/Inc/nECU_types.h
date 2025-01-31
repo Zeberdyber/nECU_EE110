@@ -151,10 +151,10 @@ typedef enum
 } Button_ClickType;
 typedef enum
 {
-    RED_BUTTON_ID = 1,
-    ORANGE_BUTTON_ID = 2,
-    GREEN_BUTTON_ID = 3,
-    NONE_BUTTON_ID
+    BUTTON_ID_RED,
+    BUTTON_ID_ORANGE,
+    BUTTON_ID_GREEN,
+    BUTTON_ID_MAX
 } Button_ID;
 typedef enum
 {
@@ -201,11 +201,11 @@ typedef struct
 /* EGT */
 typedef enum
 {
-    EGT_CYL1 = 1,
-    EGT_CYL2 = 2,
-    EGT_CYL3 = 3,
-    EGT_CYL4 = 4,
-    EGT_CYL_NONE
+    EGT1_ID,
+    EGT2_ID,
+    EGT3_ID,
+    EGT4_ID,
+    EGT_ID_MAX
 } EGT_Sensor_ID;
 typedef enum
 {
@@ -229,12 +229,81 @@ typedef struct
 } MAX31855;
 typedef struct
 {
-    bool updatePending;          // flag if data update is needed
-    MAX31855 TC1, TC2, TC3, TC4; // sensor structures
-    MAX31855 *EGT_CurrentObj;    // current object pointer (for sensor asking loop)
-    uint8_t EGT_CurrentSensor;   // number of current sensor (for sensor asking loop)
-    nECU_Delay startup_Delay;    // used as a delay to prevent spi communication until ICs turn on properly
+    MAX31855 TC[EGT_ID_MAX];   // sensor structures
+    uint8_t EGT_CurrentSensor; // number of current sensor (for sensor asking loop)
+    nECU_Delay startup_Delay;  // used as a delay to prevent spi communication until ICs turn on properly
 } nECU_EGT;
+
+/* Menu */
+typedef enum
+{
+    TuneSelector_LowBoost,
+    TuneSelector_HighBoost,
+    TuneSelector_ID_MAX
+} TuneSelector_ID;
+typedef enum
+{
+    LaunchControl_Low,
+    LaunchControl_Medium,
+    LaunchControl_High,
+    LaunchControl_Rolling,
+    LaunchControl_ID_MAX
+} LaunchControl_ID;
+typedef enum
+{
+    TACHO_ID_TuneSelector,
+    TACHO_ID_LaunchControl,
+    TACHO_ID_MenuLvl,
+    TACHO_ID_MAX
+} Tacho_ID;
+typedef struct
+{
+    bool showPending;          // flag indicates that data was not displayed
+    uint16_t *input_value;     // pointer to source value
+    uint16_t prev_input;       // stored previous value
+    uint8_t output_value;      // output value that will be sent over CAN
+    uint8_t output_multiplier; // factor to multiply the output value by
+} TachoValue;
+typedef struct
+{
+    // output variables
+    bool Antilag, TractionOFF, ClearEngineCode;
+    uint16_t LunchControlLevel, TuneSelector;
+    // internal variables
+    uint16_t MenuLevel;    // Level of button menu
+    nECU_Delay save_delay; // Delay until data is saved to FLASH
+} ButtonMenu;
+
+/* Speed */
+typedef enum
+{
+    SPEED_SENSOR_ID_FL,
+    SPEED_SENSOR_ID_FR,
+    SPEED_SENSOR_ID_RL,
+    SPEED_SENSOR_ID_RR,
+    SPEED_SENSOR_ID_MAX
+} Speed_Sensor_ID; // Here update if connected otherwise
+typedef struct
+{
+    uint16_t Buffer[SPEED_AVERAGE_BUFFER_SIZE]; // buffer to be filled with ADC data
+    uint8_t BufferIndex;                        // current index at which data should be plugged
+} SpeedAverage;
+typedef struct
+{
+    uint16_t *InputData;    // pointer to ADC input data
+    uint8_t *WheelSetup;    // pointer to current wheel setup selected
+    float SensorCorrection; // factor by which result will be multiplied to correct by calibration
+    uint16_t SpeedData;     // output speed
+    uint16_t SpeedDataSlow; // output speed, averaged from multiple measuerements
+    uint16_t WheelCirc;     // circumference of wheel (according to wheel setup)
+    SpeedAverage Average;   // averaging structure
+    Speed_Sensor_ID id;     // id of this speed sensor
+} Speed_Sensor;
+typedef struct
+{
+    bool active;                            // routine is running
+    bool averageReady[SPEED_SENSOR_ID_MAX]; // flags indicating end of data collection on each sensor
+} CalibrateRoutine;
 
 /* Frames */
 typedef struct
@@ -255,14 +324,14 @@ typedef struct
     nECU_CAN_TxFrame can_data; // peripheral data
     nECU_Delay frame_delay;    // timing between frames
 
-    bool LunchControl1, LunchControl2, LunchControl3, RollingLunch; // flags from decoding
+    bool LunchControl[LaunchControl_ID_MAX]; // flags from decoding
 
     // outside variables
     bool *Cranking, *Fan_ON, *Lights_ON, *IgnitionKey;
     bool *Antilag, *TractionOFF, *ClearEngineCode;
-    bool *TachoShow1, *TachoShow2, *TachoShow3;
+    bool *TachoShow[TACHO_ID_MAX];
     uint16_t *LunchControlLevel;
-    uint16_t *Speed_FL, *Speed_FR, *Speed_RL, *Speed_RR;
+    uint16_t *SpeedSensor[SPEED_SENSOR_ID_MAX];
 } Frame0_struct;
 typedef struct
 {
@@ -270,8 +339,8 @@ typedef struct
     nECU_Delay frame_delay;    // timing between frames
 
     // outside variables
-    uint16_t *EGT1, *EGT2, *EGT3, *EGT4;
-    uint8_t *TachoVal1, *TachoVal2, *TachoVal3;
+    uint16_t *EGT[EGT_ID_MAX];
+    uint8_t *TachoVal[3];
     uint16_t *TuneSelector;
 } Frame1_struct;
 typedef struct
@@ -353,63 +422,6 @@ typedef struct
     nECU_Delay delay; // Minimum time between each knock retard action (time to check if knock is gone after retard)
 } nECU_Knock;
 
-/* Menu */
-typedef enum
-{
-    TACHO_SHOW_1 = 1,
-    TACHO_SHOW_2 = 2,
-    TACHO_SHOW_3 = 3,
-    TACHO_SHOW_NONE
-} Tacho_ID;
-typedef struct
-{
-    bool showPending;          // flag indicates that data was not displayed
-    uint16_t *input_value;     // pointer to source value
-    uint16_t prev_input;       // stored previous value
-    uint8_t output_value;      // output value that will be sent over CAN
-    uint8_t output_multiplier; // factor to multiply the output value by
-} TachoValue;
-typedef struct
-{
-    // output variables
-    bool Antilag, TractionOFF, ClearEngineCode;
-    uint16_t LunchControlLevel, TuneSelector;
-    // internal variables
-    uint16_t MenuLevel;    // Level of button menu
-    nECU_Delay save_delay; // Delay until data is saved to FLASH
-} ButtonMenu;
-
-/* Speed */
-typedef enum
-{
-    SPEED_SENSOR_FRONT_LEFT = 0,
-    SPEED_SENSOR_FRONT_RIGHT = 1,
-    SPEED_SENSOR_REAR_LEFT = 2,
-    SPEED_SENSOR_REAR_RIGHT = 3,
-    SPEED_SENSOR_NONE_ID
-} Speed_Sensor_ID; // Here update if connected otherwise
-typedef struct
-{
-    uint16_t Buffer[SPEED_AVERAGE_BUFFER_SIZE]; // buffer to be filled with ADC data
-    uint8_t BufferIndex;                        // current index at which data should be plugged
-} SpeedAverage;
-typedef struct
-{
-    uint16_t *InputData;    // pointer to ADC input data
-    uint8_t *WheelSetup;    // pointer to current wheel setup selected
-    float SensorCorrection; // factor by which result will be multiplied to correct by calibration
-    uint16_t SpeedData;     // output speed
-    uint16_t SpeedDataSlow; // output speed, averaged from multiple measuerements
-    uint16_t WheelCirc;     // circumference of wheel (according to wheel setup)
-    SpeedAverage Average;   // averaging structure
-    Speed_Sensor_ID id;     // id of this speed sensor
-} Speed_Sensor;
-typedef struct
-{
-    bool active;          // routine is running
-    bool averageReady[4]; // flags indicating end of data collection on each sensor
-} CalibrateRoutine;
-
 /* Stock */
 typedef struct
 {
@@ -471,47 +483,47 @@ typedef enum
 {
     // internal temperature out of spec
     nECU_ERROR_DEVICE_TEMP_MCU_ID = 1,
-    nECU_ERROR_DEVICE_TEMP_EGT1_ID = 2,
-    nECU_ERROR_DEVICE_TEMP_EGT2_ID = 3,
-    nECU_ERROR_DEVICE_TEMP_EGT3_ID = 4,
-    nECU_ERROR_DEVICE_TEMP_EGT4_ID = 5,
+    nECU_ERROR_DEVICE_TEMP_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
+    nECU_ERROR_DEVICE_TEMP_EGT2_ID,
+    nECU_ERROR_DEVICE_TEMP_EGT3_ID,
+    nECU_ERROR_DEVICE_TEMP_EGT4_ID,
 
     // thermocouple over temperature (over defined threshold)
-    nECU_ERROR_EGT_OVERTEMP_EGT1_ID = 6,
-    nECU_ERROR_EGT_OVERTEMP_EGT2_ID = 7,
-    nECU_ERROR_EGT_OVERTEMP_EGT3_ID = 8,
-    nECU_ERROR_EGT_OVERTEMP_EGT4_ID = 9,
+    nECU_ERROR_EGT_OVERTEMP_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
+    nECU_ERROR_EGT_OVERTEMP_EGT2_ID,
+    nECU_ERROR_EGT_OVERTEMP_EGT3_ID,
+    nECU_ERROR_EGT_OVERTEMP_EGT4_ID,
 
     // thermocouple spi communication
-    nECU_ERROR_EGT_SPI_EGT1_ID = 10,
-    nECU_ERROR_EGT_SPI_EGT2_ID = 11,
-    nECU_ERROR_EGT_SPI_EGT3_ID = 12,
-    nECU_ERROR_EGT_SPI_EGT4_ID = 13,
+    nECU_ERROR_EGT_SPI_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
+    nECU_ERROR_EGT_SPI_EGT2_ID,
+    nECU_ERROR_EGT_SPI_EGT3_ID,
+    nECU_ERROR_EGT_SPI_EGT4_ID,
 
     // thermocouple connection (TC sensor not connected, shorted etc)
-    nECU_ERROR_EGT_TC_EGT1_ID = 14,
-    nECU_ERROR_EGT_TC_EGT2_ID = 15,
-    nECU_ERROR_EGT_TC_EGT3_ID = 16,
-    nECU_ERROR_EGT_TC_EGT4_ID = 17,
+    nECU_ERROR_EGT_TC_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
+    nECU_ERROR_EGT_TC_EGT2_ID,
+    nECU_ERROR_EGT_TC_EGT3_ID,
+    nECU_ERROR_EGT_TC_EGT4_ID,
 
     // flash interaction
-    nECU_ERROR_FLASH_SPEED_SAVE_ID = 18,
-    nECU_ERROR_FLASH_SPEED_READ_ID = 19,
-    nECU_ERROR_FLASH_USER_SAVE_ID = 20,
-    nECU_ERROR_FLASH_USER_READ_ID = 21,
-    nECU_ERROR_FLASH_DEBUG_QUE_SAVE_ID = 22,
-    nECU_ERROR_FLASH_DEBUG_QUE_READ_ID = 23,
-    nECU_ERROR_FLASH_ERASE_ID = 24,
+    nECU_ERROR_FLASH_SPEED_SAVE_ID,
+    nECU_ERROR_FLASH_SPEED_READ_ID,
+    nECU_ERROR_FLASH_USER_SAVE_ID,
+    nECU_ERROR_FLASH_USER_READ_ID,
+    nECU_ERROR_FLASH_DEBUG_QUE_SAVE_ID,
+    nECU_ERROR_FLASH_DEBUG_QUE_READ_ID,
+    nECU_ERROR_FLASH_ERASE_ID,
 
     // communication
-    nECU_ERROR_CAN_ID = 25,
-    nECU_ERROR_SPI_ID = 26,
+    nECU_ERROR_CAN_ID,
+    nECU_ERROR_SPI_ID,
 
     // VSS
-    nECU_ERROR_VSS_MAX = 27,
+    nECU_ERROR_VSS_MAX,
 
     // ProgramBlock
-    nECU_ERROR_PROGRAMBLOCK = 28,
+    nECU_ERROR_PROGRAMBLOCK,
 
     nECU_ERROR_NONE
 } nECU_Error_ID;
@@ -585,18 +597,78 @@ typedef struct
 } nECU_LoopCounter;
 typedef enum
 {
-    D_BLOCK_STOP = 0,
-    D_BLOCK_INITIALIZED = 1,
-    D_BLOCK_WORKING = 2,
-    D_BLOCK_INITIALIZED_WORKING = 3,
-    D_BLOCK_SPARE_1 = 4,
-    D_BLOCK_SPARE_2 = 8,
-    D_BLOCK_SPARE_3 = 16,
+    D_BLOCK_NULL = 0,        // Block was not initialized
+    D_BLOCK_STOP = 1,        // Block stopped
+    D_BLOCK_INITIALIZED = 2, // Block structures initialized
+    D_BLOCK_WORKING = 4,     // Block working
+    D_BLOCK_SPARE_1 = 8,
+    D_BLOCK_SPARE_2 = 16,
     D_BLOCK_ERROR_OLD = 32,  // error stored in memory
     D_BLOCK_CODE_ERROR = 64, // error in code
     D_BLOCK_ERROR = 128,     // error active
     D_BLOCK_NONE
 } nECU_ProgramBlock_Status;
+typedef enum
+{
+    // nECU_adc.c
+    D_ADC1,
+    D_ADC2,
+    D_ADC3,
+    // nECU_button.c  !Have to be in the same order as 'Button_ID'!
+    D_Button_Red,
+    D_Button_Orange,
+    D_Button_Green,
+    // nECU_can.c
+    D_CAN_TX,
+    D_CAN_RX,
+    // nECU_data_processing.c
+    D_Data_Processing,
+    // nECU_debug.c
+    D_Debug,
+    D_Debug_Que,
+    // nECU_EGT.c !Have to be in the same order as 'EGT_Sensor_ID'!
+    D_EGT1,
+    D_EGT2,
+    D_EGT3,
+    D_EGT4,
+    // nECU_flash.c
+    D_Flash,
+    // nECU_frames.c
+    D_F0,
+    D_F1,
+    D_F2,
+    // nECU_Input_Analog.c
+    D_MAP,
+    D_BackPressure,
+    D_MCU_temperature,
+    D_AdditionalAI,
+    D_Input_Analog,
+    // nECU_Input_Frequency.c
+    D_VSS,
+    D_IGF,
+    D_Input_Frequency,
+    // nECU_Knock.c
+    D_Knock,
+    // nECU_main.c
+    D_Main,
+    // nECU_menu.c
+    D_Tacho,
+    D_Menu,
+    // nECU_OnBoardLED.c
+    D_OnboardLED,
+    // nECU_PC.c
+    D_PC,
+    // nECU_Speed.c
+    D_SS1,
+    D_SS2,
+    D_SS3,
+    D_SS4,
+    // nECU_stock.c
+    D_GPIO,
+    D_OX,
+    // Last value
+    D_ID_MAX
+} nECU_Module_ID;
 typedef struct
 {
     nECU_ProgramBlock_Status Status; // Status code

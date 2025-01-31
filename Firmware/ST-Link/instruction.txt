@@ -2,4 +2,4 @@ instruction how to setup on board stlink
 1. upload binary with "STM32 ST-Link Utility" (old program)
 2. check if windows detects it
 3. upgrade firmware with "STM32 ST-Link Utility"
-4. upgrade firmware with "STM32CubeIDE" (it has access to newest firmwares"
+4. upgrade firmware with "STM32CubeIDE" (it has access to newest firmwares)

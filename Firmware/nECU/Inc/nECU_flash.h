@@ -30,16 +30,16 @@ extern "C"
 
     /* Function Prototypes */
     /* Speed calibration data functions (flash function interface) */
-    bool nECU_saveSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4);
-    bool nECU_readSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4);
+    bool nECU_Flash_SpeedCalibration_save(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4);
+    bool nECU_Flash_SpeedCalibration_read(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4);
 
     /* User settings data functions (flash function interface) */
-    bool nECU_saveUserSettings(bool *pAntiLag, bool *pTractionOFF);
-    bool nECU_readUserSettings(bool *pAntiLag, bool *pTractionOFF);
+    bool nECU_Flash_UserSettings_save(bool *pAntiLag, bool *pTractionOFF);
+    bool nECU_Flash_UserSettings_read(bool *pAntiLag, bool *pTractionOFF);
 
     /* Debug que (flash function interface) */
-    bool nECU_saveDebugQue(nECU_Debug_error_que *que);
-    bool nECU_readDebugQue(nECU_Debug_error_que *que);
+    bool nECU_Flash_DebugQue_save(nECU_Debug_error_que *que);
+    bool nECU_Flash_DebugQue_read(nECU_Debug_error_que *que);
 
     /* Flash functions */
     static HAL_StatusTypeDef nECU_FLASH_cleanFlashSector(void);       // clean flash sector
@@ -48,12 +48,8 @@ extern "C"
     static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void);        // save everything, then read to RAM
 
     /* Interface functions */
-    bool nECU_FLASH_Init(void);  // initialize FLASH code
+    bool nECU_FLASH_Start(void); // initialize FLASH code
     bool nECU_FLASH_Erase(void); // erases whole sector
-
-    /* Helper functions */
-    void nECU_compressBool(bool *bufferIn, uint8_t *out);   // compress bool array to one byte
-    void nECU_decompressBool(uint8_t *in, bool *bufferOut); // decompress byte to bool array
 
 #ifdef __cplusplus
 }

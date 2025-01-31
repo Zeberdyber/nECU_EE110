@@ -11,15 +11,12 @@ Frame0_struct F0_var = {0};
 Frame1_struct F1_var = {0};
 Frame2_struct F2_var = {0};
 
-extern nECU_ProgramBlockData D_F0, D_F1, D_F2; // diagnostic and flow control data
-extern nECU_ProgramBlockData D_Main;           // used only for loop time tracking
-
 /* Frame 0 */
-bool Frame0_Init(void) // initialization of data structure
+bool Frame0_Start(void) // initialization of data structure
 {
     bool status = false;
 
-    if (D_F0.Status == D_BLOCK_STOP)
+    if (!nECU_FlowControl_Initialize_Check(D_F0))
     {
         status |= Speed_Start();
         if (!status) // do only if no error
@@ -52,21 +49,20 @@ bool Frame0_Init(void) // initialization of data structure
 
         if (!status)
         {
-            D_F0.Status |= D_BLOCK_INITIALIZED;
+            status |= !nECU_FlowControl_Initialize_Check(D_F0);
         }
     }
-    if (D_F0.Status & D_BLOCK_INITIALIZED)
+    if (!nECU_FlowControl_Working_Check(D_F0))
     {
         status |= Speed_Start();
         if (!status)
         {
-            printf("Frame1 -> STARTED!\n");
-            D_F0.Status |= D_BLOCK_WORKING;
+            status |= !nECU_FlowControl_Working_Check(D_F0);
         }
     }
     return status;
 }
-void Frame0_Update(void) // update variables for frame 0
+void Frame0_Routine(void) // update variables for frame 0
 {
     if (!(D_F0.Status & D_BLOCK_WORKING))
     {
@@ -103,14 +99,14 @@ void Frame0_Update(void) // update variables for frame 0
         break;
     }
 }
-void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
+static void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
     if (!(D_F0.Status & D_BLOCK_WORKING))
     {
         return;
     }
 
-    Frame0_Update();
+    Frame0_Routine();
     uint8_t TxFrame[8];
     Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, F0_var.Speed_FL);
     Frame0_ComposeWord(&TxFrame[2], F0_var.ClearEngineCode, F0_var.TachoShow3, F0_var.TachoShow2, F0_var.TachoShow1, F0_var.Speed_FR);
@@ -118,7 +114,7 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame0_ComposeWord(&TxFrame[6], (bool *)false, (bool *)false, F0_var.TractionOFF, &F0_var.RollingLunch, F0_var.Speed_RR);
     nECU_CAN_WriteToBuffer(nECU_Frame_Speed, TxFrame);
 }
-void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4, uint16_t *Val12Bit) // function to create word for use in frame 0
+static void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4, uint16_t *Val12Bit) // function to create word for use in frame 0
 {
     union Int16ToBytes Converter; // create memory union
     Converter.UintValue = *Val12Bit;
@@ -132,7 +128,7 @@ void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4,
 }
 
 /* Frame 1 */
-bool Frame1_Init(void) // initialization of data structure
+bool Frame1_Start(void) // initialization of data structure
 {
     bool status = false;
 
@@ -177,7 +173,7 @@ bool Frame1_Init(void) // initialization of data structure
     }
     return status;
 }
-void Frame1_Update(void) // update variables for frame 1
+void Frame1_Routine(void) // update variables for frame 1
 {
     if (!(D_F1.Status & D_BLOCK_WORKING))
     {
@@ -189,14 +185,14 @@ void Frame1_Update(void) // update variables for frame 1
 
     nECU_Debug_ProgramBlockData_Update(&D_F1);
 }
-void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
+static void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
     if (!(D_F1.Status & D_BLOCK_WORKING))
     {
         return;
     }
 
-    Frame1_Update();
+    Frame1_Routine();
     uint8_t TxFrame[8];
     Frame1_ComposeWord(&TxFrame[0], F1_var.TachoVal1, F1_var.EGT1);
     Frame1_ComposeWord(&TxFrame[2], F1_var.TachoVal2, F1_var.EGT2);
@@ -207,7 +203,7 @@ void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     TachoValue_Clear_ShowPending(TACHO_SHOW_2);
     TachoValue_Clear_ShowPending(TACHO_SHOW_3);
 }
-void Frame1_ComposeWord(uint8_t *buffer, uint8_t *Val6Bit, uint16_t *Val10Bit) // function to create word for use in frame 1
+static void Frame1_ComposeWord(uint8_t *buffer, uint8_t *Val6Bit, uint16_t *Val10Bit) // function to create word for use in frame 1
 {
     union Int16ToBytes Converter; // create memory union
     Converter.UintValue = *Val10Bit;
@@ -218,7 +214,7 @@ void Frame1_ComposeWord(uint8_t *buffer, uint8_t *Val6Bit, uint16_t *Val10Bit) /
 }
 
 /* Frame 2 */
-bool Frame2_Init(void) // initialization of data structure
+bool Frame2_Start(void) // initialization of data structure
 {
     bool status = false;
 
@@ -253,24 +249,21 @@ bool Frame2_Init(void) // initialization of data structure
         {
             F2_var.VSS = nECU_VSS_GetPointer();
         }
-
         F2_var.loop_time = &(D_Main.Update_ticks.difference);
         D_F2.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_F2.Status & D_BLOCK_INITIALIZED)
     {
-        status |= ADC1_START();
-        status |= nECU_Stock_Start();
+        // status |= nECU_ADC1_START();
         if (!status)
         {
-            printf("Frame2 -> STARTED!\n");
             D_F2.Status |= D_BLOCK_WORKING;
         }
     }
 
     return status;
 }
-void Frame2_Update(void) // update variables for frame 2
+void Frame2_Routine(void) // update variables for frame 2
 {
     if (!(D_F2.Status & D_BLOCK_WORKING))
     {
@@ -284,14 +277,14 @@ void Frame2_Update(void) // update variables for frame 2
 
     nECU_Debug_ProgramBlockData_Update(&D_F2);
 }
-void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
+static void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
     if (!(D_F2.Status & D_BLOCK_WORKING))
     {
         return;
     }
 
-    Frame2_Update();
+    Frame2_Routine();
     uint8_t TxFrame[8];
     union Int16ToBytes Converter; // create memory union
 

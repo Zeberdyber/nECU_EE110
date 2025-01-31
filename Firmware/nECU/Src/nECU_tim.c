@@ -41,7 +41,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == &BUTTON_INPUT_TIMER)
   {
-    ButtonInput_Identify(htim);
+    nECU_Button_Input_Identify(htim);
   }
   else if (htim == &FREQ_INPUT_TIMER)
   {

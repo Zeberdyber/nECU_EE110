@@ -47,7 +47,7 @@ bool nECU_Knock_Start(void) // initialize and start
     if (D_Knock.Status & D_BLOCK_INITIALIZED)
     {
         // ADC start
-        status |= ADC3_START();
+        status |= nECU_ADC3_START();
         // RPM reference
         status |= nECU_IGF_Start();
         // set working flag
@@ -96,6 +96,7 @@ void nECU_Knock_UpdatePeriodic(void) // function to calculate current retard val
         return;
     }
 
+    nECU_ADC3_Routine(); // Pull new data
     nECU_TickTrack_Update(&(Knock.regres));
     nECU_Delay_Update(&(Knock.delay));
 
@@ -160,7 +161,7 @@ static void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of kn
 }
 void nECU_Knock_Stop(void) // stop
 {
-    ADC3_STOP();
+    nECU_ADC3_STOP();
     nECU_IGF_Stop();
     printf("Knock sensing -> STOPPED!\n");
     D_Knock.Status -= D_BLOCK_INITIALIZED_WORKING;

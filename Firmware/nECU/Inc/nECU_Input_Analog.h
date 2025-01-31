@@ -18,7 +18,13 @@ extern "C"
 #include "nECU_tim.h"
 #include "nECU_debug.h"
 
-    /* Definitions */
+/* Definitions */
+#define INTERNAL_TEMP_SLOPE (float)2.5   // slope defined in datasheet [mV/C]
+#define INTERNAL_TEMP_V25 (float)0.76    // Voltage at 25C from calibration (defined in datasheet)
+#define INTERNAL_TEMP_STARTUP_DELAY 1000 // to skip first couple readings
+#define INTERNAL_TEMP_UPDATE_DELAY 1000  // once per second (1000ms)
+#define INTERNAL_TEMP_MULTIPLIER 100     // value by which internal temperature result will be multipled
+
 #define MAP_kPA_CALIB_MIN 270  // minimum sensor value result for minimum voltage
 #define MAP_kPA_CALIB_MAX 1020 // maximum sensor value result for maximum voltage
 #define MAP_ADC_CALIB_MIN 1203 // minimum ADC value for minimum sensor value

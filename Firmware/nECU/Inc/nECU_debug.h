@@ -54,9 +54,21 @@ extern "C"
     /* Program Block */
     static void nECU_Debug_ProgramBlock_Init(void);                                       // Initialize 'ProgramBlock' tracking
     static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst);           // Clear structure 'ProgramBlockData'
-    void nECU_Debug_ProgramBlockData_Update(nECU_ProgramBlockData *inst);                 // Update tick tracking and check for timeout
+    void nECU_Debug_ProgramBlockData_Update(nECU_Module_ID ID);                           // Update tick tracking and check for timeout
     void nECU_Debug_ProgramBlockData_Check(void);                                         // Perform error check for all blocks
     static uint8_t nECU_Debug_ProgramBlockData_Check_Single(nECU_ProgramBlockData *inst); // returns if errors occur
+
+    /* Flow control */
+    bool nECU_FlowControl_Stop_Check(nECU_Module_ID ID);        // Check if block has "initialized" status
+    bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID);           // Write "initialized" status if possible
+    bool nECU_FlowControl_Initialize_Check(nECU_Module_ID ID);  // Check if block has "initialized" status
+    bool nECU_FlowControl_Initialize_Do(nECU_Module_ID ID);     // Write "initialized" status if possible
+    bool nECU_FlowControl_Working_Check(nECU_Module_ID ID);     // Check if block has "working" status
+    bool nECU_FlowControl_Working_Do(nECU_Module_ID ID);        // Write "working" status if possible
+    bool nECU_FlowControl_Error_Check(nECU_Module_ID ID);       // Check if block has "error" status
+    bool nECU_FlowControl_Error_Do(nECU_Module_ID ID);          // Write "error" status if possible
+    bool nECU_FlowControl_DoubleError_Check(nECU_Module_ID ID); // Check if block has "error_old" status
+    bool nECU_FlowControl_DoubleError_Do(nECU_Module_ID ID);    // Write "error_old" status if possible
 
 #ifdef __cplusplus
 }

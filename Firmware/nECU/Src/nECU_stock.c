@@ -25,7 +25,7 @@ bool nECU_OX_Init(void) // initialize narrowband lambda structure
     if (D_OX.Status == D_BLOCK_STOP)
     {
         /* Sensor */
-        status |= nECU_A_Input_Init(&(OX.sensor), VoltsToADC(OXYGEN_VOLTAGE_CALIB_MAX), VoltsToADC(OXYGEN_VOLTAGE_CALIB_MIN), OXYGEN_VOLTAGE_MAX, OXYGEN_VOLTAGE_MIN, getPointer_OX_ADC());
+        status |= nECU_A_Input_Init(&(OX.sensor), VoltsToADC(OXYGEN_VOLTAGE_CALIB_MAX), VoltsToADC(OXYGEN_VOLTAGE_CALIB_MIN), OXYGEN_VOLTAGE_MAX, OXYGEN_VOLTAGE_MIN, nECU_ADC_getPointer_OX());
         /* Heater */
         // timer configuration
         OX.Heater.htim = &OX_HEATER_TIMER;
@@ -34,7 +34,7 @@ bool nECU_OX_Init(void) // initialize narrowband lambda structure
         OX.Heater.Channel_List[0] = TIM_CHANNEL_1;
         // variables configuration
         OX.Heater_Infill = 0;
-        OX.Coolant = nECU_CAN_getCoolantPointer();
+        OX.Coolant = nECU_CAN_getPointer_Coolant();
         OX.Infill_max = OXYGEN_HEATER_MAX;
         OX.Infill_min = OXYGEN_HEATER_MIN;
         OX.Coolant_max = OXYGEN_COOLANT_MAX;
@@ -45,7 +45,7 @@ bool nECU_OX_Init(void) // initialize narrowband lambda structure
     if (D_OX.Status & D_BLOCK_INITIALIZED)
     {
         status |= (nECU_tim_PWM_start(&(OX.Heater)) != TIM_OK);
-        status |= ADC1_START();
+        status |= nECU_ADC1_START();
         D_OX.Status |= D_BLOCK_WORKING;
     }
 
@@ -59,7 +59,7 @@ void nECU_OX_Update(void) // update narrowband lambda structure
         D_OX.Status |= D_BLOCK_CODE_ERROR;
         return;
     }
-
+    nECU_ADC1_Routine(); // Pull new data
     OX.sensor.outputFloat = nECU_getLinearSensor(OX.sensor.ADC_input, &OX.sensor.calibrationData);
     OX.sensor.output8bit = nECU_FloatToUint8_t(OX.sensor.outputFloat, OXYGEN_DECIMAL_POINT, 8);
 
@@ -150,23 +150,4 @@ bool none = true;
 bool *nECU_Immo_getPointer(void) // returns pointer to immobilizer valid
 {
     return &none;
-}
-/* General */
-bool nECU_Stock_Start(void) // function to initialize all stock stuff
-{
-    bool status = false;
-
-    status |= nECU_OX_Init();
-    status |= nECU_stock_GPIO_Init();
-
-    return status;
-}
-void nECU_Stock_Stop(void) // function to deinitialize all stock stuff
-{
-    nECU_OX_DeInit();
-}
-void nECU_Stock_Update(void) // function to update structures
-{
-    nECU_OX_Update();
-    nECU_stock_GPIO_update();
 }

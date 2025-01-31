@@ -19,13 +19,13 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
 
         nECU_PC_Init();
 
-        nECU_FLASH_Init(); // initialize FLASH module -> copy from FLASH to RAM
+        nECU_FLASH_Start(); // initialize FLASH module -> copy from FLASH to RAM
 
         nECU_test(); // perform system and code tests
 
-        Frame0_Init();
-        Frame1_Init();
-        Frame2_Init();
+        Frame0_Start();
+        Frame1_Start();
+        Frame2_Start();
         nECU_CAN_Start();
 
         OnBoard_LED_Init();
@@ -69,7 +69,7 @@ void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {
     ADC_STOP_ALL();
     nECU_Stock_Stop();
-    Button_Stop();
+    nECU_Button_Stop();
     nECU_CAN_Stop();
     nECU_Knock_Stop();
 

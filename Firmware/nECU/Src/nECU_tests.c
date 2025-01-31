@@ -49,16 +49,16 @@ void nECU_tests_error_display(void) // on board LEDs display
 bool nECU_systest_Flash_SpeedCalibration(void) // test both read and write to flash memory
 {
     float T1 = 1.0, T2 = 9.99, T3 = -0.0015, T4 = 181516.2;
-    nECU_saveSpeedCalibration(&T1, &T2, &T3, &T4);
+    nECU_Flash_SpeedCalibration_save(&T1, &T2, &T3, &T4);
     float R1 = 0.0, R2 = 0.0, R3 = 0.0, R4 = 0.0;
-    nECU_readSpeedCalibration(&R1, &R2, &R3, &R4);
+    nECU_Flash_SpeedCalibration_read(&R1, &R2, &R3, &R4);
     if (R1 - T1 + R2 - T2 + R3 - T3 + R4 - T4 != 0)
     {
         return true;
     }
     T1 = 1.0;
-    nECU_saveSpeedCalibration(&T1, &T1, &T1, &T1);
-    nECU_readSpeedCalibration(&R1, &R2, &R3, &R4);
+    nECU_Flash_SpeedCalibration_save(&T1, &T1, &T1, &T1);
+    nECU_Flash_SpeedCalibration_read(&R1, &R2, &R3, &R4);
     if (R1 + R2 + R3 + R4 != T1 * 4)
     {
         return true;
@@ -71,8 +71,8 @@ bool nECU_systest_Flash_UserSettings(void) // test both read and write to flash 
     bool T0, T1, R0, R1;
     T0 = true;
     T1 = false;
-    nECU_saveUserSettings(&T0, &T1);
-    nECU_readUserSettings(&R0, &R1);
+    nECU_Flash_UserSettings_save(&T0, &T1);
+    nECU_Flash_UserSettings_read(&R0, &R1);
     if (R0 != true || R1 != false)
     {
         return true;
@@ -80,8 +80,8 @@ bool nECU_systest_Flash_UserSettings(void) // test both read and write to flash 
 
     T0 = false;
     T1 = true;
-    nECU_saveUserSettings(&T0, &T1);
-    nECU_readUserSettings(&R0, &R1);
+    nECU_Flash_UserSettings_save(&T0, &T1);
+    nECU_Flash_UserSettings_read(&R0, &R1);
     if (R0 != false || R1 != true)
     {
         return true;
@@ -416,7 +416,7 @@ void nECU_IGF_Test(void) // checks readout compared to CAN frame data
     // use only to check code, then delete this function
     if (IGF_test_Initialized == false)
     {
-        IGF_test_CAN_RPM = nECU_CAN_getRPMPointer();
+        IGF_test_CAN_RPM = nECU_CAN_getPointer_RPM();
         nECU_IGF_Start();
         IGF_test_Initialized = true;
     }

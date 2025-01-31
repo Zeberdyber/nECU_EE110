@@ -21,7 +21,7 @@
         [ ] separate RX buffers and filters for coolant/wheelsetup/rpm data
     [ ] EGT.c rewrite
     [ ] Block initialized/working if function status is error
-    [ ] DeInit functions
+    [ ] Init/Start/Stop functions
     [ ] Check if function should be called start/init
     [ ] Set status error flag if already initialized & working
     [ ] Set debug status to D_CODE_ERROR on "return" when not working
@@ -29,6 +29,8 @@
     [ ] Move data processing functions ex: nECU_ADC_expSmooth to data_processing.c (reuse functions)
     [ ] Move "Started"/"Stopped" printf to debug.c
     [ ] Add checking for NULL pointer
+    [ ] ADC1/ADC2 - Stop (remember abot hard stop on error)
+    [ ] Speed sensig rewrite to simplify
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected

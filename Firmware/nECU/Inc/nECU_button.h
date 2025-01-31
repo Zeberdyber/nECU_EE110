@@ -34,28 +34,28 @@ extern "C"
 #define BUTTON_INPUT_DOUBLE_CLICK_TIME 700 // maximum time double click must be [ms]
 
   /* Start/Stop functions */
-  bool Button_Start(void);
-  void Button_Stop(void);
+  bool nECU_Button_Start(void);
+  bool nECU_Button_Stop(void);
 
   /* Output functions */
-  static bool ButtonLight_Init(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonLight object with corresponding timer
-  static void ButtonLight_Update(ButtonLight *Light);                                         // periodic animation update function
-  static void ButtonLight_TimeTrack(ButtonLight *Light);                                      // funtion called to update time passed
-  static void ButtonLight_Stop(ButtonLight *Light);                                           // stops button code
-  void ButtonLight_UpdateAll(void);                                                           // function to launch updates for all buttons
+  static bool nECU_Button_Light_Start(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonLight object with corresponding timer
+  static void nECU_Button_Light_Routine(ButtonLight *Light);                                         // periodic animation update function
+  static void nECU_Button_Light_TimeTrack(ButtonLight *Light);                                       // funtion called to update time passed
+  static void nECU_Button_Light_Stop(ButtonLight *Light);                                            // stops button code
+  void nECU_Button_Light_Routine_All(void);                                                          // function to launch updates for all buttons
 
   /* Input functions */
-  static bool ButtonInput_Init(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonInput object with corresponding timer and GPIO
-  static void ButtonInput_Stop(ButtonInput *button);                                           // stop Input Capture for selected button
-  void ButtonInput_Identify(TIM_HandleTypeDef *htim);                                          // function to identify to which button is pressed
-  static void ButtonInput_InterruptRoutine(ButtonInput *button);                               // routine to be called after input capture callback (updates button structure)
-  Button_ClickType ButtonInput_GetType(Button_ID id);                                          // get click type if avaliable
+  static bool nECU_Button_Input_Start(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonInput object with corresponding timer and GPIO
+  static void nECU_Button_Input_Stop(ButtonInput *button);                                            // stop Input Capture for selected button
+  void nECU_Button_Input_Identify(TIM_HandleTypeDef *htim);                                           // function to identify to which button is pressed
+  static void nECU_Button_Input_InterruptRoutine(ButtonInput *button);                                // routine to be called after input capture callback (updates button structure)
+  Button_ClickType nECU_Button_Input_GetType(Button_ID id);                                           // get click type if avaliable
 
   /* Animations */
-  static bool ButtonLight_Identify(Button_ID id, ButtonLight **light);  // find corresponding light structrue, return if ok
-  void ButtonLight_SetOne(Button_ID id, bool state);                    // set selected button
-  void ButtonLight_Breath(Button_ID id, uint8_t Speed, uint16_t Count); // breath one button
-  void ButtonLight_Blink(Button_ID id, uint8_t Speed, uint16_t Count);  // blink one button
+  static bool nECU_Button_Light_Identify(Button_ID id, ButtonLight **light);  // find corresponding light structrue, return if ok
+  void nECU_Button_Light_SetOne(Button_ID id, bool state);                    // set selected button
+  void nECU_Button_Light_Breath(Button_ID id, uint8_t Speed, uint16_t Count); // breath one button
+  void nECU_Button_Light_Blink(Button_ID id, uint8_t Speed, uint16_t Count);  // blink one button
 
 #ifdef __cplusplus
 }
