@@ -82,7 +82,7 @@ bool nECU_Debug_Start(void) // starts up debugging functions
     {
         status |= nECU_Debug_Init_Struct();
         status |= nECU_Debug_Init_Que();
-        status |= nECU_InternalTemp_Init();
+        status |= nECU_InternalTemp_Start();
         if (!status)
         {
             status |= !nECU_FlowControl_Initialize_Do(D_Debug);
@@ -113,27 +113,27 @@ static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
     for (uint8_t current_ID = 0; current_ID < EGT_ID_MAX; current_ID++) // Do for all EGT sensors
     {
         /* Device temperature */
-        if (EGT_GetTemperatureInternalPointer(current_ID)) // Check if pointer exists
+        if (nECU_EGT_TemperatureIC_getPointer(current_ID)) // Check if pointer exists
         {
-            dbg_data.device_temperature.EGT_IC[current_ID] = EGT_GetTemperatureInternalPointer(current_ID);
+            dbg_data.device_temperature.EGT_IC[current_ID] = nECU_EGT_TemperatureIC_getPointer(current_ID);
         }
         else
         {
             status |= nECU_FlowControl_Error_Do(D_Debug);
         }
         /* EGT temperature (thermocuple temperature) */
-        if (EGT_GetTemperaturePointer(current_ID)) // Check if pointer exists
+        if (nECU_EGT_Temperature_getPointer(current_ID)) // Check if pointer exists
         {
-            dbg_data.egt_temperature.EGT_IC[current_ID] = EGT_GetTemperaturePointer(current_ID);
+            dbg_data.egt_temperature.EGT_IC[current_ID] = nECU_EGT_Temperature_getPointer(current_ID);
         }
         else
         {
             status |= nECU_FlowControl_Error_Do(D_Debug);
         }
         /* EGT communication */
-        if (EGT_GetErrorState(current_ID)) // Check if pointer exists
+        if (nECU_EGT_Error_getPointer(current_ID)) // Check if pointer exists
         {
-            dbg_data.egt_communication.EGT_IC[current_ID] = EGT_GetErrorState(current_ID);
+            dbg_data.egt_communication.EGT_IC[current_ID] = nECU_EGT_Error_getPointer(current_ID);
         }
         else
         {
@@ -241,12 +241,13 @@ static void nECU_Debug_CAN_Check(void) // checks if CAN have any error pending
 }
 static void nECU_Debug_SPI_Check(void) // checks if SPI have any error pending
 {
-    if (HAL_SPI_GetState(&SPI_PERIPHERAL_EGT) == HAL_SPI_STATE_ERROR)
+    SPI_HandleTypeDef *hspi = nECU_SPI_getPointer(SPI_EGT_ID);
+    if (HAL_SPI_GetState(hspi) == HAL_SPI_STATE_ERROR)
     {
-        uint32_t error = HAL_SPI_GetError(&SPI_PERIPHERAL_EGT);
+        uint32_t error = HAL_SPI_GetError(hspi);
         if (error > HAL_SPI_ERROR_NONE)
         {
-            SPI_PERIPHERAL_EGT.ErrorCode = HAL_SPI_ERROR_NONE; // resets error
+            hspi->ErrorCode = HAL_SPI_ERROR_NONE; // resets error
             nECU_Debug_error_mesage temp;
             nECU_Debug_Message_Set(&temp, error, nECU_ERROR_SPI_ID);
         }
@@ -442,6 +443,14 @@ static uint8_t nECU_Debug_ProgramBlockData_Check_Single(nECU_ProgramBlockData *i
     }
 
     return result;
+}
+nECU_ProgramBlockData *nECU_Debug_ProgramBlockData_getPointer_Block(nECU_Module_ID ID) // returns pointer to given ID program block
+{
+    return &(Debug_Status_List[ID]);
+}
+uint32_t *nECU_Debug_ProgramBlockData_getPointer_Diff(nECU_Module_ID ID) // returns pointer to time difference
+{
+    return &(Debug_Status_List[ID].Update_ticks.difference);
 }
 
 /* Flow control */

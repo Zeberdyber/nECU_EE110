@@ -13,53 +13,8 @@ static AnalogSensor_Handle BackPressure = {0};
 static nECU_InternalTemp MCU_temperature = {0};
 static AnalogSensor_Handle AI1 = {0}, AI2 = {0}, AI3 = {0}; // additional analog inputs
 
-/* Analog sensors */
-void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst) // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
-{
-    inst->factor = (float)(inst->OUT_MeasuredMax - inst->OUT_MeasuredMin) / (inst->ADC_MeasuredMax - inst->ADC_MeasuredMin);
-    inst->offset = (float)inst->OUT_MeasuredMax - (inst->factor * inst->ADC_MeasuredMax);
-}
-float nECU_getLinearSensor(uint16_t *ADC_Value, AnalogSensorCalibration *inst) // function to get result of linear sensor
-{
-    return *ADC_Value * inst->factor + inst->offset;
-}
-uint16_t nECU_FloatToUint16_t(float input, uint8_t decimalPoint, uint8_t bitCount) // convert float value to uint16_t value with correct decimal point and bit lenght
-{
-    uint16_t output;
-    for (uint8_t i = 0; i < decimalPoint; i++) // adjust decimal point
-    {
-        input *= 10;
-    }
-    output = (uint16_t)input;
-
-    uint16_t mask = 0;
-    for (uint8_t i = 0; i <= bitCount; i++) // form mask for bit count
-    {
-        mask = (mask << 1) + 1;
-    }
-
-    return output & mask;
-}
-uint8_t nECU_FloatToUint8_t(float input, uint8_t decimalPoint, uint8_t bitCount) // convert float value to uint8_t value with correct decimal point and bit lenght
-{
-    uint8_t output;
-    for (uint8_t i = 0; i < decimalPoint; i++) // adjust decimal point
-    {
-        input *= 10;
-    }
-    output = (uint16_t)input;
-
-    uint8_t mask = 0;
-    for (uint8_t i = 0; i <= bitCount; i++) // form mask for bit count
-    {
-        mask = (mask << 1) + 1;
-    }
-
-    return output & mask;
-}
-
 /* Internal Temperatre (MCU) */
-bool nECU_InternalTemp_Init(void) // initialize structure
+bool nECU_InternalTemp_Start(void) // initialize structure
 {
     bool status = false;
 
@@ -87,11 +42,11 @@ void nECU_InternalTemp_Callback(void) // run when conversion ended
     }
     if (*nECU_InternalTemp_Delay_DoneFlag() == true)
     {
-        nECU_InternalTemp_Update(); // calculate value
+        nECU_InternalTemp_Routine(); // calculate value
         nECU_InternalTemp_Delay_Start();
     }
 }
-void nECU_InternalTemp_Update(void) // perform update of output variables
+void nECU_InternalTemp_Routine(void) // perform update of output variables
 {
     if (!(D_MCU_temperature.Status & D_BLOCK_WORKING))
     {
@@ -119,7 +74,7 @@ uint16_t *nECU_MAP_GetPointer(void) // returns pointer to resulting data
 {
     return &MAP.output16bit;
 }
-bool nECU_MAP_Init(void) // initialize MAP structure
+bool nECU_MAP_Start(void) // initialize MAP structure
 {
     bool status = false;
 
@@ -135,7 +90,7 @@ bool nECU_MAP_Init(void) // initialize MAP structure
     }
     return status;
 }
-void nECU_MAP_Update(void) // update MAP structure
+void nECU_MAP_Routine(void) // update MAP structure
 {
     if (D_MAP.Status != D_BLOCK_WORKING)
     {
@@ -143,7 +98,7 @@ void nECU_MAP_Update(void) // update MAP structure
     }
     nECU_ADC1_Routine(); // Pull new data
     nECU_A_Input_Update(&MAP);
-    MAP.output16bit = nECU_FloatToUint16_t(MAP.outputFloat, MAP_DECIMAL_POINT, 10); // manually update due to 10bit MAP resolution in CAN frame
+    MAP.output16bit = nECU_FloatToUint(MAP.outputFloat, 10); // manually update due to 10bit MAP resolution in CAN frame
 
     nECU_Debug_ProgramBlockData_Update(&D_MAP);
 }
@@ -153,7 +108,7 @@ uint8_t *nECU_BackPressure_GetPointer(void) // returns pointer to resulting data
 {
     return &BackPressure.output8bit;
 }
-bool nECU_BackPressure_Init(void) // initialize BackPressure structure
+bool nECU_BackPressure_Start(void) // initialize BackPressure structure
 {
     bool status = false;
 
@@ -170,7 +125,7 @@ bool nECU_BackPressure_Init(void) // initialize BackPressure structure
 
     return status;
 }
-void nECU_BackPressure_Update(void) // update BackPressure structure
+void nECU_BackPressure_Routine(void) // update BackPressure structure
 {
     if (D_BackPressure.Status != D_BLOCK_WORKING)
     {
@@ -295,9 +250,9 @@ void nECU_A_Input_Update(AnalogSensor_Handle *sensor) // update current value
 /* General */
 void nECU_Analog_Start(void) // start of all analog functions
 {
-    nECU_InternalTemp_Init();
-    nECU_MAP_Init();
-    nECU_BackPressure_Init();
+    nECU_InternalTemp_Start();
+    nECU_MAP_Start();
+    nECU_BackPressure_Start();
     nECU_A_Input_Init_All();
 }
 void nECU_Analog_Stop(void) // stop of all analog functions
@@ -306,8 +261,8 @@ void nECU_Analog_Stop(void) // stop of all analog functions
 }
 void nECU_Analog_Update(void) // update to all analog functions
 {
-    nECU_MAP_Update();
-    nECU_BackPressure_Update();
+    nECU_MAP_Routine();
+    nECU_BackPressure_Routine();
     nECU_InternalTemp_Callback();
     nECU_A_Input_Update_All();
 

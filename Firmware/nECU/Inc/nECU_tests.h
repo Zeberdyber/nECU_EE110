@@ -43,7 +43,7 @@ extern "C"
     /* system tests */
     bool nECU_systest_Flash_SpeedCalibration(void); // test both read and write to flash memory
     bool nECU_systest_Flash_UserSettings(void);     // test both read and write to flash memory
-    void nECU_systest_run(void);                    // run tests of type systest
+    bool nECU_systest_run(void);                    // run tests of type systest
     void nECU_systest_error(void);                  // function to call when error detected
 
     /* code tests */
@@ -53,11 +53,11 @@ extern "C"
     bool nECU_expSmooth_test(void);                // tests nECU_expSmooth() function
     bool nECU_averageSmooth_test(void);            // tests nECU_averageSmooth() function
     bool nECU_averageExpSmooth_test(void);         // tests nECU_averageExpSmooth() function
-    void nECU_codetest_run(void);                  // run tests of type codetest
+    bool nECU_codetest_run(void);                  // run tests of type codetest
     void nECU_codetest_error(void);                // function to call when error detected
 
     /* General */
-    void nECU_test(void); // perform tests
+    bool nECU_test(void); // perform tests
 
     /* temporary tests */
     void nECU_IGF_Test(void); // checks readout compared to CAN frame data

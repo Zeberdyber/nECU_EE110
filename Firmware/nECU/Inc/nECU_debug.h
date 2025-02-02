@@ -52,11 +52,13 @@ extern "C"
     void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Error_ID ID); // sets error values
 
     /* Program Block */
-    static void nECU_Debug_ProgramBlock_Init(void);                                       // Initialize 'ProgramBlock' tracking
-    static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst);           // Clear structure 'ProgramBlockData'
-    void nECU_Debug_ProgramBlockData_Update(nECU_Module_ID ID);                           // Update tick tracking and check for timeout
-    void nECU_Debug_ProgramBlockData_Check(void);                                         // Perform error check for all blocks
-    static uint8_t nECU_Debug_ProgramBlockData_Check_Single(nECU_ProgramBlockData *inst); // returns if errors occur
+    static void nECU_Debug_ProgramBlock_Init(void);                                         // Initialize 'ProgramBlock' tracking
+    static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst);             // Clear structure 'ProgramBlockData'
+    void nECU_Debug_ProgramBlockData_Update(nECU_Module_ID ID);                             // Update tick tracking and check for timeout
+    void nECU_Debug_ProgramBlockData_Check(void);                                           // Perform error check for all blocks
+    static uint8_t nECU_Debug_ProgramBlockData_Check_Single(nECU_ProgramBlockData *inst);   // returns if errors occur
+    nECU_ProgramBlockData *nECU_Debug_ProgramBlockData_getPointer_Block(nECU_Module_ID ID); // returns pointer to given ID program block
+    uint32_t *nECU_Debug_ProgramBlockData_getPointer_Diff(nECU_Module_ID ID);               // returns pointer to time difference
 
     /* Flow control */
     bool nECU_FlowControl_Stop_Check(nECU_Module_ID ID);        // Check if block has "initialized" status

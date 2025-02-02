@@ -8,44 +8,53 @@
 
 #include "nECU_main.h"
 
-extern nECU_ProgramBlockData D_Main; // diagnostic and flow control data
-
 /* General code */
 void nECU_Start(void) // start executing program (mostly in main loop, some in background with interrupts)
 {
-    if (D_Main.Status == D_BLOCK_STOP)
+    bool status = false;
+    status |= nECU_Debug_Start(); // MUST BE THE FIRST EXECUTED LINE!!
+
+    if (!nECU_FlowControl_Initialize_Check(D_Main))
     {
-        nECU_Debug_Start(); // MUST BE THE FIRST EXECUTED LINE!!
+        status |= nECU_PC_Start();
 
-        nECU_PC_Init();
+        status |= nECU_FLASH_Start(); // initialize FLASH module -> copy from FLASH to RAM
 
-        nECU_FLASH_Start(); // initialize FLASH module -> copy from FLASH to RAM
+        status |= nECU_test(); // perform system and code tests
 
-        nECU_test(); // perform system and code tests
+        status |= Frame0_Start();
+        status |= Frame1_Start();
+        status |= Frame2_Start();
+        status |= nECU_CAN_Start();
 
-        Frame0_Start();
-        Frame1_Start();
-        Frame2_Start();
-        nECU_CAN_Start();
+        status |= OnBoard_LED_Start();
 
-        OnBoard_LED_Init();
-
-        printf("Main loop -> STARTED!\n");
-        D_Main.Status |= D_BLOCK_INITIALIZED_WORKING;
+        if (!status)
+            status |= nECU_FlowControl_Initialize_Do(D_Main);
+    }
+    if (!nECU_FlowControl_Working_Check(D_Main))
+    {
+        if (!status)
+        {
+            status |= !nECU_FlowControl_Working_Check(D_Main);
+        }
+    }
+    if (status)
+    {
+        nECU_FlowControl_Error_Do(D_Main);
     }
 }
 void nECU_main(void) // main rutine of the program
 {
-    if (!(D_Main.Status & D_BLOCK_WORKING))
+    if (!nECU_FlowControl_Working_Check(D_Main))
     {
-        D_Main.Status |= D_BLOCK_CODE_ERROR;
+        nECU_FlowControl_Error_Do(D_Main);
         return;
     }
 
     // call periodic functions
     nECU_Knock_UpdatePeriodic();
-    EGT_Periodic();
-    nECU_ADC_All_Routine();
+    EGT_Routine();
     Button_Menu();
     nECU_Delay_UpdateAll();
 
@@ -62,17 +71,18 @@ void nECU_main(void) // main rutine of the program
 
     test_uart();
 
-    nECU_Debug_ProgramBlockData_Update(&D_Main);
+    nECU_Debug_ProgramBlockData_Update(D_Main);
     nECU_Debug_ProgramBlockData_Check();
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {
-    ADC_STOP_ALL();
-    nECU_Stock_Stop();
-    nECU_Button_Stop();
-    nECU_CAN_Stop();
-    nECU_Knock_Stop();
+    bool status = false;
+    status |= nECU_Button_Stop();
+    status |= nECU_CAN_Stop();
+    status |= nECU_Knock_Stop();
+    if (!status)
+        status |= nECU_FlowControl_Stop_Do(D_Main);
 
-    printf("Main loop -> STOPPED!\n");
-    D_Main.Status -= D_BLOCK_INITIALIZED_WORKING;
+    if (status)
+        nECU_FlowControl_Error_Do(D_Main);
 }

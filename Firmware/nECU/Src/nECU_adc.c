@@ -309,9 +309,9 @@ uint16_t *nECU_ADC_getPointer_InternalTemp(void)
 }
 uint16_t *nECU_ADC_getPointer_SpeedSens(Speed_Sensor_ID ID)
 {
-  if (ID == SPEED_SENSOR_NONE_ID)
+  if (ID > SPEED_SENSOR_ID_MAX)
   {
-    return &adc2_data.out_buffer[0];
+    return NULL;
   }
   return &adc2_data.out_buffer[0 + ID];
 }

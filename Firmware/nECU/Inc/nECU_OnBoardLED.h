@@ -23,10 +23,10 @@ extern "C"
 
     /* Function Prototypes */
     /* GPIO */
-    void OnBoard_LED_GPIO_Init(OnBoardLED *inst, uint16_t GPIO_Pin, GPIO_TypeDef *GPIOx); // initializes single LED GPIO structure
-    void OnBoard_LED_GPIO_Update(GPIO_struct *inst, GPIO_PinState State);                 // update of GPIO output
+    static bool OnBoard_LED_GPIO_Init(OnBoardLED *inst, uint16_t GPIO_Pin, GPIO_TypeDef *GPIOx); // initializes single LED GPIO structure
+    static bool OnBoard_LED_GPIO_Update(GPIO_struct *inst, GPIO_PinState State);                 // update of GPIO output
     /* Animation */
-    void OnBoard_LED_Animation_Init(OnBoardLED_Animate *inst, OnBoardLED_Animate_ID priority);      // initializes animation structure
+    bool OnBoard_LED_Animation_Init(OnBoardLED_Animate *inst, OnBoardLED_Animate_ID priority);      // initializes animation structure
     static void OnBoard_LED_Animation_BlinkSetDelay(OnBoardLED_Animate *inst, uint32_t delay);      // sets delay for blinking
     void OnBoard_LED_Animation_BlinkStart(OnBoardLED_Animate *inst, uint32_t delay, uint8_t count); // starts blink animation
     static void OnBoard_LED_Animation_BlinkStop(OnBoardLED_Animate *inst);                          // stops blink animation
@@ -34,12 +34,12 @@ extern "C"
     static void OnBoard_LED_State_Set(OnBoardLED_Animate *inst, GPIO_PinState State);               // sets the current state
     static void OnBoard_LED_State_Flip(OnBoardLED_Animate *inst);                                   // flips the current state
     /* Animation que */
-    static void OnBoard_LED_Que_Init(OnBoardLED *inst);                                  // initialize que data struct
+    static bool OnBoard_LED_Que_Init(OnBoardLED *inst);                                  // initialize que data struct
     static void OnBoard_LED_Que_Add(OnBoardLED *inst, OnBoardLED_Animate *animation);    // adds to the que
     static void OnBoard_LED_Que_Remove(OnBoardLED *inst, OnBoardLED_Animate *animation); // removes from the que
     static void OnBoard_LED_Que_Check(OnBoardLED *inst);                                 // check if current animation is done, move que
     /* General */
-    void OnBoard_LED_Init(void);                      // initialize structures for on board LEDs
+    bool OnBoard_LED_Start(void);                     // initialize structures for on board LEDs
     void OnBoard_LED_Update(void);                    // update on board LEDs states
     void OnBoard_LED_Update_Single(OnBoardLED *inst); // update of all internal variables
     /* LED interface functions */

@@ -31,6 +31,7 @@
     [ ] Add checking for NULL pointer
     [ ] ADC1/ADC2 - Stop (remember abot hard stop on error)
     [ ] Speed sensig rewrite to simplify
+    [ ] check _ID_MAX usage
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected

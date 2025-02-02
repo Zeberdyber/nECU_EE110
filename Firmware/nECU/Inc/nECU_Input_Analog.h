@@ -29,7 +29,6 @@ extern "C"
 #define MAP_kPA_CALIB_MAX 1020 // maximum sensor value result for maximum voltage
 #define MAP_ADC_CALIB_MIN 1203 // minimum ADC value for minimum sensor value
 #define MAP_ADC_CALIB_MAX 3020 // maximum ADC value for maximum sensor value
-#define MAP_DECIMAL_POINT 0    // how many numbers after decimal point
 
 #define BACKPRESSURE_kPA_CALIB_MIN -20  // minimum sensor value result for minimum voltage
 #define BACKPRESSURE_kPA_CALIB_MAX 0    // maximum sensor value result for maximum voltage
@@ -40,26 +39,20 @@ extern "C"
     /* typedef */
 
     /* Function Prototypes */
-    /* Analog sensors */
-    void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst);                // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
-    float nECU_getLinearSensor(uint16_t *ADC_Value, AnalogSensorCalibration *inst);     // function to get result of linear sensor
-    uint16_t nECU_FloatToUint16_t(float input, uint8_t decimalPoint, uint8_t bitCount); // convert float value to uint16_t value with correct decimal point and bit lenght
-    uint8_t nECU_FloatToUint8_t(float input, uint8_t decimalPoint, uint8_t bitCount);   // convert float value to uint8_t value with correct decimal point and bit lenght
-
     /* Internal Temperatre (MCU) */
-    bool nECU_InternalTemp_Init(void);               // initialize structure
+    bool nECU_InternalTemp_Start(void);              // initialize structure
     void nECU_InternalTemp_Callback(void);           // run when conversion ended
-    void nECU_InternalTemp_Update(void);             // perform update of output variables
+    void nECU_InternalTemp_Routine(void);            // perform update of output variables
     int16_t *nECU_InternalTemp_getTemperature(void); // return current temperature pointer (multiplied 100x)
 
     /* MAP */
     uint16_t *nECU_MAP_GetPointer(void); // returns pointer to resulting data
-    bool nECU_MAP_Init(void);            // initialize MAP structure
-    void nECU_MAP_Update(void);          // update MAP structure
+    bool nECU_MAP_Start(void);           // initialize MAP structure
+    void nECU_MAP_Routine(void);         // update MAP structure
     /* BackPressure */
     uint8_t *nECU_BackPressure_GetPointer(void); // returns pointer to resulting data
-    bool nECU_BackPressure_Init(void);           // initialize BackPressure structure
-    void nECU_BackPressure_Update(void);         // update BackPressure structure
+    bool nECU_BackPressure_Start(void);          // initialize BackPressure structure
+    void nECU_BackPressure_Routine(void);        // update BackPressure structure
 
     void nECU_A_Input_Init_All(void);                                                                                                                       // Initialize additional analog inputs
     void nECU_A_Input_Update_All(void);                                                                                                                     // Update additional analog inputs

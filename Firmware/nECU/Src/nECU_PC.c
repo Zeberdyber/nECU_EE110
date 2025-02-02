@@ -42,8 +42,9 @@ void test_uart(void) // test function only
 }
 
 /* General functions */
-void nECU_PC_Init(void) // initializes structures for PC communication over UART
+bool nECU_PC_Start(void) // initializes structures for PC communication over UART
 {
+    bool status = false;
     if (D_PC.Status == D_BLOCK_STOP)
     {
         /* clear buffers */
@@ -54,30 +55,22 @@ void nECU_PC_Init(void) // initializes structures for PC communication over UART
         nECU_UART_Init(&(PC.output), &PC_UART, (PC.out_buf));
         OnBoard_LED_Animation_Init(&(PC.Tx_LED), LED_ANIMATE_UART_ID);
         OnBoard_LED_Animation_Init(&(PC.Rx_LED), LED_ANIMATE_UART_ID);
-        OnBoard_LED_Init();
+        OnBoard_LED_Start();
 
         D_PC.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_PC.Status & D_BLOCK_INITIALIZED && !(D_PC.Status & D_BLOCK_WORKING))
     {
         D_PC.Status |= D_BLOCK_WORKING;
-        nECU_PC_Start();
-    }
-}
-void nECU_PC_Start(void) // call to start transmission
-{
-    if (!(D_PC.Status & D_BLOCK_INITIALIZED_WORKING))
-    {
-        D_PC.Status |= D_BLOCK_CODE_ERROR;
-        return;
+        OnBoard_LED_L_Add_Animation(&(PC.Tx_LED));
+        OnBoard_LED_R_Add_Animation(&(PC.Rx_LED));
     }
 
-    OnBoard_LED_L_Add_Animation(&(PC.Tx_LED));
-    OnBoard_LED_R_Add_Animation(&(PC.Rx_LED));
-    printf("PC communication -> STARTED!\n");
+    return status;
 }
-void nECU_PC_Stop(void) // call to stop transmission
+bool nECU_PC_Stop(void) // call to stop transmission
 {
+    bool status = false;
     if (!(D_PC.Status & D_BLOCK_WORKING))
     {
         D_PC.Status |= D_BLOCK_CODE_ERROR;
@@ -88,6 +81,8 @@ void nECU_PC_Stop(void) // call to stop transmission
     OnBoard_LED_L_Remove_Animation(&(PC.Rx_LED));
 
     D_PC.Status -= D_BLOCK_INITIALIZED_WORKING;
+
+    return status;
 }
 
 /* Send */

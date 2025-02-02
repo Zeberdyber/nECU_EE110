@@ -9,16 +9,16 @@
 #include "nECU_EGT.h"
 
 /* EGT variables */
-nECU_EGT EGT_variables = {0};
+nECU_EGT EGT_data = {0};
 
 // Look up table
-static GPIO_TypeDef const *const EGT_GPIO_Port_List[EGT_ID_MAX] = {
+static GPIO_TypeDef *const EGT_GPIO_Port_List[EGT_ID_MAX] = {
     [EGT1_ID] = T1_CS_GPIO_Port,
     [EGT2_ID] = T2_CS_GPIO_Port,
     [EGT3_ID] = T3_CS_GPIO_Port,
     [EGT4_ID] = T4_CS_GPIO_Port,
 };
-static GPIO_TypeDef const *const EGT_GPIO_Pin_List[EGT_ID_MAX] = {
+static const uint16_t EGT_GPIO_Pin_List[EGT_ID_MAX] = {
     [EGT1_ID] = T1_CS_Pin,
     [EGT2_ID] = T2_CS_Pin,
     [EGT3_ID] = T3_CS_Pin,
@@ -26,7 +26,7 @@ static GPIO_TypeDef const *const EGT_GPIO_Pin_List[EGT_ID_MAX] = {
 };
 
 /* interface functions */
-uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID) // get function that returns pointer to output data of sensor, ready for can transmission
+uint16_t *nECU_EGT_Temperature_getPointer(EGT_Sensor_ID ID) // get function that returns pointer to output data of sensor, ready for can transmission
 {
     if (ID >= EGT_ID_MAX)
     {
@@ -37,9 +37,9 @@ uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID) // get function that retur
         return NULL;
     }
 
-    return EGT_variables.TC[ID].EGT_Temperature;
+    return &EGT_data.TC[ID].EGT_Temperature;
 }
-int16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID) // get function that returns pointer to internal temperature data of sensor
+int16_t *nECU_EGT_TemperatureIC_getPointer(EGT_Sensor_ID ID) // get function that returns pointer to internal temperature data of sensor
 {
     if (ID >= EGT_ID_MAX)
     {
@@ -50,9 +50,9 @@ int16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID) // get function tha
         return NULL;
     }
 
-    return EGT_variables.TC[ID].IC_Temperature;
+    return &EGT_data.TC[ID].IC_Temperature;
 }
-EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID) // get function returns pointer to error code
+EGT_Error_Code *nECU_EGT_Error_getPointer(EGT_Sensor_ID ID) // get function returns pointer to error code
 {
     if (ID >= EGT_ID_MAX)
     {
@@ -63,39 +63,35 @@ EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID) // get function returns poin
         return NULL;
     }
 
-    return EGT_variables.TC[ID].ErrCode;
+    return &EGT_data.TC[ID].ErrCode;
 }
 
 /* EGT functions */
 bool EGT_Start(void) // initialize all sensors and start communication
 {
     bool status = false;
-    EGT_variables.EGT_CurrentSensor = 0;
+    EGT_data.currentSensor = 0;
 
     // Delay needed as EGT ICs may take some time to startup
     uint32_t delay = EGT_STARTUP_DELAY;
-    nECU_Delay_Set(&(EGT_variables.startup_Delay), &delay);
-    nECU_Delay_Start(&(EGT_variables.startup_Delay));
+    nECU_Delay_Set(&(EGT_data.startup), &delay);
+    nECU_Delay_Start(&(EGT_data.startup));
 
     for (EGT_Sensor_ID current_ID = 0; current_ID < EGT_ID_MAX; current_ID++) // initialize all egt sensors
     {
         bool current_status = false;
         if (!nECU_FlowControl_Initialize_Check(D_EGT1 + current_ID))
         {
-            current_status |= MAX31855_Init(&EGT_variables.TC[current_ID], &SPI_PERIPHERAL_EGT, EGT_GPIO_Port_List[current_ID], EGT_GPIO_Pin_List[current_ID]);
+            current_status |= MAX31855_Init(&EGT_data.TC[current_ID], EGT_GPIO_Port_List[current_ID], EGT_GPIO_Pin_List[current_ID]);
             if (!current_status)
-            {
                 current_status |= !nECU_FlowControl_Initialize_Check(D_EGT1 + current_ID);
-            }
         }
         if (!nECU_FlowControl_Working_Check(D_EGT1 + current_ID))
-        {
             current_status |= !nECU_FlowControl_Working_Do(D_EGT1 + current_ID);
-        }
+
         if (current_status)
-        {
             nECU_FlowControl_Error_Do(D_EGT1 + current_ID);
-        }
+
         status |= current_status;
     }
 
@@ -105,10 +101,9 @@ void EGT_Stop(void) // stop the routines
 {
     UNUSED(NULL);
 }
-
 void EGT_Routine(void) // periodic function to be called every main loop execution
 {
-    nECU_Delay_Update(&(EGT_variables.startup_Delay));
+    nECU_Delay_Update(&(EGT_data.startup));
 
     for (EGT_Sensor_ID Current_ID = 0; Current_ID < EGT_ID_MAX; Current_ID++) // Check if all are working
     {
@@ -118,116 +113,65 @@ void EGT_Routine(void) // periodic function to be called every main loop executi
             return;
         }
     }
-    if (EGT_variables.startup_Delay.done == false) // Break if still in booting
-    {
+    if (EGT_data.startup.done == false) // Break if still in booting
         return;
-    }
 
-    if (EGT_variables.updatePending == true)
+    // do the update for each sensor
+    if (EGT_data.currentSensor == 0) // begin the transmission
+        nECU_EGT_Callback();
+    else if (EGT_data.currentSensor >= 4) // do if all sensors were done
     {
-        // do the update for each sensor
-        if (EGT_variables.EGT_CurrentSensor == 0) // begin the transmission
+        for (EGT_Sensor_ID current_ID = 0; current_ID < EGT_ID_MAX; current_ID++)
         {
-            EGT_SPI_startNext();
+            MAX31855_ConvertData(&EGT_data.TC[current_ID]);
+            EGT_TemperatureTo10bit(&EGT_data.TC[current_ID]);
         }
-        else if (EGT_variables.EGT_CurrentSensor >= 4) // do if all sensors were done
-        {
-            EGT_ConvertAll();
-            EGT_variables.EGT_CurrentSensor = 0;
-            EGT_variables.updatePending = false;
-        }
-    }
-}
-static void EGT_ConvertAll(void) // convert data if pending
-{
-    for (EGT_Sensor_ID current_ID = 0; current_ID < EGT_ID_MAX; current_ID++)
-    {
-        if (EGT_variables.TC[current_ID].data_Pending > 0)
-        {
-            MAX31855_ConvertData(&EGT_variables.TC[current_ID]);
-            EGT_TemperatureTo10bit(&EGT_variables.TC[current_ID]);
-        }
-    }
-}
-static void EGT_TemperatureTo10bit(MAX31855 *inst) // function to convert temperature value to 10bit number for CAN transmission
-{
-    float Input = inst->TcTemp;
-    for (uint8_t i = 0; i <= EGT_DECIMAL_POINT; i++) // extend to desired decimal point
-    {
-        Input *= 10;
-    }
-    Input -= EGT_NEGATIVE_OFFSET;
-    if (Input < 0.0 || Input > 1023.0) // if out of 10bit bound zero out
-    {
-        Input = 0.0;
-    }
-    inst->EGT_Temperature = (uint16_t)Input;
-}
-
-MAX31855 *EGT_SPI_getNext(uint8_t sensorNumber) // returns pointer to correct IC
-{
-    sensorNumber = sensorNumber;
-    switch (EGT_variables.EGT_CurrentSensor) // assign next MAX31855
-    {
-    case EGT_CYL1:
-        return &EGT_variables.TC1;
-        break;
-    case EGT_CYL2:
-        return &EGT_variables.TC2;
-        break;
-    case EGT_CYL3:
-        return &EGT_variables.TC3;
-        break;
-    case EGT_CYL4:
-        return &EGT_variables.TC4;
-    default:
-        break;
-    }
-
-    return NULL;
-}
-void EGT_SPI_startNext(void) // starts SPI communication for next IC
-{
-    EGT_variables.EGT_CurrentSensor++;
-    EGT_variables.EGT_CurrentObj = EGT_SPI_getNext(EGT_variables.EGT_CurrentSensor);
-    nECU_SPI_Rx_IT_Start(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, &EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, EGT_variables.EGT_CurrentObj->hspi, (uint8_t *)EGT_variables.EGT_CurrentObj->in_buffer, 4); // start reciving data
-}
-void EGT_SPI_Callback(bool error) // callback from SPI_TX end callback
-{
-    if (EGT_working == false)
-    {
-        return; // if this line was called that means there is an error in SPI configuration or direct callback functions
-    }
-
-    // Pull pin high to stop transmission
-    HAL_GPIO_WritePin(EGT_variables.EGT_CurrentObj->CS_pin.GPIOx, EGT_variables.EGT_CurrentObj->CS_pin.GPIO_Pin, GPIO_PIN_SET);
-
-    if (error == true) // if error
-    {
-        EGT_variables.EGT_CurrentObj->comm_fail++;
-        if (EGT_variables.EGT_CurrentObj->comm_fail > EGT_COMM_FAIL_MAX) // if fail threshold reached
-        {
-            nECU_Debug_EGTSPIcomm_error(EGT_variables.EGT_CurrentSensor);
-            EGT_variables.EGT_CurrentObj->comm_fail = 0;
-        }
-    }
-    else
-    {
-        EGT_variables.EGT_CurrentObj->data_Pending++; // indicate that data was recived and can be used for the update
-    }
-
-    if (EGT_variables.EGT_CurrentSensor < 4) // if not done go to next sensor
-    {
-        EGT_SPI_startNext();
+        EGT_data.currentSensor = 0;
     }
 }
 void EGT_RequestUpdate(void) // indicate that update is needed
 {
-    EGT_variables.EGT_CurrentSensor = 0; // Start from the top
+    EGT_data.currentSensor = 0; // Start from the top
 }
 
-bool MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin) // First initialization
+static void EGT_TemperatureTo10bit(MAX31855 *inst) // function to convert temperature value to 10bit number for CAN transmission
 {
+    float Input = inst->TcTemp;
+    for (uint8_t i = 0; i <= EGT_DECIMAL_POINT; i++) // extend to desired decimal point
+        Input *= 10;
+
+    Input -= EGT_NEGATIVE_OFFSET;
+    if (Input < 0.0 || Input > 1023.0) // if out of 10bit bound zero out
+        Input = 0.0;
+
+    inst->EGT_Temperature = (uint16_t)Input;
+}
+
+void nECU_EGT_Callback(void) // callback from SPI_TX end callback
+{
+    while (!nECU_FlowControl_Working_Check(D_EGT1 + (EGT_data.currentSensor))) // find next working sensor
+    {
+        EGT_data.currentSensor++;
+        if (EGT_data.currentSensor >= EGT_ID_MAX)
+            return;
+    }
+    nECU_SPI_Rx_IT_Start(&(EGT_data.TC[EGT_data.currentSensor].CS_pin), (EGT_Sensor_ID)EGT_data.currentSensor, (uint8_t *)EGT_data.TC[EGT_data.currentSensor].in_buffer, 4); // start reciving data
+}
+void nECU_EGT_Error_Callback(void) // Callback after SPI communication fail
+{
+    if (EGT_data.TC[EGT_data.currentSensor].comm_fail > EGT_COMM_FAIL_MAX) // if fail threshold reached
+    {
+        nECU_Debug_EGTSPIcomm_error(EGT_data.currentSensor);
+        EGT_data.TC[EGT_data.currentSensor].comm_fail = 0;
+    }
+    nECU_EGT_Callback();
+}
+
+static bool MAX31855_Init(MAX31855 *inst, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin) // First initialization
+{
+    if (inst == NULL || GPIOx == NULL) // Break if pointers do not exist
+        return true;
+
     bool status = false;
 
     inst->OC_Fault = false;
@@ -237,15 +181,17 @@ bool MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx,
     inst->InternalTemp = 0;
     inst->TcTemp = 0;
 
-    inst->hspi = hspi;
     inst->CS_pin.GPIOx = GPIOx;
     inst->CS_pin.GPIO_Pin = GPIO_Pin;
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, GPIO_PIN_SET);
 
     return status;
 }
-void MAX31855_collectError(MAX31855 *inst) // get current error value
+static void MAX31855_collectError(MAX31855 *inst) // get current error value
 {
+    if (inst == NULL) // Break if pointers do not exist
+        return;
+
     if (inst->SCG_Fault || inst->SCV_Fault)
     {
         inst->ErrCode = EGT_ERROR_SC;
@@ -262,18 +208,21 @@ void MAX31855_collectError(MAX31855 *inst) // get current error value
         return;
     }
 }
-void MAX31855_UpdateSimple(MAX31855 *inst) // Recive data over SPI and convert it into struct, dont use while in DMA mode
+static void MAX31855_UpdateSimple(MAX31855 *inst, SPI_HandleTypeDef *hspi) // Recive data over SPI and convert it into struct, dont use while in DMA mode
 {
+    if (inst == NULL || hspi == NULL) // Break if pointers do not exist
+        return;
+
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, GPIO_PIN_RESET);
-    // HAL_Delay(1);
-    HAL_SPI_Receive_IT(inst->hspi, (uint8_t *)inst->in_buffer, sizeof(inst->in_buffer));
-    inst->data_Pending++;
-    HAL_Delay(1); // delay for callback
+    HAL_SPI_Receive(hspi, (uint8_t *)inst->in_buffer, sizeof(inst->in_buffer), 100);
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, GPIO_PIN_SET);
     MAX31855_ConvertData(inst);
 }
-void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and data interpretation
+static void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and data interpretation
 {
+    if (inst == NULL) // Break if pointers do not exist
+        return;
+
     inst->OC_Fault = (inst->in_buffer[3] >> 0) & 0x01;
     inst->SCG_Fault = (inst->in_buffer[3] >> 1) & 0x01;
     inst->SCV_Fault = (inst->in_buffer[3] >> 2) & 0x01;
@@ -294,6 +243,5 @@ void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and d
         inst->IC_Temperature = inst->InternalTemp * INTERNAL_TEMP_MULTIPLIER; // float to int16_t
     }
 
-    inst->data_Pending = 0;
     MAX31855_collectError(inst);
 }

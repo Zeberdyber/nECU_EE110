@@ -32,7 +32,7 @@ extern "C"
   // General functions
   bool nECU_CAN_Start(void);                                                     // start periodic transmission of EGT and Speed sensor data
   void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame); // copy input data to corresponding frame buffer
-  void nECU_CAN_Stop(void);                                                      // stop all CAN code, with timing
+  bool nECU_CAN_Stop(void);                                                      // stop all CAN code, with timing
   void nECU_CAN_CheckTime(void);                                                 // checks if it is time to send packet
 
   // Communication functions
@@ -42,11 +42,11 @@ extern "C"
   // Diagnostic functions
   static uint8_t nECU_CAN_IsBusy(void); // Check if any messages are pending
   static bool nECU_CAN_GetState(void);  // get data if can periperal buisy
-  static bool nECU_CAN_GetError(void);  // get error state pf can periperal buisy
+  bool nECU_CAN_GetError(void);         // get error state pf can periperal buisy
 
   // Recive functions
   static bool nECU_CAN_RX_InitFrame(void);                         // initialize reciving frames with corresponding filters
-  void nECU_CAN_RX_Stop(void);                                     // Disables Recive communication
+  bool nECU_CAN_RX_Stop(void);                                     // Disables Recive communication
   void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan); // interrupt callback when new Rx frame in FIFO0
 
   // Pointers

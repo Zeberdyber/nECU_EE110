@@ -40,10 +40,6 @@ extern "C"
     bool *nECU_stock_GPIO_getPointer(stock_inputs_ID id); // return pointers of structure variables
     /* Immobilizer */
     bool *nECU_Immo_getPointer(void); // returns pointer to immobilizer valid
-    /* General */
-    bool nECU_Stock_Start(void);  // function to initialize all stock stuff
-    void nECU_Stock_Stop(void);   // function to deinitialize all stock stuff
-    void nECU_Stock_Update(void); // function to update structures
 
 #ifdef __cplusplus
 }

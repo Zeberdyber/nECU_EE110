@@ -28,25 +28,24 @@ extern "C"
 #define EGT_STARTUP_DELAY 250   // time in ms for MAX31855 startup
 
     /* Function Prototypes */
-    uint16_t *EGT_GetTemperaturePointer(EGT_Sensor_ID ID);        // get function that returns pointer to output data of sensor, ready for can transmission
-    int16_t *EGT_GetTemperatureInternalPointer(EGT_Sensor_ID ID); // get function that returns pointer to internal temperature data of sensor
-    EGT_Error_Code *EGT_GetErrorState(EGT_Sensor_ID ID);          // get function returns pointer to error code
+    uint16_t *nECU_EGT_Temperature_getPointer(EGT_Sensor_ID ID);  // get function that returns pointer to output data of sensor, ready for can transmission
+    int16_t *nECU_EGT_TemperatureIC_getPointer(EGT_Sensor_ID ID); // get function that returns pointer to internal temperature data of sensor
+    EGT_Error_Code *nECU_EGT_Error_getPointer(EGT_Sensor_ID ID);  // get function returns pointer to error code
 
     bool EGT_Start(void);   // initialize all sensors and start communication
     void EGT_Stop(void);    // stop the routines
     void EGT_Routine(void); // periodic function to be called every main loop execution
 
-    void EGT_ConvertAll(void);                       // convert data if pending
-    void EGT_TemperatureTo10bit(MAX31855 *inst);     // function to convert temperature value to 10bit number for CAN transmission
-    MAX31855 *EGT_SPI_getNext(uint8_t sensorNumber); // returns pointer to correct IC
-    void EGT_SPI_startNext(void);                    // starts SPI communication for next IC
-    void EGT_SPI_Callback(bool error);               // callback from SPI_TX end callback
-    void EGT_RequestUpdate(void);                    // indicate that update is needed
+    static void nECU_EGT_Convert_All(void);             // convert data if pending
+    static void EGT_TemperatureTo10bit(MAX31855 *inst); // function to convert temperature value to 10bit number for CAN transmission
+    void nECU_EGT_Callback(void);                       // callback from SPI_TX end callback
+    void nECU_EGT_Error_Callback(void);                 // Callback after SPI communication fail
+    void EGT_RequestUpdate(void);                       // indicate that update is needed
 
-    bool MAX31855_Init(MAX31855 *inst, SPI_HandleTypeDef *hspi, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin); // First initialization
-    void MAX31855_collectError(MAX31855 *inst);                                                          // get current error value
-    void MAX31855_UpdateSimple(MAX31855 *inst);                                                          // Recive data over SPI and convert it into struct, dont use while in DMA mode
-    void MAX31855_ConvertData(MAX31855 *inst);                                                           // For internal use bit decoding and data interpretation
+    static bool MAX31855_Init(MAX31855 *inst, GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin); // First initialization
+    static void MAX31855_collectError(MAX31855 *inst);                                 // get current error value
+    static void MAX31855_UpdateSimple(MAX31855 *inst, SPI_HandleTypeDef *hspi);        // Recive data over SPI and convert it into struct, dont use while in DMA mode
+    static void MAX31855_ConvertData(MAX31855 *inst);                                  // For internal use bit decoding and data interpretation
 
 #ifdef __cplusplus
 }

@@ -216,22 +216,20 @@ typedef enum
 } EGT_Error_Code;
 typedef struct
 {
-    SPI_HandleTypeDef *hspi;                         // peripheral pointer
     GPIO_struct CS_pin;                              // GPIO for Chip Select
     uint8_t in_buffer[4];                            // recived data buffer
-    uint8_t comm_fail;                               // counter of how many times communication have failed
-    uint8_t data_Pending;                            // data was recieved and is pending to be decoded
     bool OC_Fault, SCG_Fault, SCV_Fault, Data_Error; // Thermocouple state / data validity
     EGT_Error_Code ErrCode;                          // code of error acording to definition
+    uint8_t comm_fail;                               // communication error count to IC
     float InternalTemp, TcTemp;                      // temperature of ADC chip, thermocouple temperature
     uint16_t EGT_Temperature;                        // output temperature
     int16_t IC_Temperature;                          // device temperature
 } MAX31855;
 typedef struct
 {
-    MAX31855 TC[EGT_ID_MAX];   // sensor structures
-    uint8_t EGT_CurrentSensor; // number of current sensor (for sensor asking loop)
-    nECU_Delay startup_Delay;  // used as a delay to prevent spi communication until ICs turn on properly
+    MAX31855 TC[EGT_ID_MAX];     // sensor structures
+    EGT_Sensor_ID currentSensor; // number of current sensor (for sensor asking loop)
+    nECU_Delay startup;          // used as a delay to prevent spi communication until ICs turn on properly
 } nECU_EGT;
 
 /* Menu */
@@ -243,6 +241,7 @@ typedef enum
 } TuneSelector_ID;
 typedef enum
 {
+    LaunchControl_OFF,
     LaunchControl_Low,
     LaunchControl_Medium,
     LaunchControl_High,
@@ -328,8 +327,8 @@ typedef struct
 
     // outside variables
     bool *Cranking, *Fan_ON, *Lights_ON, *IgnitionKey;
-    bool *Antilag, *TractionOFF, *ClearEngineCode;
     bool *TachoShow[TACHO_ID_MAX];
+    bool *Antilag, *TractionOFF, *ClearEngineCode;
     uint16_t *LunchControlLevel;
     uint16_t *SpeedSensor[SPEED_SENSOR_ID_MAX];
 } Frame0_struct;
@@ -340,7 +339,7 @@ typedef struct
 
     // outside variables
     uint16_t *EGT[EGT_ID_MAX];
-    uint8_t *TachoVal[3];
+    uint8_t *TachoVal[TACHO_ID_MAX];
     uint16_t *TuneSelector;
 } Frame1_struct;
 typedef struct
@@ -421,6 +420,18 @@ typedef struct
     // Delay
     nECU_Delay delay; // Minimum time between each knock retard action (time to check if knock is gone after retard)
 } nECU_Knock;
+
+/* SPI */
+typedef struct
+{
+    GPIO_struct *CS_pin; // GPIO for Chip Select
+    bool data_Pending;   // data was recieved and is pending
+} nECU_SPI;
+typedef enum
+{
+    SPI_EGT_ID,
+    SPI_ID_MAX
+} nECU_SPI_ID;
 
 /* Stock */
 typedef struct

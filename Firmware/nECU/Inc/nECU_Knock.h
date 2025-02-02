@@ -31,7 +31,7 @@ extern "C"
     void nECU_Knock_UpdatePeriodic(void);                 // function to calculate current retard value
     static void nECU_Knock_DetectMagn(void);              // function to detect knock based on ADC input
     static void nECU_Knock_Evaluate(float *magnitude);    // check if magnitude is of knock range
-    void nECU_Knock_Stop(void);                           // stop
+    bool nECU_Knock_Stop(void);                           // stop
     uint8_t *nECU_Knock_GetPointer(void);                 // returns pointer to knock retard percentage
 
 #ifdef __cplusplus

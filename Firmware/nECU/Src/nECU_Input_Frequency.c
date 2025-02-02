@@ -61,7 +61,7 @@ void nECU_VSS_Update(void) // update VSS structure
 
     // data smoothing
     uint16_t speed_new = speed;
-    nECU_averageExpSmooth(VSS.VSS_Smooth_buffer, (uint16_t *)&VSS.Speed, &speed_new, VSS_SMOOTH_BUFFER_LENGTH, VSS_SMOOTH_ALPHA);
+    speed_new = nECU_averageExpSmooth(VSS.VSS_Smooth_buffer, (uint16_t *)&VSS.Speed, VSS_SMOOTH_BUFFER_LENGTH, VSS_SMOOTH_ALPHA);
 
     VSS.Speed = (uint8_t)speed_new;
     nECU_VSS_Validate();
@@ -158,16 +158,19 @@ void nECU_IGF_Update(void) // calculate RPM based on IGF signal
     }
     IGF.RPM = RPM; // save current RPM
 }
-void nECU_IGF_Stop(void) // stop
+bool nECU_IGF_Stop(void) // stop
 {
-    if (D_IGF.Status & D_BLOCK_WORKING)
+    bool status = false;
+    if (nECU_FlowControl_Working_Check(D_IGF))
     {
-        HAL_TIM_Base_Stop_IT(IGF.tim.htim);
-        HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]);
+        status |= (HAL_OK != HAL_TIM_Base_Stop_IT(IGF.tim.htim));
+        status |= (HAL_OK != HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]));
+        status |= nECU_ADC3_STOP();
+        status |= nECU_IGF_Stop();
+        if (!status)
+            status |= !nECU_FlowControl_Stop_Do(D_IGF);
     }
-
-    printf("Stock IGF -> STOPPED!\n");
-    D_IGF.Status -= D_BLOCK_INITIALIZED_WORKING;
+    return status;
 }
 
 /* General */

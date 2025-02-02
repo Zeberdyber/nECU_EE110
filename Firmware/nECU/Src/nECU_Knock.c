@@ -159,12 +159,17 @@ static void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of kn
         nECU_Delay_Start(&(Knock.delay));
     }
 }
-void nECU_Knock_Stop(void) // stop
+bool nECU_Knock_Stop(void) // stop
 {
-    nECU_ADC3_STOP();
-    nECU_IGF_Stop();
-    printf("Knock sensing -> STOPPED!\n");
-    D_Knock.Status -= D_BLOCK_INITIALIZED_WORKING;
+    bool status = false;
+    if (nECU_FlowControl_Working_Check(D_Knock))
+    {
+        status |= nECU_ADC3_STOP();
+        status |= nECU_IGF_Stop();
+        if (!status)
+            status |= !nECU_FlowControl_Stop_Do(D_Knock);
+    }
+    return status;
 }
 uint8_t *nECU_Knock_GetPointer(void) // returns pointer to knock retard percentage
 {

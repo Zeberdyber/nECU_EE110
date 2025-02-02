@@ -114,14 +114,17 @@ void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) //
     pFrame->Send_Buffer[i] = TxData_Frame[i];
   }
 }
-void nECU_CAN_Stop(void) // stop all CAN code, with timing
+bool nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
+  bool status = false;
   if (nECU_FlowControl_Working_Check(D_CAN_TX))
   {
-    HAL_CAN_Stop(&hcan1);
-    nECU_CAN_RX_Stop();
-    nECU_FlowControl_Stop_Do(D_CAN_TX);
+    status |= nECU_CAN_RX_Stop();
+    status |= (HAL_OK != HAL_CAN_Stop(&hcan1));
+    if (!status)
+      status |= nECU_FlowControl_Stop_Do(D_CAN_TX);
   }
+  return status;
 }
 void nECU_CAN_CheckTime(void) // checks if it is time to send packet
 {
@@ -242,7 +245,7 @@ static bool nECU_CAN_GetState(void) // get data if can periperal buisy
   }
   return false;
 }
-static bool nECU_CAN_GetError(void) // get error state pf can periperal buisy
+bool nECU_CAN_GetError(void) // get error state pf can periperal buisy
 {
   HAL_CAN_StateTypeDef CurrentState = HAL_CAN_GetState(&hcan1);
   if (CurrentState >= HAL_CAN_STATE_SLEEP_PENDING || CurrentState == HAL_CAN_STATE_RESET)
@@ -276,10 +279,16 @@ static bool nECU_CAN_RX_InitFrame(void) // initialize reciving frames with corre
 
   return status;
 }
-void nECU_CAN_RX_Stop(void) // Disables Recive communication
+bool nECU_CAN_RX_Stop(void) // Disables Recive communication
 {
-  HAL_CAN_DeactivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING); // Stop waiting for RX
-  nECU_FlowControl_Stop_Do(D_CAN_RX);
+  bool status = false;
+  if (nECU_FlowControl_Working_Check(D_CAN_RX))
+  {
+    status |= (HAL_OK != HAL_CAN_DeactivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING)); // Stop waiting for RX
+    if (!status)
+      status |= !nECU_FlowControl_Stop_Do(D_CAN_RX);
+  }
+  return status;
 }
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) // interrupt callback when new Rx frame in FIFO0
 {

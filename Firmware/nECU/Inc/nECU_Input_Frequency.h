@@ -38,7 +38,7 @@ extern "C"
     /* IGF - Ignition feedback */
     bool nECU_IGF_Start(void);  // initialize and start
     void nECU_IGF_Update(void); // calculate RPM based on IGF signal, detect missfire
-    void nECU_IGF_Stop(void);   // stop
+    bool nECU_IGF_Stop(void);   // stop
 
     /* General */
     bool nECU_Frequency_Start(void);  // start of frequency input functions

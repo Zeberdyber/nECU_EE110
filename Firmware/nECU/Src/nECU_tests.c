@@ -89,8 +89,9 @@ bool nECU_systest_Flash_UserSettings(void) // test both read and write to flash 
 
     return false;
 }
-void nECU_systest_run(void) // run tests of type systest
+bool nECU_systest_run(void) // run tests of type systest
 {
+    bool status = false;
     if (SYSTEST_DO_FLASH)
     {
         printf("Systest started: ");
@@ -104,6 +105,7 @@ void nECU_systest_run(void) // run tests of type systest
         {
             printf("\nTest failed on UserSettings\n");
             nECU_systest_error();
+            status |= true;
         }
         printf("XX");
 
@@ -112,6 +114,7 @@ void nECU_systest_run(void) // run tests of type systest
         {
             printf("\nTest failed on SpeedCalibration\n");
             nECU_systest_error();
+            status |= true;
         }
         printf("   DONE!");
     }
@@ -119,6 +122,7 @@ void nECU_systest_run(void) // run tests of type systest
     {
         printf("Systest turned off\n");
     }
+    return status;
 }
 void nECU_systest_error(void) // function to call when error detected
 {
@@ -126,82 +130,6 @@ void nECU_systest_error(void) // function to call when error detected
 }
 
 /* code tests */
-bool nECU_codetest_Flash_compdecompBool(void) // test nECU_compressBool and nECU_decompressBool
-{
-    bool bufferIn[8] = {true, true, false, false, true, false, true, false};
-    uint8_t byte = 0;
-    nECU_compressBool(bufferIn, &byte);
-    if (byte != 0b11001010) // check compression result
-    {
-        return false;
-    }
-
-    bool bufferOut[8];
-    nECU_decompressBool(&byte, bufferOut);
-    for (uint8_t i = 0; i < 8; i++) // check decompression result
-    {
-        if (bufferIn[i] != bufferOut[i])
-        {
-            return false;
-        }
-    }
-    return true;
-}
-bool nECU_codetest_ADC_AvgSmooth(void) // test script for general functions
-{
-    ADC_HandleTypeDef testADC;
-    testADC.Init.NbrOfConversion = 2;
-
-    uint16_t inputBuf[] = {10, 0, 20, 1, 30, 3, 40, 32768, 10, 0, 20, 1, 30, 3, 40, 32768};
-    uint16_t outputBuf[] = {0, 0, 0, 0}; // tool large buffer to test data spilage
-
-    nECU_ADC_AverageDMA(&testADC, inputBuf, 16, &outputBuf[1], 1); // no smoothing
-
-    // check limits for spilage
-    if (outputBuf[0] != 0)
-    {
-        return true;
-    }
-    if (outputBuf[3] != 0)
-    {
-        return true;
-    }
-
-    // check for correct answers
-    if (outputBuf[1] != 25)
-    {
-        return true;
-    }
-    if (outputBuf[2] != 8193)
-    {
-        return true;
-    }
-
-    uint16_t avgInputNew[] = {100, 4000};                    // new data for smoothing
-    nECU_ADC_expSmooth(avgInputNew, &outputBuf[1], 2, 0.75); // perform smoothing with new data
-
-    // check limits for spilage
-    if (outputBuf[0] != 0)
-    {
-        return true;
-    }
-    if (outputBuf[3] != 0)
-    {
-        return true;
-    }
-
-    // check for correct answers
-    if (outputBuf[1] != 81)
-    {
-        return true;
-    }
-    if (outputBuf[2] != 5048)
-    {
-        return true;
-    }
-
-    return false;
-}
 bool nECU_codetest_Speed_SensorUpdate(void) // function to test Speed functions
 {
     // Success values
@@ -242,147 +170,24 @@ bool nECU_codetest_Speed_SensorUpdate(void) // function to test Speed functions
 
     return false;
 }
-bool nECU_expSmooth_test(void) // tests nECU_expSmooth() function
+bool nECU_codetest_run(void) // run tests of type codetest
 {
-    uint16_t A, B;
-    float alpha;
-
-    A = 100;
-    B = 0;
-    alpha = 0.5;
-    nECU_expSmooth(&A, &B, &B, alpha);
-    if (B != 50)
-    {
-        return false;
-    }
-    A = 0;
-    B = 100;
-    alpha = 0.5;
-    nECU_expSmooth(&A, &B, &B, alpha);
-    if (B != 50)
-    {
-        return false;
-    }
-    A = 100;
-    B = 200;
-    alpha = 0.2;
-    nECU_expSmooth(&A, &B, &B, alpha);
-    if (B != 180)
-    {
-        return false;
-    }
-    A = 100;
-    B = 200;
-    alpha = 0.8;
-    nECU_expSmooth(&A, &B, &B, alpha);
-    if (B != 120)
-    {
-        return false;
-    }
-    return true;
-}
-bool nECU_averageSmooth_test(void) // tests nECU_averageSmooth() function
-{
-    uint16_t buffer[10];
-    uint8_t bufferLen = 10;
-    for (uint8_t i = 0; i < 2 * 10; i += 2) // fills buffer with integers == {0,2,4,6,8,10,12,14,16,18}
-    {
-        buffer[i / 2] = i;
-    }
-    uint16_t A, B;
-    A = 0;
-    B = 0;
-    nECU_averageSmooth(buffer, &A, &B, bufferLen);
-    // buffer should have values == {2,4,6,8,10,12,14,16,18,0}
-    if (buffer[bufferLen - 1] != A) // check if last value matches
-    {
-        return false;
-    }
-    if (B != 9) // check if result correct
-    {
-        return false;
-    }
-    A = 22;
-    nECU_averageSmooth(buffer, &A, &B, bufferLen);
-    // buffer should have values == {4,6,8,10,12,14,16,18,0,22}
-    if (B != 11) // check if result correct
-    {
-        return false;
-    }
-    return true;
-}
-bool nECU_averageExpSmooth_test(void) // tests nECU_averageExpSmooth() function
-{
-    uint16_t buffer[10];
-    uint8_t bufferLen = 10;
-    for (uint8_t i = 0; i < 2 * 10; i += 2) // fills buffer with integers == {0,2,4,6,8,10,12,14,16,18}
-    {
-        buffer[i / 2] = i;
-    }
-    uint16_t A, B;
-    float alpha = 0.5;
-    A = 12;
-    B = 24;
-    nECU_averageExpSmooth(buffer, &A, &B, bufferLen, alpha);
-    // buffer should have values == {2,4,6,8,10,12,14,16,18,18}
-    if (B != 10) // check if result correct
-    {
-        return false;
-    }
-    A = 128;
-    alpha = 0.8;
-    nECU_averageExpSmooth(buffer, &A, &B, bufferLen, alpha);
-    // buffer should have values == {4,6,8,10,12,14,16,18,18,104}
-    if (B != 21) // check if result correct
-    {
-        return false;
-    }
-    return true;
-}
-void nECU_codetest_run(void) // run tests of type codetest
-{
+    bool status = false;
     printf("Code test started: ");
-    if (nECU_codetest_Flash_compdecompBool())
+    if (nECU_DataProcessing_test(true))
     {
-        printf("\nTest failed on Flash_compdecompBool\n");
+        printf("\nTest failed on nECU_DataProcessing_test()\n");
         nECU_codetest_error();
+        status |= true;
     }
-    printf("XX");
-
-    if (nECU_codetest_ADC_AvgSmooth())
-    {
-        printf("\nTest failed on ADC_AvgSmooth\n");
-        nECU_codetest_error();
-    }
-    printf("XX");
-
     if (nECU_codetest_Speed_SensorUpdate())
     {
         printf("\nTest failed on Speed_SensorUpdate\n");
         nECU_codetest_error();
-    }
-    printf("XX");
-
-    if (!nECU_expSmooth_test())
-    {
-        printf("\nTest failed on expSmooth_test\n");
-        nECU_codetest_error();
-    }
-    printf("XX");
-
-    if (!nECU_averageSmooth_test())
-    {
-        printf("\nTest failed on averageSmooth_test\n");
-        nECU_codetest_error();
-    }
-    printf("XX");
-
-    if (!nECU_averageExpSmooth_test())
-    {
-        printf("\nTest failed on averageExpSmooth_test\n");
-        nECU_codetest_error();
+        status |= true;
     }
     printf("   DONE!");
+    return status;
 }
 void nECU_codetest_error(void) // function to call when error detected
 {
@@ -390,17 +195,19 @@ void nECU_codetest_error(void) // function to call when error detected
 }
 
 /* General */
-void nECU_test(void) // perform tests
+bool nECU_test(void) // perform tests
 {
+    bool status = false;
     if (TEST_ENABLE)
     {
-        nECU_codetest_run();
-        nECU_systest_run();
+        status |= nECU_codetest_run();
+        status |= nECU_systest_run();
     }
     else
     {
         printf("Tests not configured\n");
     }
+    return status;
 }
 
 /* temporary tests */
