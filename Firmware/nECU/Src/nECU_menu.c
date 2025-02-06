@@ -27,7 +27,7 @@ bool Button_Menu_Init(void) // initialize button menu
     Menu.TractionOFF = false;
     Menu.TuneSelector = 0;
     status |= nECU_Flash_UserSettings_read(&(Menu.Antilag), &(Menu.TractionOFF));
-    nECU_Delay_Set(&(Menu.save_delay), (uint32_t *)FLASH_SAVE_DELAY_TIME);
+    nECU_Delay_Set(&(Menu.save_delay), FLASH_SAVE_DELAY_TIME);
 
     D_Menu.Status |= D_BLOCK_INITIALIZED;
   }

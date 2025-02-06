@@ -53,12 +53,8 @@ Time ADC1 {/8, 12bit, 8 channels, 480 cycles each}
   void nECU_ADC2_Routine(void);
   void nECU_ADC3_Routine(void);
 
-  uint16_t *nECU_ADC_getPointer_MAP(void);
-  uint16_t *nECU_ADC_getPointer_Backpressure(void);
-  uint16_t *nECU_ADC_getPointer_OX(void);
-  uint16_t *nECU_ADC_getPointer_InternalTemp(void);
-  uint16_t *nECU_ADC_getPointer_SpeedSens(Speed_Sensor_ID ID);
-  uint16_t *nECU_ADC_getPointer_AnalogInput(nECU_AnalogNumber ID);
+  uint16_t *nECU_ADC1_getPointer(nECU_ADC1_ID ID);
+  uint16_t *nECU_ADC2_getPointer(nECU_ADC2_ID ID);
 
 #ifdef __cplusplus
 }

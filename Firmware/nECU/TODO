@@ -32,6 +32,8 @@
     [ ] ADC1/ADC2 - Stop (remember abot hard stop on error)
     [ ] Speed sensig rewrite to simplify
     [ ] check _ID_MAX usage
+    [ ] create printf progress bar
+    [ ] move flow control to new file, handle double errors
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected

@@ -32,17 +32,17 @@ extern "C"
 #define SPEED_CALIB_VELOCITY 50 // speed at which calibraion is done in km/h
 
     /* Interface functions */
-    uint16_t *Speed_GetSpeed(Speed_Sensor_ID ID);     // get current speed
-    uint16_t *Speed_GetSpeedSlow(Speed_Sensor_ID ID); // get slower (average) speed
-    void Speed_SetWheelSetup(uint8_t WheelSetup);     // set wheel setup for all sensors
+    uint16_t *Speed_GetSpeed(nECU_ADC2_ID ID);     // get current speed
+    uint16_t *Speed_GetSpeedSlow(nECU_ADC2_ID ID); // get slower (average) speed
+    void Speed_SetWheelSetup(uint8_t WheelSetup);  // set wheel setup for all sensors
 
     /* General functions */
-    bool Speed_Start(void);                                                  // function to start Speed function set
-    static bool Speed_Init_Single(Speed_Sensor *Sensor, Speed_Sensor_ID id); // initializes structure for single sensor
-    static void Speed_Update(void);                                          // perform update of all sensors
-    void Speed_SensorUpdate(Speed_Sensor *Sensor);                           // update one sensors data
-    static void Speed_CorrectToCalib(Speed_Sensor *Sensor);                  // correct data to calibration multiplier
-    static void Speed_ADCToSpeed(Speed_Sensor *Sensor);                      // function to convert RAW ADC data to real speed in km/h
+    bool Speed_Start(void);                                               // function to start Speed function set
+    static bool Speed_Init_Single(Speed_Sensor *Sensor, nECU_ADC2_ID id); // initializes structure for single sensor
+    static void Speed_Update(void);                                       // perform update of all sensors
+    void Speed_SensorUpdate(Speed_Sensor *Sensor);                        // update one sensors data
+    static void Speed_CorrectToCalib(Speed_Sensor *Sensor);               // correct data to calibration multiplier
+    static void Speed_ADCToSpeed(Speed_Sensor *Sensor);                   // function to convert RAW ADC data to real speed in km/h
 
     /* Calibration functions */
     static void Speed_CalibrateSingle(Speed_Sensor *Sensor); // function to generate calibration multiplier

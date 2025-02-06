@@ -18,7 +18,7 @@ bool Frame0_Start(void) // initialization of data structure
 
     if (!nECU_FlowControl_Initialize_Check(D_F0))
     {
-        for (Speed_Sensor_ID current_ID = 0; current_ID < SPEED_SENSOR_ID_MAX; current_ID++)
+        for (nECU_ADC2_ID current_ID = 0; current_ID < SPEED_SENSOR_ID_MAX; current_ID++)
         {
             if (Speed_GetSpeed(current_ID)) // Check if pointer exists
                 F0_var.SpeedSensor[current_ID] = Speed_GetSpeed(current_ID);
@@ -87,11 +87,11 @@ bool Frame0_Start(void) // initialization of data structure
         if (!status)
             status |= !nECU_FlowControl_Initialize_Check(D_F0);
     }
-    if (!nECU_FlowControl_Working_Check(D_F0))
+    if (!nECU_FlowControl_Working_Check(D_F0) && status == false)
     {
         status |= Speed_Start();
         if (!status)
-            status |= !nECU_FlowControl_Working_Check(D_F0);
+            status |= !nECU_FlowControl_Working_Do(D_F0);
     }
     if (status)
         nECU_FlowControl_Error_Do(D_F0);
@@ -159,8 +159,8 @@ bool Frame1_Start(void) // initialization of data structure
     {
         for (EGT_Sensor_ID current_ID = 0; current_ID < EGT_ID_MAX; current_ID++)
         {
-            if (nECU_EGT_Temperature_getPointer(current_ID))
-                F1_var.EGT[current_ID] = nECU_EGT_Temperature_getPointer(current_ID);
+            if (nECU_EGT_getPointer_Temperature(current_ID))
+                F1_var.EGT[current_ID] = nECU_EGT_getPointer_Temperature(current_ID);
             else
                 status |= true;
         }
@@ -191,12 +191,12 @@ bool Frame1_Start(void) // initialization of data structure
             status |= !nECU_FlowControl_Initialize_Do(D_F1);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_F1))
+    if (!nECU_FlowControl_Working_Check(D_F1) && status == false)
     {
-        status |= EGT_Start();
+        status |= nECU_EGT_Start();
         if (!status)
         {
-            status |= !nECU_FlowControl_Working_Check(D_F1);
+            status |= !nECU_FlowControl_Working_Do(D_F1);
         }
     }
     if (status)
@@ -212,7 +212,7 @@ void Frame1_Routine(void) // update variables for frame 1
         nECU_FlowControl_Error_Do(D_F1);
         return;
     }
-    EGT_RequestUpdate();
+    nECU_EGT_RequestUpdate();
     TachoValue_Update_All();
 
     nECU_Debug_ProgramBlockData_Update(D_F1);
@@ -273,8 +273,8 @@ bool Frame2_Start(void) // initialization of data structure
         status |= nECU_MAP_Start();
         if (!status) // do only if no error
         {
-            if (nECU_MAP_GetPointer())
-                F2_var.MAP_Stock_10bit = nECU_MAP_GetPointer();
+            if (nECU_MAP_getPointer())
+                F2_var.MAP_Stock_10bit = nECU_MAP_getPointer();
             else
                 status |= true;
         }
@@ -304,11 +304,11 @@ bool Frame2_Start(void) // initialization of data structure
             status |= !nECU_FlowControl_Initialize_Do(D_F2);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_F2))
+    if (!nECU_FlowControl_Working_Check(D_F2) && status == false)
     {
         if (!status)
         {
-            status |= !nECU_FlowControl_Working_Check(D_F2);
+            status |= !nECU_FlowControl_Working_Do(D_F2);
         }
     }
     if (status)

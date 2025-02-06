@@ -28,8 +28,7 @@ static bool OnBoard_LED_GPIO_Update(GPIO_struct *inst, GPIO_PinState State) // u
 /* Animation */
 bool OnBoard_LED_Animation_Init(OnBoardLED_Animate *inst, OnBoardLED_Animate_ID priority) // initializes animation structure
 {
-    uint32_t delay = 0;
-    nECU_Delay_Set(&(inst->blink_delay), &delay);
+    nECU_Delay_Set(&(inst->blink_delay), 0);
     inst->state = GPIO_PIN_RESET;
     inst->blink_active = false;
     inst->priority = priority;
@@ -38,7 +37,7 @@ bool OnBoard_LED_Animation_Init(OnBoardLED_Animate *inst, OnBoardLED_Animate_ID 
 }
 static void OnBoard_LED_Animation_BlinkSetDelay(OnBoardLED_Animate *inst, uint32_t delay) // sets delay for blinking
 {
-    nECU_Delay_Set(&(inst->blink_delay), &delay);
+    nECU_Delay_Set(&(inst->blink_delay), delay);
 }
 void OnBoard_LED_Animation_BlinkStart(OnBoardLED_Animate *inst, uint32_t delay, uint8_t count) // starts blink animation
 {
@@ -234,11 +233,11 @@ bool OnBoard_LED_Start(void) // initialize structures for on board LEDs
         if (!status)
             status |= nECU_FlowControl_Initialize_Do(D_OnboardLED);
     }
-    if (!nECU_FlowControl_Working_Check(D_OnboardLED))
+    if (!nECU_FlowControl_Working_Check(D_OnboardLED) && status == false)
     {
         if (!status)
         {
-            status |= !nECU_FlowControl_Working_Check(D_OnboardLED);
+            status |= !nECU_FlowControl_Working_Do(D_OnboardLED);
         }
     }
     if (status)

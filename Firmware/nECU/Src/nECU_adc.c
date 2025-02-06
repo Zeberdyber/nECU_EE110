@@ -100,15 +100,14 @@ bool nECU_ADC1_START(void)
 
     status |= !nECU_FlowControl_Initialize_Do(D_ADC1);
   }
-  if (!nECU_FlowControl_Working_Check(D_ADC1))
+  if (!nECU_FlowControl_Working_Check(D_ADC1) && status == false)
   {
     status |= (HAL_OK != HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.in_buffer, sizeof(adc1_data.in_buffer) / sizeof(uint16_t)));
-    status |= !nECU_FlowControl_Working_Do(D_ADC1);
+    if (!status)
+      status |= !nECU_FlowControl_Working_Do(D_ADC1);
   }
   if (status)
-  {
     nECU_FlowControl_Error_Do(D_ADC1);
-  }
 
   return status;
 }
@@ -132,15 +131,14 @@ bool nECU_ADC2_START(void)
 
     status |= !nECU_FlowControl_Initialize_Do(D_ADC2);
   }
-  if (!nECU_FlowControl_Working_Check(D_ADC2))
+  if (!nECU_FlowControl_Working_Check(D_ADC2) && status == false)
   {
     status |= (HAL_OK != HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.in_buffer, sizeof(adc2_data.in_buffer) / sizeof(uint16_t)));
-    status |= !nECU_FlowControl_Working_Do(D_ADC2);
+    if (!status)
+      status |= !nECU_FlowControl_Working_Do(D_ADC2);
   }
   if (status)
-  {
     nECU_FlowControl_Error_Do(D_ADC2);
-  }
 
   return status;
 }
@@ -148,10 +146,8 @@ bool nECU_ADC3_START(void)
 {
   bool status = false;
 
-  if (!nECU_FlowControl_Initialize_Check(D_ADC3))
+  if (!nECU_FlowControl_Initialize_Check(D_ADC3) && status == false)
   {
-    adc3_data.samplingTimer = &KNOCK_ADC_SAMPLING_TIMER;
-
     /* Clear status flags */
     adc3_data.status.callback_half = false;
     adc3_data.status.callback_full = false;
@@ -161,14 +157,13 @@ bool nECU_ADC3_START(void)
   }
   if (!nECU_FlowControl_Working_Check(D_ADC3))
   {
-    status |= (HAL_OK != HAL_TIM_Base_Start(adc3_data.samplingTimer));
+    status |= nECU_TIM_Base_Start(TIM_ADC_KNOCK_ID);
     status |= (HAL_OK != HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t)));
-    status |= !nECU_FlowControl_Working_Do(D_ADC3);
+    if (!status)
+      status |= !nECU_FlowControl_Working_Do(D_ADC3);
   }
   if (status)
-  {
     nECU_FlowControl_Error_Do(D_ADC3);
-  }
 
   return status;
 }
@@ -176,49 +171,46 @@ bool nECU_ADC3_START(void)
 bool nECU_ADC1_STOP(void)
 {
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_ADC1))
+  if (nECU_FlowControl_Working_Check(D_ADC1) && status == false)
   {
     status |= (HAL_OK != HAL_ADC_Stop_DMA(&GENERAL_ADC));
     nECU_ADC1_Routine(); // finish routine if flags pending
-    status |= !nECU_FlowControl_Stop_Do(D_ADC1);
+    if (!status)
+      status |= !nECU_FlowControl_Stop_Do(D_ADC1);
   }
-
   if (status)
-  {
     nECU_FlowControl_Error_Do(D_ADC1);
-  }
+
   return status;
 }
 bool nECU_ADC2_STOP(void)
 {
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_ADC2))
+  if (nECU_FlowControl_Working_Check(D_ADC2) && status == false)
   {
     status |= (HAL_OK != HAL_ADC_Stop_DMA(&SPEED_ADC));
     nECU_ADC2_Routine(); // finish routine if flags pending
-    status |= !nECU_FlowControl_Stop_Do(D_ADC2);
+    if (!status)
+      status |= !nECU_FlowControl_Stop_Do(D_ADC2);
   }
-
   if (status)
-  {
     nECU_FlowControl_Error_Do(D_ADC1);
-  }
+
   return status;
 }
 bool nECU_ADC3_STOP(void)
 {
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_ADC3))
+  if (nECU_FlowControl_Working_Check(D_ADC3) && status == false)
   {
-    status |= (HAL_OK != HAL_TIM_Base_Stop(adc3_data.samplingTimer));
+    status |= nECU_TIM_Base_Stop(TIM_ADC_KNOCK_ID);
     status |= (HAL_OK != HAL_ADC_Stop_DMA(&KNOCK_ADC));
-    status |= !nECU_FlowControl_Stop_Do(D_ADC3);
+    if (!status)
+      status |= !nECU_FlowControl_Stop_Do(D_ADC3);
   }
-
   if (status)
-  {
     nECU_FlowControl_Error_Do(D_ADC1);
-  }
+
   return status;
 }
 /* ADC Rutines */
@@ -291,35 +283,16 @@ void nECU_ADC3_Routine(void)
 }
 
 /* pointer get functions */
-uint16_t *nECU_ADC_getPointer_MAP(void)
+uint16_t *nECU_ADC1_getPointer(nECU_ADC1_ID ID)
 {
-  return &adc1_data.out_buffer[0];
+  if (ID > ADC1_ID_MAX)
+    return NULL;
+  return &adc1_data.out_buffer[0 + ID];
 }
-uint16_t *nECU_ADC_getPointer_Backpressure(void)
-{
-  return &adc1_data.out_buffer[1];
-}
-uint16_t *nECU_ADC_getPointer_OX(void)
-{
-  return &adc1_data.out_buffer[2];
-}
-uint16_t *nECU_ADC_getPointer_InternalTemp(void)
-{
-  return &adc1_data.out_buffer[6];
-}
-uint16_t *nECU_ADC_getPointer_SpeedSens(Speed_Sensor_ID ID)
+uint16_t *nECU_ADC2_getPointer(nECU_ADC2_ID ID)
 {
   if (ID > SPEED_SENSOR_ID_MAX)
-  {
     return NULL;
-  }
+
   return &adc2_data.out_buffer[0 + ID];
-}
-uint16_t *nECU_ADC_getPointer_AnalogInput(nECU_AnalogNumber ID)
-{
-  if (ID == ANALOG_IN_NONE)
-  {
-    return &adc1_data.out_buffer[3];
-  }
-  return &adc1_data.out_buffer[3 + ID];
 }

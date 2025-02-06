@@ -21,13 +21,7 @@ extern "C"
 #include "nECU_Knock.h"
 #include "nECU_stock.h"
 
-/* Definitions */
-#define BUTTON_OUTPUT_TIMER htim1
-#define OX_HEATER_TIMER htim2
-#define BUTTON_INPUT_TIMER htim3
-#define FREQ_INPUT_TIMER htim4
-#define KNOCK_ADC_SAMPLING_TIMER htim8
-#define FRAME_TIMER htim10
+  /* Definitions */
 
 #define WATCHDOG_PERIOD_MULTIPLIER 2 // after how many missed callbacks an error will be called
 
@@ -40,43 +34,36 @@ extern "C"
   void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim);
 
   /* Used for simple time tracking */
-  void nECU_TickTrack_Init(nECU_TickTrack *inst);   // initialize structure
-  void nECU_TickTrack_Update(nECU_TickTrack *inst); // callback to get difference
+  bool nECU_TickTrack_Init(nECU_TickTrack *inst);   // initialize structure
+  bool nECU_TickTrack_Update(nECU_TickTrack *inst); // callback to get difference
 
   /* Non-blocking delay */
-  bool *nECU_Delay_DoneFlag(nECU_Delay *inst);            // return done flag pointer of non-blocking delay
-  void nECU_Delay_Start(nECU_Delay *inst);                // start non-blocking delay
-  void nECU_Delay_Set(nECU_Delay *inst, uint32_t *delay); // preset the non-blocking delay
-  void nECU_Delay_Update(nECU_Delay *inst);               // update current state of non-blocking delay
-  void nECU_Delay_Stop(nECU_Delay *inst);                 // stop non-blocking delay
-  void nECU_Delay_UpdateAll(void);                        // update all created non-blocking delays
-
-  /* Delay for internal temperature update */
-  bool *nECU_InternalTemp_Delay_DoneFlag(void);        // return flag if internal temperature updates is due
-  void nECU_InternalTemp_Delay_Start(void);            // start non-blocking delay for internal temperature updates
-  bool *nECU_InternalTemp_StartupDelay_DoneFlag(void); // return flag if internal temperature is operational after restart
-  void nECU_InternalTemp_StartupDelay_Start(void);     // start non-blocking delay for internal temperature startup
+  bool *nECU_Delay_DoneFlag(nECU_Delay *inst);           // return done flag pointer of non-blocking delay
+  bool nECU_Delay_Start(nECU_Delay *inst);               // start non-blocking delay
+  bool nECU_Delay_Set(nECU_Delay *inst, uint32_t delay); // preset the non-blocking delay
+  bool nECU_Delay_Update(nECU_Delay *inst);              // update current state of non-blocking delay
+  bool nECU_Delay_Stop(nECU_Delay *inst);                // stop non-blocking delay
 
   /* general nECU timer functions */
-  nECU_TIM_State nECU_tim_PWM_start(nECU_Timer *tim);  // function to start PWM on selected timer
-  nECU_TIM_State nECU_tim_PWM_stop(nECU_Timer *tim);   // function to stop PWM on selected timer
-  nECU_TIM_State nECU_tim_IC_start(nECU_Timer *tim);   // function to start IC on selected timer
-  nECU_TIM_State nECU_tim_IC_stop(nECU_Timer *tim);    // function to stop IC on selected timer
-  nECU_TIM_State nECU_tim_base_start(nECU_Timer *tim); // function to start base of selected timer
-  nECU_TIM_State nECU_tim_base_stop(nECU_Timer *tim);  // function to stop base of selected timer
-  void nECU_tim_Init_struct(nECU_Timer *tim);          // initialize structure and precalculate variables
+  bool nECU_TIM_Init(nECU_TIM_ID ID);                        // initialize structure and precalculate variables
+  bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel); // function to start PWM on selected timer
+  bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel);  // function to stop PWM on selected timer
+  bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel);  // function to start IC on selected timer
+  bool nECU_TIM_IC_Stop(nECU_TIM_ID ID, uint32_t Channel);   // function to stop IC on selected timer
+  bool nECU_TIM_Base_Start(nECU_TIM_ID ID);                  // function to start base of selected timer
+  bool nECU_TIM_Base_Stop(nECU_TIM_ID ID);                   // function to stop base of selected timer
 
-  void nECU_tim_IC_Callback(nECU_Timer *tim, nECU_InputCapture *ic); // callback function to calculate basic parameters
+  static bool nECU_TIM_IC_Callback(nECU_TIM_ID ID); // callback function to calculate basic parameters
 
-  /* Watchdog for timers detection */
-  void nECU_tim_Watchdog_Init(void);                                 // initialize structure
-  void nECU_tim_Watchdog_Init_struct(nECU_tim_Watchdog *watchdog);   // set default values to variables
-  void nECU_tim_Watchdog_Periodic(void);                             // watchdog function for active timers
-  void nECU_tim_Watchdog_updateCounter(nECU_tim_Watchdog *watchdog); // update counter value based on systick
-  void nECU_tim_Watchdog_Callback(TIM_HandleTypeDef *htim);          // function to be called on timer interrupt
-  bool nECU_tim_Watchdog_CheckStates(nECU_tim_Watchdog *watchdog);   // check state of peripheral
-  bool nECU_tim_Watchdog_CheckCounter(nECU_tim_Watchdog *watchdog);  // check counter, determine timer error
-  bool nECU_tim_Watchdog_CheckChannels(nECU_Timer *tim);             // check channels of timer
+  // /* Watchdog for timers detection */
+  // bool nECU_tim_Watchdog_Init(void);                                       // initialize structure
+  // bool nECU_tim_Watchdog_Init_struct(nECU_tim_Watchdog *watchdog);         // set default values to variables
+  // void nECU_tim_Watchdog_Periodic(void);                                   // watchdog function for active timers
+  // bool nECU_tim_Watchdog_updateCounter(nECU_tim_Watchdog *watchdog);       // update counter value based on systick
+  // bool nECU_tim_Watchdog_Callback(TIM_HandleTypeDef *htim);                // function to be called on timer interrupt
+  // static bool nECU_tim_Watchdog_CheckStates(nECU_tim_Watchdog *watchdog);  // check state of peripheral
+  // static bool nECU_tim_Watchdog_CheckCounter(nECU_tim_Watchdog *watchdog); // check counter, determine timer error
+  // static bool nECU_tim_Watchdog_CheckChannels(nECU_Timer *tim);            // check channels of timer
 
 #ifdef __cplusplus
 }

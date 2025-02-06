@@ -43,12 +43,12 @@ uint64_t nECU_FloatToUint(float in, uint8_t bitCount) // returns float capped to
 }
 float ADCToVolts(uint16_t ADCValue)
 {
-    return (VREF_CALIB * ADCValue) / ADC_MAX_VALUE_12BIT;
+    return ((VREFINT_CAL_VREF / 1000) * ADCValue) / ADC_MAX_VALUE_12BIT;
 }
 uint16_t VoltsToADC(float Voltage)
 {
     Voltage *= ADC_MAX_VALUE_12BIT;
-    Voltage /= VREF_CALIB;
+    Voltage /= (VREFINT_CAL_VREF / 1000);
     return (uint16_t)Voltage;
 }
 
@@ -89,7 +89,7 @@ uint16_t nECU_expSmooth(uint16_t *in, uint16_t *in_previous, float alpha) // exp
 
     return (*in * alpha) + (*in_previous * (1 - alpha));
 }
-uint16_t nECU_averageSmooth(uint16_t *Buffer, uint16_t *in, uint8_t dataLen) // averages whole buffer and adds to the input buffer (FIFO, moving average)
+uint16_t nECU_averageSmooth(uint16_t *Buffer, uint16_t *in, uint8_t dataLen) // averages whole buffer and adds to the input buffer; (FIFO, moving average)
 {
     if (Buffer == NULL || in == NULL) // break if pointer does not exist
         return 0;

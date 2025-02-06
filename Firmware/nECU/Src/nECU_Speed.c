@@ -14,7 +14,7 @@ static CalibrateRoutine calibrateRoutine = {0};
 extern nECU_ProgramBlockData D_SS1, D_SS2, D_SS3, D_SS4; // diagnostic and flow control data
 
 /* Interface functions */
-uint16_t *Speed_GetSpeed(Speed_Sensor_ID ID) // get current speed
+uint16_t *Speed_GetSpeed(nECU_ADC2_ID ID) // get current speed
 {
     switch (ID)
     {
@@ -36,7 +36,7 @@ uint16_t *Speed_GetSpeed(Speed_Sensor_ID ID) // get current speed
         break;
     }
 }
-uint16_t *Speed_GetSpeedSlow(Speed_Sensor_ID ID) // get slower (average) speed
+uint16_t *Speed_GetSpeedSlow(nECU_ADC2_ID ID) // get slower (average) speed
 {
     switch (ID)
     {
@@ -123,10 +123,10 @@ bool Speed_Start(void) // function to start Speed function set
 
     return status;
 }
-static bool Speed_Init_Single(Speed_Sensor *Sensor, Speed_Sensor_ID id) // initializes structure for single sensor
+static bool Speed_Init_Single(Speed_Sensor *Sensor, nECU_ADC2_ID id) // initializes structure for single sensor
 {
     Sensor->id = id;
-    Sensor->InputData = nECU_ADC_getPointer_SpeedSens(id);
+    Sensor->InputData = nECU_ADC2_getPointer(id);
     Sensor->WheelSetup = nECU_CAN_getPointer_WheelSetup();
     Sensor->SpeedData = 0;
     Sensor->Average.BufferIndex = 0;

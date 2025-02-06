@@ -42,7 +42,7 @@ extern "C"
   static void nECU_Button_Light_Routine(ButtonLight *Light);                                         // periodic animation update function
   static void nECU_Button_Light_TimeTrack(ButtonLight *Light);                                       // funtion called to update time passed
   static void nECU_Button_Light_Stop(ButtonLight *Light);                                            // stops button code
-  void nECU_Button_Light_Routine_All(void);                                                          // function to launch updates for all buttons
+  void nECU_Button_Light_Routine_All(void);                                                        // function to launch updates for all buttons
 
   /* Input functions */
   static bool nECU_Button_Input_Start(ButtonInput *button, uint8_t Channel, TIM_HandleTypeDef *htim); // function to initialize ButtonInput object with corresponding timer and GPIO
@@ -52,7 +52,7 @@ extern "C"
   Button_ClickType nECU_Button_Input_GetType(Button_ID id);                                           // get click type if avaliable
 
   /* Animations */
-  static bool nECU_Button_Light_Identify(Button_ID id, ButtonLight **light);  // find corresponding light structrue, return if ok
+  static bool nECU_Button_Light_Identify(Button_ID id, ButtonLight **light);    // find corresponding light structrue, return if ok
   void nECU_Button_Light_SetOne(Button_ID id, bool state);                    // set selected button
   void nECU_Button_Light_Breath(Button_ID id, uint8_t Speed, uint16_t Count); // breath one button
   void nECU_Button_Light_Blink(Button_ID id, uint8_t Speed, uint16_t Count);  // blink one button

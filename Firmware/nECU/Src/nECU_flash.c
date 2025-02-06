@@ -266,11 +266,11 @@ bool nECU_FLASH_Start(void) // initialize FLASH code
             status |= !nECU_FlowControl_Initialize_Check(D_Flash);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_Flash))
+    if (!nECU_FlowControl_Working_Check(D_Flash) && status == false)
     {
         if (!status)
         {
-            status |= !nECU_FlowControl_Working_Check(D_Flash);
+            status |= !nECU_FlowControl_Working_Do(D_Flash);
         }
     }
     if (status)

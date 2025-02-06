@@ -20,9 +20,7 @@ extern "C"
 #include "stdio.h"
 
 /* Definitions */
-#define VREFINT_CALIB ((uint16_t *)((uint32_t)0x1FFF7A2A)) // Internal voltage reference raw value at 30 degrees C, VDDA=3.3V (defined in datasheet)
-#define VREF_CALIB 3.3                                     // VDDA voltage at which all other values were created (defined in datasheet)
-#define ADC_MAX_VALUE_12BIT 4095                           // Maximum value a 12bit ADC can produce
+#define ADC_MAX_VALUE_12BIT 4095 // Maximum value a 12bit ADC can produce
 
     /* typedef */
 

@@ -7,264 +7,187 @@
 
 #include "nECU_Input_Analog.h"
 
-// internal variables
-static AnalogSensor_Handle MAP = {0};
-static AnalogSensor_Handle BackPressure = {0};
-static nECU_InternalTemp MCU_temperature = {0};
-static AnalogSensor_Handle AI1 = {0}, AI2 = {0}, AI3 = {0}; // additional analog inputs
+static AnalogSensor_Handle AnalogSensor_List[ADC1_ID_MAX] = {0}; // List of sensors
 
-/* Internal Temperatre (MCU) */
-bool nECU_InternalTemp_Start(void) // initialize structure
+// Adjust below values!!
+static AnalogSensorCalibration calibPreset_List[ADC1_ID_MAX] = {
+    [ADC1_MAP_ID] = {
+        1203, 3020, // limits of ADC readout
+        270, 1020,  // limits of resulting output
+        0.0, 1.0    // Place holders
+    },
+    [ADC1_BackPressure_ID] = {
+        800, 3213, // limits of ADC readout
+        -20, 0,    // limits of resulting output
+        0.0, 1.0   // Place holders
+    },
+    [ADC1_OX_ID] = {
+        0, ADC_MAX_VALUE_12BIT,        // limits of ADC readout
+        0, (float)ADC_MAX_VALUE_12BIT, // limits of resulting output
+        0.0, 1.0                       // Place holders
+    },
+    [ADC1_AI_1_ID] = {
+        // Place holder values
+        0, ADC_MAX_VALUE_12BIT,          // limits of ADC readout
+        0.0, (float)ADC_MAX_VALUE_12BIT, // limits of resulting output
+        0.0, 1.0                         // Place holders
+    },
+    [ADC1_AI_2_ID] = {
+        // Place holder values
+        0, ADC_MAX_VALUE_12BIT,          // limits of ADC readout
+        0.0, (float)ADC_MAX_VALUE_12BIT, // limits of resulting output
+        0.0, 1.0                         // Place holders
+    },
+    [ADC1_AI_3_ID] = {
+        // Place holder values
+        0, ADC_MAX_VALUE_12BIT,          // limits of ADC readout
+        0.0, (float)ADC_MAX_VALUE_12BIT, // limits of resulting output
+        0.0, 1.0                         // Place holders
+    },
+    [ADC1_MCUTemp_ID] = {
+        0, ADC_MAX_VALUE_12BIT,                     // limits of ADC readout
+        TEMPSENSOR_CAL1_TEMP, TEMPSENSOR_CAL2_TEMP, // limits of resulting output
+        0.0, 1.0                                    // Place holders
+    },
+    [ADC1_VREF_ID] = {
+        // Place holder values
+        0, ADC_MAX_VALUE_12BIT,         // limits of ADC readout
+        0.0, (VREFINT_CAL_VREF / 1000), // limits of resulting output
+        0.0, 1.0                        // Place holders
+    },
+}; // List of default calibration values
+static uint32_t delay_List[ADC1_ID_MAX] = {
+    [ADC1_MAP_ID] = 0,
+    [ADC1_BackPressure_ID] = 0,
+    [ADC1_OX_ID] = 0,
+    [ADC1_AI_1_ID] = 0,
+    [ADC1_AI_2_ID] = 0,
+    [ADC1_AI_3_ID] = 0,
+    [ADC1_MCUTemp_ID] = 0,
+    [ADC1_VREF_ID] = 0,
+}; // List of delay values between updates in ms
+static AnalogSensorBuffer SmoothingBuffer_List[ADC1_ID_MAX] = {
+    [ADC1_MAP_ID] = {NULL, 0},
+    [ADC1_BackPressure_ID] = {NULL, 0},
+    [ADC1_OX_ID] = {NULL, 0},
+    [ADC1_AI_1_ID] = {NULL, 0},
+    [ADC1_AI_2_ID] = {NULL, 0},
+    [ADC1_AI_3_ID] = {NULL, 0},
+    [ADC1_MCUTemp_ID] = {NULL, 0},
+    [ADC1_VREF_ID] = {NULL, 0},
+}; // List of pointers to smoothing buffers and its lenghts
+static float SmoothingAlpha_List[ADC1_ID_MAX] = {
+    [ADC1_MAP_ID] = 1.0,
+    [ADC1_BackPressure_ID] = 1.0,
+    [ADC1_OX_ID] = 1.0,
+    [ADC1_AI_1_ID] = 1.0,
+    [ADC1_AI_2_ID] = 1.0,
+    [ADC1_AI_3_ID] = 1.0,
+    [ADC1_MCUTemp_ID] = 1.0,
+    [ADC1_VREF_ID] = 1.0,
+}; // List of alphas for smoothing
+
+static float nECU_correctToVref(float input)
 {
+    if (!nECU_FlowControl_Working_Check(D_ANALOG_VREF))
+        return input;
+
+    return (AnalogSensor_List[ADC1_VREF_ID].output * input) / (VREFINT_CAL_VREF / 1000);
+}
+
+/* General functions */
+bool nECU_InputAnalog_Start(nECU_ADC1_ID ID)
+{
+    if (ID >= ADC1_ID_MAX) // check if ID valid
+        return true;
+
     bool status = false;
-
-    if (D_MCU_temperature.Status == D_BLOCK_STOP)
+    if (!nECU_FlowControl_Initialize_Check(D_ANALOG_MAP + ID) && status == false)
     {
-        MCU_temperature.ADC_data = nECU_ADC_getPointer_InternalTemp();
-        MCU_temperature.temperature = 0;
-        D_MCU_temperature.Status |= D_BLOCK_INITIALIZED;
-    }
-    if (D_MCU_temperature.Status & D_BLOCK_INITIALIZED)
-    {
-        nECU_InternalTemp_Delay_Start();
-        nECU_InternalTemp_StartupDelay_Start();
-        status |= nECU_ADC1_START();
-        D_MCU_temperature.Status |= D_BLOCK_WORKING;
-    }
-
-    return status;
-}
-void nECU_InternalTemp_Callback(void) // run when conversion ended
-{
-    if (!(D_MCU_temperature.Status & D_BLOCK_WORKING) || *nECU_InternalTemp_StartupDelay_DoneFlag() == false)
-    {
-        return;
-    }
-    if (*nECU_InternalTemp_Delay_DoneFlag() == true)
-    {
-        nECU_InternalTemp_Routine(); // calculate value
-        nECU_InternalTemp_Delay_Start();
-    }
-}
-void nECU_InternalTemp_Routine(void) // perform update of output variables
-{
-    if (!(D_MCU_temperature.Status & D_BLOCK_WORKING))
-    {
-        return;
-    }
-
-    nECU_ADC1_Routine(); // Pull new data
-    // convert to temperature
-    float Temperature = ADCToVolts(*MCU_temperature.ADC_data);
-    Temperature -= (float)INTERNAL_TEMP_V25;
-    Temperature /= (float)(INTERNAL_TEMP_SLOPE / 1000); // 1000: mV -> V
-    Temperature += (float)25;
-    MCU_temperature.temperature = Temperature * INTERNAL_TEMP_MULTIPLIER;
-
-    nECU_Debug_ProgramBlockData_Update(&D_MCU_temperature);
-}
-int16_t *nECU_InternalTemp_getTemperature(void) // return current temperature pointer (multiplied 100x)
-{
-    /* returned value is multipled 100 times, which means that it carries two digits after dot */
-    return &MCU_temperature.temperature;
-}
-
-/* MAP */
-uint16_t *nECU_MAP_GetPointer(void) // returns pointer to resulting data
-{
-    return &MAP.output16bit;
-}
-bool nECU_MAP_Start(void) // initialize MAP structure
-{
-    bool status = false;
-
-    if (D_MAP.Status == D_BLOCK_STOP)
-    {
-        status |= nECU_A_Input_Init(&MAP, MAP_ADC_CALIB_MAX, MAP_ADC_CALIB_MIN, MAP_kPA_CALIB_MAX, MAP_kPA_CALIB_MIN, nECU_ADC_getPointer_MAP());
-        D_MAP.Status = D_BLOCK_INITIALIZED;
-    }
-    if (D_MAP.Status == D_BLOCK_INITIALIZED)
-    {
-        status |= nECU_ADC1_START();
-        D_MAP.Status = D_BLOCK_WORKING;
-    }
-    return status;
-}
-void nECU_MAP_Routine(void) // update MAP structure
-{
-    if (D_MAP.Status != D_BLOCK_WORKING)
-    {
-        return;
-    }
-    nECU_ADC1_Routine(); // Pull new data
-    nECU_A_Input_Update(&MAP);
-    MAP.output16bit = nECU_FloatToUint(MAP.outputFloat, 10); // manually update due to 10bit MAP resolution in CAN frame
-
-    nECU_Debug_ProgramBlockData_Update(&D_MAP);
-}
-
-/* BackPressure */
-uint8_t *nECU_BackPressure_GetPointer(void) // returns pointer to resulting data
-{
-    return &BackPressure.output8bit;
-}
-bool nECU_BackPressure_Start(void) // initialize BackPressure structure
-{
-    bool status = false;
-
-    if (D_BackPressure.Status == D_BLOCK_STOP)
-    {
-        status |= nECU_A_Input_Init(&(BackPressure), BACKPRESSURE_ADC_CALIB_MAX, BACKPRESSURE_ADC_CALIB_MIN, BACKPRESSURE_kPA_CALIB_MAX, BACKPRESSURE_kPA_CALIB_MIN, nECU_ADC_getPointer_Backpressure());
-        D_BackPressure.Status = D_BLOCK_INITIALIZED;
-    }
-    if (D_BackPressure.Status == D_BLOCK_INITIALIZED)
-    {
-        status |= nECU_ADC1_START();
-        D_BackPressure.Status = D_BLOCK_WORKING;
-    }
-
-    return status;
-}
-void nECU_BackPressure_Routine(void) // update BackPressure structure
-{
-    if (D_BackPressure.Status != D_BLOCK_WORKING)
-    {
-        return;
-    }
-    nECU_ADC1_Routine(); // Pull new data
-    nECU_A_Input_Update(&(BackPressure));
-    BackPressure.output8bit = nECU_FloatToUint8_t(BackPressure.outputFloat, BACKPRESSURE_DECIMAL_POINT, 8);
-
-    nECU_Debug_ProgramBlockData_Update(&D_BackPressure);
-}
-
-/* Addtional Analog inputs */
-void nECU_A_Input_Init_All(void)
-{
-    if (D_AdditionalAI.Status == D_BLOCK_STOP)
-    {
-        // Example values to initialize inputs [temporary values]
-        uint16_t inMax = ADC_MAX_VALUE_12BIT;
-        uint16_t inMin = 0;
-        float outMax = 100; // 100%
-        float outMin = 0;   // 0%
-
-        // Initialize all
-        nECU_A_Input_Init(&AI1, inMax, inMin, outMax, outMin, nECU_ADC_getPointer_AnalogInput(ANALOG_IN_1));
-        nECU_A_Input_Init(&AI2, inMax, inMin, outMax, outMin, nECU_ADC_getPointer_AnalogInput(ANALOG_IN_2));
-        nECU_A_Input_Init(&AI3, inMax, inMin, outMax, outMin, nECU_ADC_getPointer_AnalogInput(ANALOG_IN_3));
-        D_AdditionalAI.Status = D_BLOCK_INITIALIZED;
-    }
-    if (D_AdditionalAI.Status == D_BLOCK_INITIALIZED)
-    {
-        nECU_ADC1_START();
-        printf("Additional AI -> STARTED!\n");
-        D_AdditionalAI.Status = D_BLOCK_WORKING;
-    }
-}
-void nECU_A_Input_Update_All(void)
-{
-    if (D_AdditionalAI.Status != D_BLOCK_WORKING)
-    {
-        return;
-    }
-    nECU_ADC1_Routine(); // Pull new data
-    nECU_A_Input_Update(&AI1);
-    nECU_A_Input_Update(&AI2);
-    nECU_A_Input_Update(&AI3);
-
-    nECU_Debug_ProgramBlockData_Update(&D_AdditionalAI);
-}
-bool nECU_A_Input_Init(AnalogSensor_Handle *sensor, uint16_t inMax, uint16_t inMin, float outMax, float outMin, uint16_t *ADC_Data) // function to setup the structure
-{
-    bool status = false;
-
-    // setup basic parameters
-    sensor->calibrationData.ADC_MeasuredMax = inMax;
-    sensor->calibrationData.ADC_MeasuredMin = inMin;
-    sensor->calibrationData.OUT_MeasuredMax = outMax;
-    sensor->calibrationData.OUT_MeasuredMin = outMin;
-    sensor->ADC_input = ADC_Data;
-    nECU_calculateLinearCalibration(&(sensor->calibrationData));
-
-    // setup filter and delay [disable by default]
-    sensor->filter.smoothingAlpha = 1.0;
-    sensor->filter.smoothingBufferLen = 0;
-    uint32_t start_delay = 0;
-    nECU_Delay_Set(&(sensor->filter.delay), &start_delay);
-
-    // set default values to the outputs
-    sensor->outputFloat = 0.0;
-    sensor->output8bit = 0;
-    sensor->output16bit = 0;
-
-    return status;
-}
-void nECU_A_Input_SetSmoothing(AnalogSensor_Handle *sensor, float alpha, uint16_t *smoothing_buffer, uint8_t buffer_length, uint16_t update_frequency) // setups filtering and smoothing
-{
-    if (update_frequency > 0) // set delay if requested
-    {
-        uint32_t delay = 1000 / update_frequency;
-        nECU_Delay_Set(&(sensor->filter.delay), &delay);
-        nECU_Delay_Start(&(sensor->filter.delay));
-    }
-    // copy smoothing data
-    sensor->filter.smoothingAlpha = alpha;
-    sensor->filter.smoothingBuffer = smoothing_buffer;
-    sensor->filter.smoothingBufferLen = buffer_length;
-}
-void nECU_A_Input_Update(AnalogSensor_Handle *sensor) // update current value
-{
-    uint16_t ADC_Data = *(sensor->ADC_input); // variable to be used by smoothing algorithms
-
-    if (sensor->filter.delay.active == true) // check if delay was setup
-    {
-        nECU_Delay_Update(&(sensor->filter.delay));
-        if (sensor->filter.delay.done == true) // check if time have passed
+        if (ID == ADC1_MCUTemp_ID)
         {
-            nECU_Delay_Start(&(sensor->filter.delay)); // restart delay
-            // rest of the function will be done
+            calibPreset_List[ID].ADC_MeasuredMin = *(TEMPSENSOR_CAL1_ADDR);
+            calibPreset_List[ID].ADC_MeasuredMax = *(TEMPSENSOR_CAL2_ADDR);
         }
+        if (ID == ADC1_VREF_ID)
+        {
+            calibPreset_List[ID].ADC_MeasuredMax = *(VREFINT_CAL_ADDR);
+        }
+
+        // Pointers
+        if (nECU_ADC1_getPointer(ID))
+            AnalogSensor_List[ID].ADC_input = nECU_ADC1_getPointer(ID);
         else
-        {
-            return; // drop if not done
-        }
-    }
+            status |= true;
 
-    // do the filtering if needed
-    if (sensor->filter.smoothingAlpha < 1.0) // check if alpha was configured
+        // Calibration
+        AnalogSensor_List[ID].calibration = calibPreset_List[ID];
+        nECU_calculateLinearCalibration(&(AnalogSensor_List[ID].calibration));
+
+        // Filtering
+        AnalogSensor_List[ID].filter.smoothingAlpha = SmoothingAlpha_List[ID];
+        AnalogSensor_List[ID].filter.buf = SmoothingBuffer_List[ID];
+        status |= nECU_Delay_Set(&(AnalogSensor_List[ID].filter.delay), delay_List[ID]);
+
+        // Default value
+        AnalogSensor_List[ID].output = 0.0;
+
+        if (!status)
+            status |= !nECU_FlowControl_Initialize_Do(D_ANALOG_MAP + ID);
+    }
+    if (!nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID) && status == false)
     {
-        nECU_expSmooth((sensor->ADC_input), &(sensor->filter.previous_ADC_Data), &ADC_Data, sensor->filter.smoothingAlpha);
+        status |= nECU_Delay_Start(&(AnalogSensor_List[ID].filter.delay));
+        status |= nECU_ADC1_START();
+        if (!status)
+            status |= !nECU_FlowControl_Working_Do(D_ANALOG_MAP + ID);
     }
-    if (sensor->filter.smoothingBufferLen > 0) // check if buffer was configured
+    if (status)
+        nECU_FlowControl_Error_Do(D_ANALOG_MAP + ID);
+
+    return status;
+}
+bool nECU_InputAnalog_Stop(nECU_ADC1_ID ID)
+{
+    if (ID >= ADC1_ID_MAX) // check if ID valid
+        return true;
+
+    bool status = false;
+    if (nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID) && status == false)
     {
-        nECU_averageSmooth((sensor->filter.smoothingBuffer), &ADC_Data, &ADC_Data, (sensor->filter.smoothingBufferLen));
+        status |= nECU_Delay_Stop(&(AnalogSensor_List[ID].filter.delay));
+        if (!status)
+            status |= !nECU_FlowControl_Stop_Do(D_ANALOG_MAP + ID);
+
+        status |= nECU_ADC1_STOP();
     }
+    if (status)
+        nECU_FlowControl_Error_Do(D_ANALOG_MAP + ID);
 
-    sensor->filter.previous_ADC_Data = ADC_Data; // save smoothing output
-    sensor->outputFloat = nECU_getLinearSensor(&ADC_Data, &(sensor->calibrationData));
-    sensor->output16bit = (uint16_t)sensor->outputFloat;
-    sensor->output8bit = (uint8_t)sensor->outputFloat;
+    return status;
 }
+void nECU_InputAnalog_Routine(nECU_ADC1_ID ID)
+{
+    if (ID >= ADC1_ID_MAX) // check if ID valid
+        return;
 
-/* General */
-void nECU_Analog_Start(void) // start of all analog functions
-{
-    nECU_InternalTemp_Start();
-    nECU_MAP_Start();
-    nECU_BackPressure_Start();
-    nECU_A_Input_Init_All();
-}
-void nECU_Analog_Stop(void) // stop of all analog functions
-{
-    UNUSED(false);
-}
-void nECU_Analog_Update(void) // update to all analog functions
-{
-    nECU_MAP_Routine();
-    nECU_BackPressure_Routine();
-    nECU_InternalTemp_Callback();
-    nECU_A_Input_Update_All();
+    nECU_ADC1_Routine(); // Pull new data
 
-    nECU_Debug_ProgramBlockData_Update(&D_Input_Analog);
+    nECU_Delay_Update(&(AnalogSensor_List[ID].filter.delay));
+    if (AnalogSensor_List[ID].filter.delay.done == false) // check if time have passed
+        return;                                           // drop if not done
+
+    nECU_Delay_Start(&(AnalogSensor_List[ID].filter.delay)); // restart delay
+
+    uint16_t SmoothingRresult = *(AnalogSensor_List[ID].ADC_input);
+    if (AnalogSensor_List[ID].filter.buf.Buffer != NULL) // check if buffer was configured
+        SmoothingRresult = nECU_averageSmooth((AnalogSensor_List[ID].filter.buf.Buffer), &SmoothingRresult, AnalogSensor_List[ID].filter.buf.len);
+
+    SmoothingRresult = nECU_expSmooth(&SmoothingRresult, &(AnalogSensor_List[ID].filter.previous_ADC_Data), AnalogSensor_List[ID].filter.smoothingAlpha);
+
+    AnalogSensor_List[ID].filter.previous_ADC_Data = SmoothingRresult;                                           // save for smoothing
+    AnalogSensor_List[ID].output = nECU_getLinearSensor(SmoothingRresult, &(AnalogSensor_List[ID].calibration)); // calculate, calibration
+    AnalogSensor_List[ID].output = nECU_correctToVref(AnalogSensor_List[ID].output);                             // correct to vref
+
+    nECU_Debug_ProgramBlockData_Update(D_ANALOG_MAP + ID);
 }

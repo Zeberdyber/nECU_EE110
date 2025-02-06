@@ -77,26 +77,33 @@ typedef struct
 
 typedef struct
 {
-    TIM_HandleTypeDef *htim;  // periperal pointer
-    float refClock;           // in Hz (pre calculated on initialization)
-    float period;             // in ms (pre calculated on initialization)
-    uint32_t Channel_List[4]; // list of configured channels
-    uint8_t Channel_Count;    // number of actively used channels
-} nECU_Timer;
-typedef struct
-{
-    uint32_t previous_CCR;    // memory of previous callback value
-    uint32_t time_difference; // time in ms
-    float frequency;          // of callbacks in Hz
-    bool newData;             // flag that new data have arrived
-} nECU_InputCapture;
-
-typedef struct
-{
     GPIO_PinState State; // Current pin state
     GPIO_TypeDef *GPIOx; // GPIO pin port
     uint16_t GPIO_Pin;   // Pin of GPIO
 } GPIO_struct;
+
+typedef enum
+{
+    TIM_Channel_NONE = 0,
+    TIM_Channel_PWM = 1,
+    TIM_Channel_IC = 2
+} nECU_TIM_Channel_Type;
+typedef struct
+{
+    GPIO_struct buttonPin; // GPIO structure
+    uint32_t CCR_High, CCR_Low, CCR_prev;
+    float frequency; // of callbacks in Hz
+    bool newData;    // flag that new data have arrived
+} nECU_InputCapture;
+typedef struct
+{
+    TIM_HandleTypeDef *htim;           // periperal pointer
+    float refClock;                    // in Hz (pre calculated on initialization)
+    float period;                      // in ms (pre calculated on initialization)
+    nECU_TIM_Channel_Type Channels[4]; // List of configured channels
+    nECU_InputCapture IC[4];           // list of possible Input Captures
+} nECU_Timer;
+
 typedef struct
 {
     uint32_t previousTick; // tick registered on previous callback
@@ -133,12 +140,12 @@ typedef struct
 {
     uint16_t in_buffer[KNOCK_DMA_LEN]; // input buffer (from DMA)
     nECU_ADC_Status status;            // statuses
-    TIM_HandleTypeDef *samplingTimer;  // timer used for sampling
 } nECU_ADC3;
 typedef struct
 {
     uint16_t *ADC_data;  // pointer to ADC data
     int16_t temperature; // output data (real_tem*100)
+    nECU_Delay update;   // delay after MCU restart
 } nECU_InternalTemp;
 
 /* Buttons */
@@ -167,12 +174,9 @@ typedef enum
 } ButtonLight_Mode;
 typedef struct
 {
-    nECU_Timer Timer;                 // Timer used for Input Capture
-    HAL_TIM_ActiveChannel Channel_IC; // Timers channel used for Input Capture
-    GPIO_struct buttonPin;            // GPIO structure
-    uint32_t RisingCCR;               // CCR captured at rising edge
-    Button_ClickType Type;            // current detected type of click
-    bool newType;                     // flag to indicate new type detected
+    nECU_InputCapture *channel;
+    Button_ClickType Type; // current detected type of click
+    bool newType;          // flag to indicate new type detected
 } ButtonInput;
 typedef struct
 {
@@ -281,7 +285,7 @@ typedef enum
     SPEED_SENSOR_ID_RL,
     SPEED_SENSOR_ID_RR,
     SPEED_SENSOR_ID_MAX
-} Speed_Sensor_ID; // Here update if connected otherwise
+} nECU_ADC2_ID; // Here update if connected otherwise
 typedef struct
 {
     uint16_t Buffer[SPEED_AVERAGE_BUFFER_SIZE]; // buffer to be filled with ADC data
@@ -296,7 +300,7 @@ typedef struct
     uint16_t SpeedDataSlow; // output speed, averaged from multiple measuerements
     uint16_t WheelCirc;     // circumference of wheel (according to wheel setup)
     SpeedAverage Average;   // averaging structure
-    Speed_Sensor_ID id;     // id of this speed sensor
+    nECU_ADC2_ID id;        // id of this speed sensor
 } Speed_Sensor;
 typedef struct
 {
@@ -358,11 +362,16 @@ typedef struct
 /* Input Analog */
 typedef enum
 {
-    ANALOG_IN_1 = 0,
-    ANALOG_IN_2 = 1,
-    ANALOG_IN_3 = 2,
-    ANALOG_IN_NONE
-} nECU_AnalogNumber;
+    ADC1_MAP_ID,
+    ADC1_BackPressure_ID,
+    ADC1_OX_ID,
+    ADC1_AI_1_ID,
+    ADC1_AI_2_ID,
+    ADC1_AI_3_ID,
+    ADC1_MCUTemp_ID,
+    ADC1_VREF_ID,
+    ADC1_ID_MAX
+} nECU_ADC1_ID;
 typedef struct
 {
     uint16_t ADC_MeasuredMax, ADC_MeasuredMin; // limits of ADC readout
@@ -371,20 +380,23 @@ typedef struct
 } AnalogSensorCalibration;
 typedef struct
 {
+    uint16_t *Buffer; // pointer to buffer
+    uint8_t len;      // lenght of the buffer
+} AnalogSensorBuffer;
+
+typedef struct
+{
     nECU_Delay delay;           // update delay structure
     float smoothingAlpha;       // value for smoothing
     uint16_t previous_ADC_Data; // value from previous run
-    uint16_t *smoothingBuffer;  // pointer to buffer used for smoothing
-    uint8_t smoothingBufferLen; // lenght of the smoothing buffer
+    AnalogSensorBuffer buf;     // smoothing buffer
 } AnalogSensorFiltering;
 typedef struct
 {
-    AnalogSensorCalibration calibrationData; // calibration structure
-    uint16_t *ADC_input;                     // pointer to ADC input data
-    float outputFloat;                       // resulting value in float
-    uint16_t output16bit;                    // resulting value in 16bit
-    uint8_t output8bit;                      // resulting value in 8bit
-    AnalogSensorFiltering filter;            // filtering structure
+    AnalogSensorCalibration calibration; // calibration structure
+    AnalogSensorFiltering filter;        // filtering structure
+    uint16_t *ADC_input;                 // pointer to ADC input data
+    float output;                        // resulting value in float
 } AnalogSensor_Handle;
 
 /* Knock */
@@ -445,8 +457,6 @@ typedef struct
 } Oxygen_Handle;
 typedef struct
 {
-    nECU_Timer tim;       // timer structure
-    nECU_InputCapture ic; // input capture structure
     uint8_t Speed;        // resulting speed
     bool overspeed_error; // flag to indicate speed reached maximal allowed
 
@@ -455,9 +465,8 @@ typedef struct
 } VSS_Handle;
 typedef struct
 {
-    nECU_Timer tim;       // timer structure
-    nECU_InputCapture ic; // input capture structure
-    uint16_t RPM;         // resulting RPM
+    nECU_InputCapture *channel;
+    uint16_t RPM; // resulting RPM
 } IGF_Handle;
 typedef enum
 {
@@ -475,11 +484,14 @@ typedef struct
 /* Timer */
 typedef enum
 {
-    TIM_OK = 0,
-    TIM_NONE = 1,
-    TIM_ERROR = 2,
-    TIM_NULL
-} nECU_TIM_State;
+    TIM_PWM_BUTTON_ID,
+    TIM_PWM_OX_ID,
+    TIM_IC_BUTTON_ID,
+    TIM_IC_FREQ_ID,
+    TIM_ADC_KNOCK_ID,
+    TIM_FRAME_ID,
+    TIM_ID_MAX
+} nECU_TIM_ID;
 typedef struct
 {
     nECU_Timer *tim;          // pointer to watched timer
@@ -614,9 +626,9 @@ typedef enum
     D_BLOCK_WORKING = 4,     // Block working
     D_BLOCK_SPARE_1 = 8,
     D_BLOCK_SPARE_2 = 16,
-    D_BLOCK_ERROR_OLD = 32,  // error stored in memory
-    D_BLOCK_CODE_ERROR = 64, // error in code
-    D_BLOCK_ERROR = 128,     // error active
+    D_BLOCK_SPARE_3 = 32,
+    D_BLOCK_ERROR_OLD = 64, // error in memory
+    D_BLOCK_ERROR = 128,    // error active
     D_BLOCK_NONE
 } nECU_ProgramBlock_Status;
 typedef enum
@@ -648,12 +660,15 @@ typedef enum
     D_F0,
     D_F1,
     D_F2,
-    // nECU_Input_Analog.c
-    D_MAP,
-    D_BackPressure,
-    D_MCU_temperature,
-    D_AdditionalAI,
-    D_Input_Analog,
+    // nECU_Input_Analog.c !Have to be in the same order as 'nECU_ADC1_ID'!
+    D_ANALOG_MAP,
+    D_ANALOG_BackPressure,
+    D_ANALOG_OX,
+    D_ANALOG_AI_1,
+    D_ANALOG_AI_2,
+    D_ANALOG_AI_3,
+    D_ANALOG_MCUTemp,
+    D_ANALOG_VREF,
     // nECU_Input_Frequency.c
     D_VSS,
     D_IGF,
@@ -677,6 +692,13 @@ typedef enum
     // nECU_stock.c
     D_GPIO,
     D_OX,
+    // nECU_tim.c
+    D_TIM_PWM_BUTTON,
+    D_TIM_PWM_OX,
+    D_TIM_IC_BUTTON,
+    D_TIM_IC_FREQ,
+    D_TIM_ADC_KNOCK,
+    D_TIM_FRAME,
     // Last value
     D_ID_MAX
 } nECU_Module_ID;

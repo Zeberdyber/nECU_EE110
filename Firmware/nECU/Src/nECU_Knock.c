@@ -155,14 +155,14 @@ static void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of kn
         Knock.Level = nECU_Table_Interpolate(&threshold_min, &minOut, &threshold_max, &maxOut, magnitude);
         Knock.LevelWaiting = true;
         uint32_t delay = (120000 / rpm_float); // 120000 = 120 (Hz to rpm) * 1000 (ms to s)
-        nECU_Delay_Set(&(Knock.delay), &delay);
+        nECU_Delay_Set(&(Knock.delay), delay);
         nECU_Delay_Start(&(Knock.delay));
     }
 }
 bool nECU_Knock_Stop(void) // stop
 {
     bool status = false;
-    if (nECU_FlowControl_Working_Check(D_Knock))
+    if (nECU_FlowControl_Working_Check(D_Knock) && status == false)
     {
         status |= nECU_ADC3_STOP();
         status |= nECU_IGF_Stop();

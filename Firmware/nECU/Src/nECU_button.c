@@ -16,26 +16,7 @@ bool nECU_Button_Start(void)
 
   for (uint8_t Current_ID = 0; Current_ID < BUTTON_ID_MAX; Current_ID++)
   {
-    bool current_status = false;
-    if (!nECU_FlowControl_Initialize_Check(D_Button_Red + Current_ID))
-    {
-      current_status |= nECU_Button_Light_Start(&Button_List[Current_ID].light, 1 + Current_ID, &BUTTON_OUTPUT_TIMER);
-      current_status |= nECU_Button_Input_Start(&Button_List[Current_ID].input, 1 + Current_ID, &BUTTON_INPUT_TIMER);
-
-      if (current_status == false)
-      {
-        current_status |= !nECU_FlowControl_Initialize_Do(D_Button_Red + Current_ID);
-      }
-    }
-    if (!nECU_FlowControl_Working_Check(D_Button_Red + Current_ID) && (current_status == false))
-    {
-      current_status |= !nECU_FlowControl_Working_Do(D_Button_Red + Current_ID);
-    }
-    if (current_status)
-    {
-      nECU_FlowControl_Error_Do(D_Button_Red + Current_ID);
-    }
-    status |= current_status;
+    status |= nECU_Button_Start_Single(Current_ID);
   }
 
   return status;
@@ -61,13 +42,44 @@ bool nECU_Button_Stop(void)
   return status;
 }
 
+static bool nECU_Button_Start_Single(Button_ID ID) // Perform start on single button
+{
+  if (ID >= EGT_ID_MAX)
+    return true;
+
+  bool status = false;
+  if (!nECU_FlowControl_Initialize_Check(D_Button_Red + ID) && status == false)
+  {
+    status |= nECU_Button_Light_Start(&Button_List[ID].light, 1 + ID, &BUTTON_OUTPUT_TIMER);
+    status |= nECU_Button_Input_Start(&Button_List[ID].input, 1 + ID, &BUTTON_INPUT_TIMER);
+
+    if (status == false)
+    {
+      status |= !nECU_FlowControl_Initialize_Do(D_Button_Red + ID);
+    }
+  }
+  if (!nECU_FlowControl_Working_Check(D_Button_Red + ID) && (status == false))
+  {
+    status |= !nECU_FlowControl_Working_Do(D_Button_Red + ID);
+  }
+  if (status)
+  {
+    nECU_FlowControl_Error_Do(D_Button_Red + ID);
+  }
+  return status;
+}
+static bool nECU_Button_Stop_Single(Button_ID ID) // Perform stop on single button
+{
+  if (ID >= EGT_ID_MAX)
+    return true;
+}
 /* BUTTON LIGHT BEGIN */
 static bool nECU_Button_Light_Start(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonLight object with corresponding timer
 {
   bool status = false;
 
   Light->Timer.htim = htim;
-  nECU_tim_Init_struct(&Light->Timer);
+  nECU_TIM_Init(&Light->Timer);
   Light->Timer.Channel_Count = 1;
   Light->CCR = 0;
 
@@ -90,7 +102,7 @@ static bool nECU_Button_Light_Start(ButtonLight *Light, uint8_t Channel, TIM_Han
     status |= true;
     return status;
   }
-  status |= (nECU_tim_PWM_start(&Light->Timer) != TIM_OK);
+  status |= (nECU_TIM_PWM_Start(&Light->Timer) != TIM_OK);
 
   nECU_TickTrack_Init(&(Light->TimeTracker));
 
@@ -210,7 +222,7 @@ static void nECU_Button_Light_TimeTrack(ButtonLight *Light) // funtion called to
 }
 static void nECU_Button_Light_Stop(ButtonLight *Light) // stops PWM for seected button
 {
-  nECU_tim_PWM_stop(&Light->Timer);
+  nECU_TIM_PWM_Stop(&Light->Timer);
 }
 void nECU_Button_Light_Routine_All(void) // function to launch updates for all buttons
 {
@@ -230,7 +242,7 @@ static bool nECU_Button_Input_Start(ButtonInput *button, uint8_t Channel, TIM_Ha
 {
   bool status = false;
   button->Timer.htim = htim;
-  nECU_tim_Init_struct(&button->Timer);
+  nECU_TIM_Init(&button->Timer);
   button->Timer.Channel_Count = 1;
 
   button->RisingCCR = 0;
@@ -258,25 +270,20 @@ static bool nECU_Button_Input_Start(ButtonInput *button, uint8_t Channel, TIM_Ha
     status |= true;
     return status;
   }
-  status |= (nECU_tim_IC_start(&button->Timer) != TIM_OK);
+  status |= (nECU_TIM_IC_Start(&button->Timer) != TIM_OK);
 
   return status;
 }
 static void nECU_Button_Input_Stop(ButtonInput *button) // stop Input Capture for selected button
 {
-  nECU_tim_IC_stop(&button->Timer);
+  nECU_TIM_IC_Stop(&button->Timer);
 }
 void nECU_Button_Input_Identify(TIM_HandleTypeDef *htim) // function to identify to which button is pressed
 {
   Button_ID current_ID = htim->Channel - 1;
 
   if (current_ID >= BUTTON_ID_MAX) // Break if this button ID is not valid
-  {
-    nECU_FlowControl_Error_Do(D_Button_Red);    // indicate error for all buttons
-    nECU_FlowControl_Error_Do(D_Button_Orange); // indicate error for all buttons
-    nECU_FlowControl_Error_Do(D_Button_Green);  // indicate error for all buttons
     return;
-  }
 
   if (!nECU_FlowControl_Working_Check(D_Button_Red + current_ID)) // Break if not working
   {
@@ -338,55 +345,48 @@ static void nECU_Button_Input_InterruptRoutine(ButtonInput *button) // routine t
     }
   }
 }
-Button_ClickType nECU_Button_Input_GetType(Button_ID id) // get click type if avaliable
+Button_ClickType nECU_Button_Input_GetType(Button_ID ID) // get click type if avaliable
 {
-  if (id >= BUTTON_ID_MAX) // Break if this button ID is not valid
-  {
-    nECU_FlowControl_Error_Do(D_Button_Red);    // indicate error for all buttons
-    nECU_FlowControl_Error_Do(D_Button_Orange); // indicate error for all buttons
-    nECU_FlowControl_Error_Do(D_Button_Green);  // indicate error for all buttons
+  if (ID >= BUTTON_ID_MAX)
     return CLICK_TYPE_NONE;
-  }
 
-  if (!nECU_FlowControl_Working_Check(D_Button_Red + id)) // Break if not working
+  if (!nECU_FlowControl_Working_Check(D_Button_Red + ID)) // Break if not working
   {
-    nECU_FlowControl_Error_Do(D_Button_Red + id); // Report error
+    nECU_FlowControl_Error_Do(D_Button_Red + ID); // Report error
     return CLICK_TYPE_NONE;
   }
 
   // Copy click type to output if new state detected
-  if (Button_List[id].input.newType == true)
+  if (Button_List[ID].input.newType == true)
   {
-    Button_List[id].input.newType = false;
-    return (Button_List[id].input.Type);
+    Button_List[ID].input.newType = false;
+    return (Button_List[ID].input.Type);
   }
   return CLICK_TYPE_NONE;
 }
 /* BUTTON INPUT END */
 
 /* Animations */
-static bool nECU_Button_Light_Identify(Button_ID id, ButtonLight **light) // find corresponding light structrue, return if ok
+static bool nECU_Button_Light_Identify(Button_ID ID, ButtonLight **light) // find corresponding light structrue, return if ok
 {
-  if (id >= BUTTON_ID_MAX) // Break if this button ID is not valid
-  {
-    nECU_FlowControl_Error_Do(D_Button_Red);    // indicate error for all buttons
-    nECU_FlowControl_Error_Do(D_Button_Orange); // indicate error for all buttons
-    nECU_FlowControl_Error_Do(D_Button_Green);  // indicate error for all buttons
+  if (ID >= BUTTON_ID_MAX)
     return false;
-  }
 
-  if (!nECU_FlowControl_Working_Check(D_Button_Red + id)) // Break if not working
+  if (!nECU_FlowControl_Working_Check(D_Button_Red + ID)) // Break if not working
   {
-    nECU_FlowControl_Error_Do(D_Button_Red + id); // Report error
+    nECU_FlowControl_Error_Do(D_Button_Red + ID); // Report error
     *light = NULL;
     return false;
   }
 
-  *light = &Button_List[id].light;
+  *light = &Button_List[ID].light;
   return true;
 }
-void nECU_Button_Light_SetOne(Button_ID id, bool state) // set selected button
+void nECU_Button_Light_SetOne(Button_ID ID, bool state) // set selected button
 {
+  if (ID >= BUTTON_ID_MAX)
+    return;
+
   uint8_t Mode = BUTTON_MODE_RESTING; // By default turn off
   if (state != false)
   {
@@ -395,7 +395,7 @@ void nECU_Button_Light_SetOne(Button_ID id, bool state) // set selected button
 
   ButtonLight *temporary;
 
-  if (nECU_Button_Light_Identify(id, &temporary)) // do only if button exists and is working
+  if (nECU_Button_Light_Identify(ID, &temporary)) // do only if button exists and is working
   {
     if (temporary) // Check if pointer exists
     {
@@ -408,11 +408,14 @@ void nECU_Button_Light_SetOne(Button_ID id, bool state) // set selected button
     }
   }
 }
-void nECU_Button_Light_Breath(Button_ID id, uint8_t Speed, uint16_t Count) // breath one button
+void nECU_Button_Light_Breath(Button_ID ID, uint8_t Speed, uint16_t Count) // breath one button
 {
+  if (ID >= BUTTON_ID_MAX)
+    return;
+
   ButtonLight *temporary;
 
-  if (nECU_Button_Light_Identify(id, &temporary)) // do only if button exists and is working
+  if (nECU_Button_Light_Identify(ID, &temporary)) // do only if button exists and is working
   {
     if (temporary) // Check if pointer exists
     {
@@ -423,11 +426,14 @@ void nECU_Button_Light_Breath(Button_ID id, uint8_t Speed, uint16_t Count) // br
     }
   }
 }
-void nECU_Button_Light_Blink(Button_ID id, uint8_t Speed, uint16_t Count) // blink one button
+void nECU_Button_Light_Blink(Button_ID ID, uint8_t Speed, uint16_t Count) // blink one button
 {
+  if (ID >= BUTTON_ID_MAX)
+    return;
+
   ButtonLight *temporary;
 
-  if (nECU_Button_Light_Identify(id, &temporary)) // do only if button exists and is working
+  if (nECU_Button_Light_Identify(ID, &temporary)) // do only if button exists and is working
   {
     if (temporary) // Check if pointer exists
     {

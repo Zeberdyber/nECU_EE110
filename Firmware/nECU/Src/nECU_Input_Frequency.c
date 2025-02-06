@@ -24,18 +24,18 @@ bool nECU_VSS_Start(void) // initialize VSS structure
     {
         VSS.ic.previous_CCR = 0;
         VSS.tim.htim = &FREQ_INPUT_TIMER;
-        nECU_tim_Init_struct(&VSS.tim);
+        nECU_TIM_Init(&VSS.tim);
         VSS.tim.Channel_Count = 1;
         VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
 
         uint32_t zero_delay = ((VSS.tim.htim->Init.Period + 1) * (VSS.tim.period * 1000)) + 10; // time for the whole timer count up + 10ms (* 1000 for sec to ms conversion);
-        nECU_Delay_Set(&VSS.VSS_ZeroDetect, &zero_delay);
+        nECU_Delay_Set(&VSS.VSS_ZeroDetect, zero_delay);
 
         D_VSS.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_VSS.Status & D_BLOCK_INITIALIZED)
     {
-        status |= nECU_tim_IC_start(&VSS.tim);
+        status |= nECU_TIM_IC_Start(&VSS.tim);
         printf("Stock VSS -> STARTED!\n");
         D_VSS.Status |= D_BLOCK_WORKING;
     }
@@ -60,10 +60,10 @@ void nECU_VSS_Update(void) // update VSS structure
     }
 
     // data smoothing
-    uint16_t speed_new = speed;
-    speed_new = nECU_averageExpSmooth(VSS.VSS_Smooth_buffer, (uint16_t *)&VSS.Speed, VSS_SMOOTH_BUFFER_LENGTH, VSS_SMOOTH_ALPHA);
+    uint16_t speedUint = nECU_FloatToUint(speed, 16);
+    speedUint = nECU_averageExpSmooth(VSS.VSS_Smooth_buffer, &speedUint, (uint16_t *)&VSS.Speed, VSS_SMOOTH_BUFFER_LENGTH, VSS_SMOOTH_ALPHA);
 
-    VSS.Speed = (uint8_t)speed_new;
+    VSS.Speed = (uint8_t)speedUint;
     nECU_VSS_Validate();
 }
 static void nECU_VSS_Validate(void) // checks if recived signal is correct
@@ -119,14 +119,14 @@ bool nECU_IGF_Start(void) // initialize and start
     {
         IGF.ic.previous_CCR = 0;
         IGF.tim.htim = &FREQ_INPUT_TIMER;
-        nECU_tim_Init_struct(&IGF.tim);
+        nECU_TIM_Init(&IGF.tim);
         IGF.tim.Channel_Count = 1;
         IGF.tim.Channel_List[0] = TIM_CHANNEL_1;
         D_IGF.Status |= D_BLOCK_INITIALIZED;
     }
     if (D_IGF.Status & D_BLOCK_INITIALIZED)
     {
-        status |= (nECU_tim_IC_start(&IGF.tim) != TIM_OK);
+        status |= (nECU_TIM_IC_Start(&IGF.tim) != TIM_OK);
         printf("Stock IGF -> STARTED!\n");
         D_IGF.Status |= D_BLOCK_WORKING;
     }
@@ -161,7 +161,7 @@ void nECU_IGF_Update(void) // calculate RPM based on IGF signal
 bool nECU_IGF_Stop(void) // stop
 {
     bool status = false;
-    if (nECU_FlowControl_Working_Check(D_IGF))
+    if (nECU_FlowControl_Working_Check(D_IGF) && status == false)
     {
         status |= (HAL_OK != HAL_TIM_Base_Stop_IT(IGF.tim.htim));
         status |= (HAL_OK != HAL_TIM_IC_Stop_IT(IGF.tim.htim, IGF.tim.Channel_List[0]));

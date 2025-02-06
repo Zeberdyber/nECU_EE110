@@ -45,7 +45,6 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     [D_BackPressure] = "BackPressure",
     [D_MCU_temperature] = "nECU temperature",
     [D_AdditionalAI] = "Additional Analog Input",
-    [D_Input_Analog] = "Analog Input",
     // nECU_Input_Frequency.c
     [D_VSS] = "Stock VSS",
     [D_IGF] = "Stock Ignition Fault Detection",
@@ -69,6 +68,13 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     // nECU_stock.c
     [D_GPIO] = "GPIO",
     [D_OX] = "Stock Lambda sensor",
+    // nECU_tim.c
+    [D_TIM_PWM_BUTTON] = "Button PWM Timer",
+    [D_TIM_PWM_OX] = "Stock Lambda Heater PWM Timer",
+    [D_TIM_IC_BUTTON] = "Button IC Timer",
+    [D_TIM_IC_FREQ] = "Frequency Input Timer",
+    [D_TIM_ADC_KNOCK] = "Knock ADC Timer",
+    [D_TIM_FRAME] = "Frame Timer",
 }; // List of strings of corresponding IDs
 
 /* Debug main functions */
@@ -88,7 +94,7 @@ bool nECU_Debug_Start(void) // starts up debugging functions
             status |= !nECU_FlowControl_Initialize_Do(D_Debug);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_Debug))
+    if (!nECU_FlowControl_Working_Check(D_Debug) && status == false)
     {
         if (!status)
         {
@@ -107,33 +113,33 @@ static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
     bool status = false;
 
     /* Device temperature */
-    dbg_data.device_temperature.MCU = nECU_InternalTemp_getTemperature();
+    dbg_data.device_temperature.MCU = nECU_InternalTemp_getPointer();
 
     // EGT sensors
     for (uint8_t current_ID = 0; current_ID < EGT_ID_MAX; current_ID++) // Do for all EGT sensors
     {
         /* Device temperature */
-        if (nECU_EGT_TemperatureIC_getPointer(current_ID)) // Check if pointer exists
+        if (nECU_EGT_getPointer_TemperatureIC(current_ID)) // Check if pointer exists
         {
-            dbg_data.device_temperature.EGT_IC[current_ID] = nECU_EGT_TemperatureIC_getPointer(current_ID);
+            dbg_data.device_temperature.EGT_IC[current_ID] = nECU_EGT_getPointer_TemperatureIC(current_ID);
         }
         else
         {
             status |= nECU_FlowControl_Error_Do(D_Debug);
         }
         /* EGT temperature (thermocuple temperature) */
-        if (nECU_EGT_Temperature_getPointer(current_ID)) // Check if pointer exists
+        if (nECU_EGT_getPointer_Temperature(current_ID)) // Check if pointer exists
         {
-            dbg_data.egt_temperature.EGT_IC[current_ID] = nECU_EGT_Temperature_getPointer(current_ID);
+            dbg_data.egt_temperature.EGT_IC[current_ID] = nECU_EGT_getPointer_Temperature(current_ID);
         }
         else
         {
             status |= nECU_FlowControl_Error_Do(D_Debug);
         }
         /* EGT communication */
-        if (nECU_EGT_Error_getPointer(current_ID)) // Check if pointer exists
+        if (nECU_EGT_getPointer_Error(current_ID)) // Check if pointer exists
         {
-            dbg_data.egt_communication.EGT_IC[current_ID] = nECU_EGT_Error_getPointer(current_ID);
+            dbg_data.egt_communication.EGT_IC[current_ID] = nECU_EGT_getPointer_Error(current_ID);
         }
         else
         {
@@ -306,7 +312,7 @@ static bool nECU_Debug_Init_Que(void) // initializes que
             status |= !nECU_FlowControl_Initialize_Do(D_Debug_Que);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_Debug_Que))
+    if (!nECU_FlowControl_Working_Check(D_Debug_Que) && status == false)
     {
         status |= !nECU_FlowControl_Working_Do(D_Debug_Que);
     }
@@ -453,13 +459,63 @@ uint32_t *nECU_Debug_ProgramBlockData_getPointer_Diff(nECU_Module_ID ID) // retu
     return &(Debug_Status_List[ID].Update_ticks.difference);
 }
 
-/* Flow control */
+/* Flow control
+    ProgramBlock status has 9 states where each bit of byte represents one state:
+        D_BLOCK_NULL = 0,        // Block was not initialized
+        D_BLOCK_STOP = 1,        // Block stopped
+        D_BLOCK_INITIALIZED = 2, // Block structures initialized
+        D_BLOCK_WORKING = 4,     // Block working
+        D_BLOCK_SPARE_1 = 8,
+        D_BLOCK_SPARE_2 = 16,
+        D_BLOCK_SPARE_3 = 32,
+        D_BLOCK_ERROR_OLD = 64,  // error in memory
+        D_BLOCK_ERROR = 128,     // error active
+
+        Usually program should go in such scheme:
+            STOP->INITIALIZED->WORKING->STOP->WORKING->STOP... [Initialization is done only once]
+        Active statuses are indicated with 'true' at correct bit.
+        Some statuses may be actve with others, ex INITIALIZED will be active after initialization and will stay this way
+
+        When error is detected call Error_Do function. It will store state ERROR_OLD. If the same block will call for the second time error will be considered to be major and block will be stopped!
+
+    ProgramBlock has watchdog functionality.
+        When timeout_value is reached, block will be stopped!
+        Remember to call watchdog function to prevent stop.
+        Call frequency can be read from tick difference between watchdog calls.
+
+    If one ProgramBlock is dependent on resources from other:
+        At '_Start()' it should call for corresponding '_Start()' function,
+        At '_Stop()' it should firstly switch to STOP mode and then attempt '_Stop()' on other ProgramBlocks
+            If ProgramBlock A uses data from ProgramBlock B: A_Stop() then B_Stop()
+
+    ProgramBlock cannot be started if it has active ERROR status.
+*/
 bool nECU_FlowControl_Stop_Check(nECU_Module_ID ID) // Check if block has "initialized" status
 {
+    if (ID >= D_ID_MAX)
+        return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_STOP);
 }
 bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status if possible
 {
+    if (ID >= D_ID_MAX)
+        return false;
+
+    switch (ID) /* Stopping of shared resources */
+    {
+    case D_ADC1:
+        if (nECU_FlowControl_Working_Check(D_AdditionalAI) || nECU_FlowControl_Working_Check(D_BackPressure) || nECU_FlowControl_Working_Check(D_MAP) || nECU_FlowControl_Working_Check(D_MCU_temperature) || nECU_FlowControl_Working_Check(D_OX))
+            return false;
+        break;
+    case D_ADC2:
+        if (nECU_FlowControl_Working_Check(D_SS1) || nECU_FlowControl_Working_Check(D_SS2) || nECU_FlowControl_Working_Check(D_SS3) || nECU_FlowControl_Working_Check(D_SS4))
+            return false;
+        break;
+
+    default:
+        break;
+    }
+
     printf("Stopping %s.", D_ID_Strings[ID]);
     if (nECU_FlowControl_Stop_Check(ID) || nECU_FlowControl_Working_Check(ID)) // check if already done
     {
@@ -473,10 +529,14 @@ bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status i
 
 bool nECU_FlowControl_Initialize_Check(nECU_Module_ID ID) // Check if block has "initialized" status
 {
+    if (ID >= D_ID_MAX)
+        return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_INITIALIZED);
 }
 bool nECU_FlowControl_Initialize_Do(nECU_Module_ID ID) // Write "initialized" status if possible
 {
+    if (ID >= D_ID_MAX)
+        return false;
     printf("Initializing %s.", D_ID_Strings[ID]);
     if (nECU_FlowControl_Initialize_Check(ID) || !nECU_FlowControl_Stop_Check(ID)) // check if already done
     {
@@ -491,12 +551,16 @@ bool nECU_FlowControl_Initialize_Do(nECU_Module_ID ID) // Write "initialized" st
 
 bool nECU_FlowControl_Working_Check(nECU_Module_ID ID) // Check if block has "working" status
 {
+    if (ID >= D_ID_MAX)
+        return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_WORKING);
 }
 bool nECU_FlowControl_Working_Do(nECU_Module_ID ID) // Write "working" status if possible
 {
+    if (ID >= D_ID_MAX)
+        return false;
     printf("Starting %s.", D_ID_Strings[ID]);
-    if (nECU_FlowControl_Working_Check(ID) || !nECU_FlowControl_Initialize_Check(ID)) // check if already done
+    if (nECU_FlowControl_Working_Check(ID) || !nECU_FlowControl_Initialize_Check(ID) || !nECU_FlowControl_Error_Check(ID)) // check if already done or it is in error
     {
         nECU_FlowControl_Error_Do(ID); // indicate error in code
         return false;
@@ -508,10 +572,14 @@ bool nECU_FlowControl_Working_Do(nECU_Module_ID ID) // Write "working" status if
 
 bool nECU_FlowControl_Error_Check(nECU_Module_ID ID) // Check if block has "error" status
 {
+    if (ID >= D_ID_MAX)
+        return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR);
 }
 bool nECU_FlowControl_Error_Do(nECU_Module_ID ID) // Write "error" status if possible
 {
+    if (ID >= D_ID_MAX)
+        return false;
     if (nECU_FlowControl_Error_Check(ID) && !nECU_FlowControl_Initialize_Check(ID)) // check if already done
     {
         // Perform action for error on non-initialized block
@@ -525,10 +593,14 @@ bool nECU_FlowControl_Error_Do(nECU_Module_ID ID) // Write "error" status if pos
 
 bool nECU_FlowControl_DoubleError_Check(nECU_Module_ID ID) // Check if block has "error_old" status
 {
+    if (ID >= D_ID_MAX)
+        return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR_OLD);
 }
 bool nECU_FlowControl_DoubleError_Do(nECU_Module_ID ID) // Write "error_old" status if possible
 {
+    if (ID >= D_ID_MAX)
+        return false;
     if (nECU_FlowControl_Error_Check(ID) && nECU_FlowControl_DoubleError_Check(ID)) // check if already done
     {
         // Perform action for recouring error!!!

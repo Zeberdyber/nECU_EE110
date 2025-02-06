@@ -29,7 +29,7 @@ bool nECU_OX_Init(void) // initialize narrowband lambda structure
         /* Heater */
         // timer configuration
         OX.Heater.htim = &OX_HEATER_TIMER;
-        nECU_tim_Init_struct(&(OX.Heater));
+        nECU_TIM_Init(&(OX.Heater));
         OX.Heater.Channel_Count = 1;
         OX.Heater.Channel_List[0] = TIM_CHANNEL_1;
         // variables configuration
@@ -44,7 +44,7 @@ bool nECU_OX_Init(void) // initialize narrowband lambda structure
     }
     if (D_OX.Status & D_BLOCK_INITIALIZED)
     {
-        status |= (nECU_tim_PWM_start(&(OX.Heater)) != TIM_OK);
+        status |= (nECU_TIM_PWM_Start(&(OX.Heater)) != TIM_OK);
         status |= nECU_ADC1_START();
         D_OX.Status |= D_BLOCK_WORKING;
     }
@@ -75,7 +75,7 @@ void nECU_OX_DeInit(void) // deinitialize narrowband lambda structure
 {
     if (D_OX.Status & D_BLOCK_INITIALIZED)
     {
-        nECU_tim_PWM_stop(&(OX.Heater));
+        nECU_TIM_PWM_Stop(&(OX.Heater));
         D_OX.Status -= D_BLOCK_INITIALIZED_WORKING;
     }
 }

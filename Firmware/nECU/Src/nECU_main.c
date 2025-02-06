@@ -32,11 +32,11 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
         if (!status)
             status |= nECU_FlowControl_Initialize_Do(D_Main);
     }
-    if (!nECU_FlowControl_Working_Check(D_Main))
+    if (!nECU_FlowControl_Working_Check(D_Main) && status == false)
     {
         if (!status)
         {
-            status |= !nECU_FlowControl_Working_Check(D_Main);
+            status |= !nECU_FlowControl_Working_Do(D_Main);
         }
     }
     if (status)
@@ -54,7 +54,7 @@ void nECU_main(void) // main rutine of the program
 
     // call periodic functions
     nECU_Knock_UpdatePeriodic();
-    EGT_Routine();
+    nECU_EGT_Routine();
     Button_Menu();
     nECU_Delay_UpdateAll();
 

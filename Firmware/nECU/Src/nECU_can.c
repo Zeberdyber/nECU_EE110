@@ -25,17 +25,17 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   bool status_TX, status_RX = false;
 
   /* TX */
-  if (!nECU_FlowControl_Initialize_Check(D_CAN_TX))
+  if (!nECU_FlowControl_Initialize_Check(D_CAN_TX) && status_TX == false)
   {
     status_TX |= nECU_CAN_TX_InitFrame(nECU_Frame_Speed);
     status_TX |= nECU_CAN_TX_InitFrame(nECU_Frame_EGT);
     status_TX |= nECU_CAN_TX_InitFrame(nECU_Frame_Stock);
 
-    nECU_Delay_Set(&(F0_var.frame_delay), (uint32_t *)CAN_TX_FRAME0_TIME);
+    nECU_Delay_Set(&(F0_var.frame_delay), CAN_TX_FRAME0_TIME);
     nECU_Delay_Start(&(F0_var.frame_delay));
-    nECU_Delay_Set(&(F1_var.frame_delay), (uint32_t *)CAN_TX_FRAME1_TIME);
+    nECU_Delay_Set(&(F1_var.frame_delay), CAN_TX_FRAME1_TIME);
     nECU_Delay_Start(&(F1_var.frame_delay));
-    nECU_Delay_Set(&(F2_var.frame_delay), (uint32_t *)CAN_TX_FRAME2_TIME);
+    nECU_Delay_Set(&(F2_var.frame_delay), CAN_TX_FRAME2_TIME);
     nECU_Delay_Start(&(F2_var.frame_delay));
 
     F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
@@ -47,7 +47,7 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
       !nECU_FlowControl_Initialize_Do(D_CAN_TX);
     }
   }
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX))
+  if (!nECU_FlowControl_Working_Check(D_CAN_TX) && status_TX == false)
   {
     status_TX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
     if (!status_TX)
@@ -61,7 +61,7 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   }
 
   /* RX */
-  if (!nECU_FlowControl_Initialize_Check(D_CAN_RX))
+  if (!nECU_FlowControl_Initialize_Check(D_CAN_RX) && status_RX == false)
   {
     status_RX |= nECU_CAN_RX_InitFrame();
     if (!status_RX)
@@ -69,7 +69,7 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
       status_RX |= !nECU_FlowControl_Initialize_Do(D_CAN_RX);
     }
   }
-  if (!nECU_FlowControl_Working_Check(D_CAN_RX))
+  if (!nECU_FlowControl_Working_Check(D_CAN_RX) && status_RX == false)
   {
     status_RX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
     if (!status_RX)
@@ -117,7 +117,7 @@ void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) //
 bool nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_CAN_TX))
+  if (nECU_FlowControl_Working_Check(D_CAN_TX) && status == false)
   {
     status |= nECU_CAN_RX_Stop();
     status |= (HAL_OK != HAL_CAN_Stop(&hcan1));
@@ -282,7 +282,7 @@ static bool nECU_CAN_RX_InitFrame(void) // initialize reciving frames with corre
 bool nECU_CAN_RX_Stop(void) // Disables Recive communication
 {
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_CAN_RX))
+  if (nECU_FlowControl_Working_Check(D_CAN_RX) && status == false)
   {
     status |= (HAL_OK != HAL_CAN_DeactivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING)); // Stop waiting for RX
     if (!status)
