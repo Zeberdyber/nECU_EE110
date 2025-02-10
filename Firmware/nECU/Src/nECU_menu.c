@@ -11,266 +11,277 @@
 static ButtonMenu Menu = {0};
 static TachoValue Tacho[TACHO_ID_MAX];
 
-extern nECU_ProgramBlockData D_Tacho, D_Menu; // diagnostic and flow control data
-
-/* Button logic */
-bool Button_Menu_Init(void) // initialize button menu
+/* Menu */
+bool nECU_Menu_Start(void)
 {
   bool status = false;
 
-  if (D_Menu.Status == D_BLOCK_STOP)
+  if (!nECU_FlowControl_Initialize_Check(D_Menu))
   {
     Menu.Antilag = false;
-    Menu.ClearEngineCode = false;
-    Menu.LunchControlLevel = 0;
-    Menu.MenuLevel = 0;
+    Menu.ClearCode = false;
+    Menu.LunchLvl = 0;
+    Menu.MenuLvl = 0;
     Menu.TractionOFF = false;
-    Menu.TuneSelector = 0;
-    status |= nECU_Flash_UserSettings_read(&(Menu.Antilag), &(Menu.TractionOFF));
-    nECU_Delay_Set(&(Menu.save_delay), FLASH_SAVE_DELAY_TIME);
+    Menu.TuneSel = 0;
 
-    D_Menu.Status |= D_BLOCK_INITIALIZED;
+    status |= nECU_Delay_Set(&(Menu.save_delay), FLASH_SAVE_DELAY_TIME);
+
+    if (!status)
+      status |= !nECU_FlowControl_Initialize_Do(D_Menu);
   }
-  if (D_Menu.Status & D_BLOCK_INITIALIZED)
+  if (!nECU_FlowControl_Working_Check(D_Menu) && status == false)
   {
-    status |= nECU_Button_Start();
+    status |= nECU_FLASH_Start();
+    status |= nECU_Button_Start(BUTTON_ID_RED);
+    status |= nECU_Button_Start(BUTTON_ID_ORANGE);
+    status |= nECU_Button_Start(BUTTON_ID_GREEN);
+
+    if (!status)
+      status |= nECU_Flash_UserSettings_read(&(Menu.Antilag), &(Menu.TractionOFF));
 
     /* First animation */
-    nECU_Button_Light_Breath(RED_BUTTON_ID, 100, 1);
-    nECU_Button_Light_Breath(ORANGE_BUTTON_ID, 100, 1);
-    nECU_Button_Light_Breath(GREEN_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(BUTTON_ID_RED, 100, 1);
+    nECU_Button_Light_Breath(BUTTON_ID_ORANGE, 100, 1);
+    nECU_Button_Light_Breath(BUTTON_ID_GREEN, 100, 1);
 
-    printf("Button menu -> STARTED!\n");
-    D_Menu.Status |= D_BLOCK_WORKING;
+    if (!status)
+      status |= !nECU_FlowControl_Working_Do(D_Menu);
   }
+  if (status)
+    nECU_FlowControl_Error_Do(D_Menu);
 
   return status;
 }
-void Button_Menu(void) // update function
+bool nECU_Menu_Stop(void)
 {
-  if (!(D_Menu.Status & D_BLOCK_WORKING))
+  bool status = false;
+  if (nECU_FlowControl_Working_Check(D_Menu) && status == false)
   {
-    D_Menu.Status |= D_BLOCK_CODE_ERROR;
-    return;
+    status |= nECU_Delay_Stop(&(Menu.save_delay));
+    status |= nECU_Flash_UserSettings_save(&(Menu.Antilag), &(Menu.TractionOFF));
+
+    status |= nECU_Button_Stop(BUTTON_ID_RED);
+    status |= nECU_Button_Stop(BUTTON_ID_ORANGE);
+    status |= nECU_Button_Stop(BUTTON_ID_GREEN);
+
+    if (!status)
+      status |= !nECU_FlowControl_Stop_Do(D_Menu);
+
+    status |= nECU_FLASH_Stop();
+  }
+  if (status)
+    nECU_FlowControl_Error_Do(D_Menu);
+
+  return status;
+}
+void nECU_Menu_Routine(void)
+{
+  if (!nECU_FlowControl_Working_Check(D_Menu)) // Check if currently working
+  {
+    nECU_FlowControl_Error_Do(D_Menu);
+    return; // Break
   }
 
   nECU_Button_Light_Routine_All();
   nECU_Delay_Update(&(Menu.save_delay));
 
-  Button_ClickType RedType = nECU_Button_Input_GetType(RED_BUTTON_ID);
-  Button_ClickType OrangeType = nECU_Button_Input_GetType(ORANGE_BUTTON_ID);
-  Button_ClickType GreenType = nECU_Button_Input_GetType(GREEN_BUTTON_ID);
+  Button_ClickType RedType = nECU_Button_Input_GetType(BUTTON_ID_RED);
+  Button_ClickType OrangeType = nECU_Button_Input_GetType(BUTTON_ID_ORANGE);
+  Button_ClickType GreenType = nECU_Button_Input_GetType(BUTTON_ID_GREEN);
 
-  if (OrangeType == CLICK_TYPE_HOLD && Menu.MenuLevel < 1) // move up the menu
+  if (OrangeType == CLICK_TYPE_HOLD && Menu.MenuLvl < 1) // move up the menu
   {
-    Menu.MenuLevel++;
-    nECU_Button_Light_Breath(RED_BUTTON_ID, 100, 1);
-    nECU_Button_Light_Breath(ORANGE_BUTTON_ID, 100, 1);
-    nECU_Button_Light_Breath(GREEN_BUTTON_ID, 100, 1);
+    Menu.MenuLvl++;
+    nECU_Button_Light_Breath(BUTTON_ID_RED, 100, 1);
+    nECU_Button_Light_Breath(BUTTON_ID_ORANGE, 100, 1);
+    nECU_Button_Light_Breath(BUTTON_ID_GREEN, 100, 1);
   }
-  else if ((OrangeType == CLICK_TYPE_DOUBLE_CLICK) && (Menu.MenuLevel > 0)) // move down the menu
+  else if ((OrangeType == CLICK_TYPE_DOUBLE_CLICK) && (Menu.MenuLvl > 0)) // move down the menu
   {
-    Menu.MenuLevel--;
-    nECU_Button_Light_Breath(RED_BUTTON_ID, 100, 1);
-    nECU_Button_Light_Breath(ORANGE_BUTTON_ID, 100, 1);
-    nECU_Button_Light_Breath(GREEN_BUTTON_ID, 100, 1);
+    Menu.MenuLvl--;
+    nECU_Button_Light_Breath(BUTTON_ID_RED, 100, 1);
+    nECU_Button_Light_Breath(BUTTON_ID_ORANGE, 100, 1);
+    nECU_Button_Light_Breath(BUTTON_ID_GREEN, 100, 1);
   }
 
-  switch (Menu.MenuLevel)
+  switch (Menu.MenuLvl)
   {
   case 0:
     if (RedType == CLICK_TYPE_SINGLE_CLICK) // Traction control ON/OFF
     {
-      nECU_Button_Light_Blink(RED_BUTTON_ID, 50, 1);
+      nECU_Button_Light_Blink(BUTTON_ID_RED, 50, 1);
       Menu.TractionOFF = !Menu.TractionOFF;
       nECU_Delay_Start(&(Menu.save_delay));
     }
     else if (RedType == CLICK_TYPE_HOLD) // Calibrate speed sensors
     {
-      nECU_Button_Light_Breath(RED_BUTTON_ID, 100, 10); // temporary line as no speed sensor is working properly
+      nECU_Button_Light_Breath(BUTTON_ID_RED, 100, 10); // temporary line as no speed sensor is working properly
       // Speed_CalibrateStart();
     }
     if (OrangeType == CLICK_TYPE_SINGLE_CLICK) // Antilag ON/OFF
     {
-      nECU_Button_Light_Blink(ORANGE_BUTTON_ID, 50, 1);
+      nECU_Button_Light_Blink(BUTTON_ID_ORANGE, 50, 1);
       Menu.Antilag = !Menu.Antilag;
       nECU_Delay_Start(&(Menu.save_delay));
     }
     if (GreenType == CLICK_TYPE_SINGLE_CLICK) // Lunch control level 1 ON/OFF
     {
-      nECU_Button_Light_Blink(GREEN_BUTTON_ID, 50, 1);
-      Menu.LunchControlLevel = !Menu.LunchControlLevel;
+      nECU_Button_Light_Blink(BUTTON_ID_GREEN, 50, 1);
+      Menu.LunchLvl = !Menu.LunchLvl;
     }
 
     // display state (if no animation)
-    nECU_Button_Light_SetOne(RED_BUTTON_ID, Menu.TractionOFF);
-    nECU_Button_Light_SetOne(ORANGE_BUTTON_ID, Menu.Antilag);
-    nECU_Button_Light_SetOne(GREEN_BUTTON_ID, Menu.LunchControlLevel);
+    nECU_Button_Light_SetOne(BUTTON_ID_RED, Menu.TractionOFF);
+    nECU_Button_Light_SetOne(BUTTON_ID_ORANGE, Menu.Antilag);
+    nECU_Button_Light_SetOne(BUTTON_ID_GREEN, Menu.LunchLvl);
     break;
   case 1:
     if (RedType == CLICK_TYPE_SINGLE_CLICK) // Clear codes
     {
-      nECU_Button_Light_Blink(RED_BUTTON_ID, 50, 1);
-      Menu.ClearEngineCode = true;
+      nECU_Button_Light_Blink(BUTTON_ID_RED, 50, 1);
+      Menu.ClearCode = true;
     }
-    if ((OrangeType == CLICK_TYPE_SINGLE_CLICK) && (Menu.TuneSelector < TUNE_NUMBER)) // cycle threw tunes
+    if ((OrangeType == CLICK_TYPE_SINGLE_CLICK) && (Menu.TuneSel < TUNE_NUMBER)) // cycle threw tunes
     {
-      nECU_Button_Light_Blink(ORANGE_BUTTON_ID, 50, 1);
-      Menu.TuneSelector++;
-      if (Menu.TuneSelector == TUNE_NUMBER)
+      nECU_Button_Light_Blink(BUTTON_ID_ORANGE, 50, 1);
+      Menu.TuneSel++;
+      if (Menu.TuneSel == TUNE_NUMBER)
       {
-        Menu.TuneSelector = 0;
+        Menu.TuneSel = 0;
       }
     }
-    if ((GreenType == CLICK_TYPE_SINGLE_CLICK) && (Menu.LunchControlLevel < (LAUNCH_CONTROL_NUMBER + 1))) // cycle threw lunch control levels
+    if ((GreenType == CLICK_TYPE_SINGLE_CLICK) && (Menu.LunchLvl < (LAUNCH_CONTROL_NUMBER + 1))) // cycle threw lunch control levels
     {
-      nECU_Button_Light_Blink(GREEN_BUTTON_ID, 50, 1);
-      Menu.LunchControlLevel++;
-      if (Menu.LunchControlLevel == (LAUNCH_CONTROL_NUMBER + 1)) // +1 for 0 state
+      nECU_Button_Light_Blink(BUTTON_ID_GREEN, 50, 1);
+      Menu.LunchLvl++;
+      if (Menu.LunchLvl == (LAUNCH_CONTROL_NUMBER + 1)) // +1 for 0 state
       {
-        Menu.LunchControlLevel = 0;
+        Menu.LunchLvl = 0;
       }
     }
 
     // display state (if no animation)
-    nECU_Button_Light_SetOne(RED_BUTTON_ID, Menu.ClearEngineCode);
-    nECU_Button_Light_SetOne(ORANGE_BUTTON_ID, Menu.TuneSelector);
-    nECU_Button_Light_SetOne(GREEN_BUTTON_ID, Menu.LunchControlLevel);
+    nECU_Button_Light_SetOne(BUTTON_ID_RED, Menu.ClearCode);
+    nECU_Button_Light_SetOne(BUTTON_ID_ORANGE, Menu.TuneSel);
+    nECU_Button_Light_SetOne(BUTTON_ID_GREEN, Menu.LunchLvl);
     break;
   default:
-    Menu.MenuLevel = 0;
-    D_Menu.Status |= D_BLOCK_CODE_ERROR;
+    Menu.MenuLvl = 0;
+    nECU_FlowControl_Error_Do(D_Menu);
     break;
   }
   if (*nECU_Delay_DoneFlag(&(Menu.save_delay)) == true) // Perform save
   {
     nECU_Delay_Stop(&(Menu.save_delay));
     nECU_Flash_UserSettings_save(&(Menu.Antilag), &(Menu.TractionOFF));
-    nECU_Button_Light_Breath(ORANGE_BUTTON_ID, 100, 1);
+    nECU_Button_Light_Breath(BUTTON_ID_ORANGE, 100, 1);
   }
 
-  nECU_Debug_ProgramBlockData_Update(&D_Menu);
+  nECU_Debug_ProgramBlockData_Update(D_Menu);
 }
 
-/* Interface functions */
-bool *Button_Menu_getPointer_Antilag(void)
+bool *nECU_Menu_Antilag_getPointer(void)
 {
   return &(Menu.Antilag);
 }
-bool *Button_Menu_getPointer_TractionOFF(void)
+bool *nECU_Menu_TractionOFF_getPointer(void)
 {
   return &(Menu.TractionOFF);
 }
-bool *Button_Menu_getPointer_ClearEngineCode(void)
+bool *nECU_Menu_ClearCode_getPointer(void)
 {
-  return &(Menu.ClearEngineCode);
+  return &(Menu.ClearCode);
 }
-uint16_t *Button_Menu_getPointer_LunchControlLevel(void)
+uint16_t *nECU_Menu_LunchLvl_getPointer(void)
 {
-  return &(Menu.LunchControlLevel);
+  return &(Menu.LunchLvl);
 }
-uint16_t *Button_Menu_getPointer_TuneSelector(void)
+uint16_t *nECU_Menu_TuneSel_getPointer(void)
 {
-  return &(Menu.TuneSelector);
+  return &(Menu.TuneSel);
 }
 
-/* TachoValue interface functions */
-uint8_t *TachoValue_Get_OutputPointer(Tacho_ID ID) // get pointer to correct structure value
-{
-  if (ID > TACHO_ID_MAX)
-  {
-
-    return NULL;
-  }
-
-  switch (ID)
-  {
-  case TACHO_SHOW_1:
-    return &Tacho1.output_value;
-    break;
-  case TACHO_SHOW_2:
-    return &Tacho2.output_value;
-    break;
-  case TACHO_SHOW_3:
-    return &Tacho3.output_value;
-    break;
-  default:
-    break;
-  }
-  return NULL;
-}
-bool *TachoValue_Get_ShowPointer(Tacho_ID ID) // get pointer to correct structure value
-{
-  switch (ID)
-  {
-  case TACHO_SHOW_1:
-    return &Tacho1.showPending;
-    break;
-  case TACHO_SHOW_2:
-    return &Tacho2.showPending;
-    break;
-  case TACHO_SHOW_3:
-    return &Tacho3.showPending;
-    break;
-  default:
-    break;
-  }
-
-  return NULL;
-}
-void TachoValue_Clear_ShowPending(Tacho_ID ID) // clear pending flag for selected struct
-{
-  if (!(D_Tacho.Status & D_BLOCK_WORKING))
-  {
-    D_Tacho.Status |= D_BLOCK_CODE_ERROR;
-    return;
-  }
-
-  switch (ID)
-  {
-  case TACHO_SHOW_1:
-    Tacho1.showPending = false;
-    break;
-  case TACHO_SHOW_2:
-    Tacho2.showPending = false;
-    break;
-  case TACHO_SHOW_3:
-    Tacho3.showPending = false;
-    break;
-  default:
-    break;
-  }
-}
-void TachoValue_Update_All(void) // update all TachoValue structures
-{
-  if (!(D_Tacho.Status & D_BLOCK_WORKING))
-  {
-    D_Tacho.Status |= D_BLOCK_CODE_ERROR;
-    return;
-  }
-
-  TachoValue_Update_Single(&Tacho1);
-  TachoValue_Update_Single(&Tacho2);
-  TachoValue_Update_Single(&Tacho3);
-
-  nECU_Debug_ProgramBlockData_Update(&D_Tacho);
-}
-bool TachoValue_Init_All(void) // initialize tachometer value structures
+/* Tacho */
+bool nECU_Tacho_Start(void)
 {
   bool status = false;
-  if (D_Tacho.Status == D_BLOCK_STOP)
+
+  if (!nECU_FlowControl_Initialize_Check(D_Tacho))
   {
-    status |= TachoValue_Init_Single(&Tacho1, Button_Menu_getPointer_TuneSelector(), 10);
-    status |= TachoValue_Init_Single(&Tacho2, Button_Menu_getPointer_LunchControlLevel(), 10);
-    status |= TachoValue_Init_Single(&Tacho3, &Menu.MenuLevel, 10);
-    printf("Tacho data -> STARTED!\n");
-    D_Tacho.Status |= D_BLOCK_INITIALIZED_WORKING;
+    if (!status)
+      status |= !nECU_FlowControl_Initialize_Do(D_Tacho);
   }
+  if (!nECU_FlowControl_Working_Check(D_Tacho) && status == false)
+  {
+    status |= nECU_Tacho_Start_Single(&Tacho[TACHO_ID_TuneSel], nECU_Menu_TuneSel_getPointer(), 10);
+    status |= nECU_Tacho_Start_Single(&Tacho[TACHO_ID_LunchLvl], nECU_Menu_LunchLvl_getPointer(), 10);
+    status |= nECU_Tacho_Start_Single(&Tacho[TACHO_ID_MenuLvl], &Menu.MenuLvl, 10);
+
+    if (!status)
+      status |= !nECU_FlowControl_Working_Do(D_Tacho);
+  }
+  if (status)
+    nECU_FlowControl_Error_Do(D_Tacho);
 
   return status;
 }
+bool nECU_Tacho_Stop(void)
+{
+  bool status = false;
+  if (nECU_FlowControl_Working_Check(D_Tacho) && status == false)
+  {
+    if (!status)
+      status |= !nECU_FlowControl_Stop_Do(D_Tacho);
+  }
+  if (status)
+    nECU_FlowControl_Error_Do(D_Tacho);
+
+  return status;
+}
+void nECU_Tacho_Routine(void)
+{
+  if (!nECU_FlowControl_Working_Check(D_Tacho)) // Check if currently working
+  {
+    nECU_FlowControl_Error_Do(D_Tacho);
+    return; // Break
+  }
+  nECU_Tacho_Routine_Single(&Tacho[TACHO_ID_TuneSel]);
+  nECU_Tacho_Routine_Single(&Tacho[TACHO_ID_LunchLvl]);
+  nECU_Tacho_Routine_Single(&Tacho[TACHO_ID_MenuLvl]);
+
+  nECU_Debug_ProgramBlockData_Update(D_Tacho);
+}
+
+uint8_t *nECU_Tacho_getPointer(Tacho_ID ID) // get pointer to correct structure value
+{
+  if (ID > TACHO_ID_MAX)
+    return NULL;
+
+  return &Tacho[ID].output_value;
+}
+bool *nECU_Tacho_Show_getPointer(Tacho_ID ID) // get pointer to correct structure value
+{
+  if (ID > TACHO_ID_MAX)
+    return NULL;
+
+  return &Tacho[ID].showPending;
+}
+void nECU_Tacho_Clear_getPointer(Tacho_ID ID) // clear pending flag for selected struct
+{
+  if (ID > TACHO_ID_MAX)
+    return;
+
+  if (!nECU_FlowControl_Working_Check(D_Tacho)) // Check if currently working
+  {
+    nECU_FlowControl_Error_Do(D_Tacho);
+    return; // Break
+  }
+  Tacho[ID].showPending = false;
+}
+
 /* TachoValue internal functions */
-static bool TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier) // initialize single structure
+static bool nECU_Tacho_Start_Single(TachoValue *inst, uint16_t *pinput_value, uint8_t multiplier) // initialize single structure
 {
   bool status = false;
 
@@ -281,7 +292,7 @@ static bool TachoValue_Init_Single(TachoValue *inst, uint16_t *pinput_value, uin
 
   return status;
 }
-static void TachoValue_Update_Single(TachoValue *inst) // update variables when needed
+static void nECU_Tacho_Routine_Single(TachoValue *inst) // update variables when needed
 {
   if (*inst->input_value != inst->prev_input)
   {

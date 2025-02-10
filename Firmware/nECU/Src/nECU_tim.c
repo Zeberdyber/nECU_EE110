@@ -10,9 +10,6 @@
 static nECU_Delay MCU_temperature_Startup = {0}, MCU_temperature_Update = {0};
 static nECU_tim_Watchdog Button_Out_Watchdog = {0}, Ox_Out_Watchdog = {0};
 
-extern VSS_Handle VSS;
-extern IGF_Handle IGF;
-
 /* Used in watchdogs */
 extern Oxygen_Handle OX;
 extern Button Red;
@@ -61,12 +58,15 @@ static nECU_TIM_ID nECU_TIM_Identify(TIM_HandleTypeDef *htim) // returns ID of g
   }
   return TIM_ID_MAX; // return ID_MAX if not found
 }
-TIM_HandleTypeDef *nECU_SPI_getPointer(nECU_TIM_ID ID) // returns pointer to
+TIM_HandleTypeDef *nECU_TIM_getPointer(nECU_TIM_ID ID) // returns pointer to
 {
   if (ID >= TIM_ID_MAX) // Break if invalid ID
     return NULL;
 
   return TIM_Handle_List[ID];
+}
+nECU_InputCapture *nECU_TIM_IC_getPointer(nECU_TIM_ID ID, uint32_t Channel)
+{
 }
 
 /* Callback functions */
@@ -87,28 +87,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
   if (current_ID >= TIM_ID_MAX) // Break if invalid ID
     return;
 
-  switch (current_ID)
-  {
-  case TIM_IC_BUTTON_ID:
-    nECU_Button_Input_Identify(htim);
-    break;
-  case TIM_IC_FREQ_ID:
-    switch (htim->Channel)
-    {
-    case HAL_TIM_ACTIVE_CHANNEL_1:
-      nECU_TIM_IC_Callback(TIM_Handle_List[TIM_IC_FREQ_ID], &(IGF.ic));
-      break;
-    case HAL_TIM_ACTIVE_CHANNEL_2:
-      nECU_TIM_IC_Callback(TIM_Handle_List[TIM_IC_FREQ_ID], &(VSS.ic));
-      break;
-
-    default:
-      break;
-    }
-    break;
-  default:
-    break;
-  }
+  nECU_TIM_IC_Callback(TIM_Handle_List[TIM_IC_FREQ_ID]);
 }
 
 /* Used for simple time tracking */
@@ -201,7 +180,7 @@ bool nECU_TIM_Init(nECU_TIM_ID ID) // initialize structure and precalculate vari
   if (ID >= TIM_ID_MAX)
     return true;
 
-  if (!nECU_FlowControl_Initialize_Check(D_TIM_PWM_BUTTON + ID)) // Check if was done
+  if (nECU_FlowControl_Initialize_Check(D_TIM_PWM_BUTTON + ID)) // Check if was done
   {
     nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true;
@@ -287,7 +266,7 @@ bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop PWM
 
   return false;
 }
-bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel) // function to start IC on selected timer
+bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, uint16_t Pin, GPIO_TypeDef *Port) // function to start IC on selected timer
 {
   if (ID >= TIM_ID_MAX)
     return true;
@@ -312,6 +291,9 @@ bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel) // function to start IC
     nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true; // indicate if not successful
   }
+
+  nECU_GPIO_Init(&TIM_List[ID].IC[Channel].buttonPin, Pin, Port);
+
   TIM_List[ID].Channels[Channel] = TIM_Channel_IC;
 
   // Add GPIO config
@@ -407,35 +389,33 @@ static bool nECU_TIM_IC_Callback(nECU_TIM_ID ID) // callback function to calcula
   uint32_t channel = TIM_ActiveChannel_Lookup[TIM_List[ID].htim->Channel];
   uint32_t CurrentCCR = HAL_TIM_ReadCapturedValue(TIM_List[ID].htim, channel);
   uint8_t channel_ic = (TIM_List[ID].htim->Channel / 4) + 1;
+
   /* Calculate difference */
-  uint16_t Difference = 0; // in miliseconds
+  uint16_t Difference = 0; // in Timer pulses
+
   if (TIM_List[ID].IC[channel_ic].CCR_prev > CurrentCCR)
-  {
     Difference = ((TIM_List[ID].htim->Init.Period + 1) - TIM_List[ID].IC[channel_ic].CCR_prev) + CurrentCCR;
+  else
+    Difference = CurrentCCR - TIM_List[ID].IC[channel_ic].CCR_prev;
+
+  /* Debounce */
+  if (Difference < 10) // Pulse has to be at least 10x longer then channel period
+    return false;
+
+  /* If GPIO was defined: Detect edge and calculate times */
+  if (!nECU_GPIO_Read(&TIM_List[ID].IC[channel_ic].buttonPin))
+  {
+    if (TIM_List[ID].IC[channel_ic].buttonPin.State == GPIO_PIN_SET)
+      TIM_List[ID].IC[channel_ic].CCR_Low = Difference;
+    else
+      TIM_List[ID].IC[channel_ic].CCR_High = Difference;
+
+    TIM_List[ID].IC[channel_ic].frequency = nECU_FloatToUint(TIM_List[ID].refClock / (TIM_List[ID].IC[channel_ic].CCR_High + TIM_List[ID].IC[channel_ic].CCR_Low), 16);
   }
   else
-  {
-    Difference = CurrentCCR - TIM_List[ID].IC[channel_ic].CCR_prev;
-  }
+    TIM_List[ID].IC[channel_ic].frequency = nECU_FloatToUint(TIM_List[ID].refClock / (Difference * 2), 16);
 
   TIM_List[ID].IC[channel_ic].CCR_prev = CurrentCCR;
-
-  if (ID == TIM_IC_BUTTON_ID)
-  {
-    if (TIM_List[ID].IC[channel_ic].buttonPin.GPIOx != NULL)
-    {
-      TIM_List[ID].IC[channel_ic].buttonPin.State = HAL_GPIO_ReadPin(TIM_List[ID].IC[channel_ic].buttonPin.GPIOx, TIM_List[ID].IC[channel_ic].buttonPin.GPIO_Pin);
-
-      if (TIM_List[ID].IC[channel_ic].buttonPin.State == GPIO_PIN_SET)
-        TIM_List[ID].IC[channel_ic].CCR_Low = Difference;
-      else
-        TIM_List[ID].IC[channel_ic].CCR_High = Difference;
-    }
-    TIM_List[ID].IC[channel_ic].frequency = TIM_List[ID].refClock / (TIM_List[ID].IC[channel_ic].CCR_High + TIM_List[ID].IC[channel_ic].CCR_Low);
-  }
-
-  TIM_List[ID].IC[channel_ic].frequency = TIM_List[ID].refClock / Difference;
-
   TIM_List[ID].IC[channel_ic].newData = true;
   return false;
 }

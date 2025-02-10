@@ -98,7 +98,8 @@ bool nECU_ADC1_START(void)
     adc1_data.status.callback_full = false;
     adc1_data.status.overflow = false;
 
-    status |= !nECU_FlowControl_Initialize_Do(D_ADC1);
+    if (!status)
+      status |= !nECU_FlowControl_Initialize_Do(D_ADC1);
   }
   if (!nECU_FlowControl_Working_Check(D_ADC1) && status == false)
   {
@@ -129,7 +130,8 @@ bool nECU_ADC2_START(void)
     adc2_data.status.callback_full = false;
     adc2_data.status.overflow = false;
 
-    status |= !nECU_FlowControl_Initialize_Do(D_ADC2);
+    if (!status)
+      status |= !nECU_FlowControl_Initialize_Do(D_ADC2);
   }
   if (!nECU_FlowControl_Working_Check(D_ADC2) && status == false)
   {
@@ -153,7 +155,8 @@ bool nECU_ADC3_START(void)
     adc3_data.status.callback_full = false;
     adc3_data.status.overflow = false;
 
-    status |= !nECU_FlowControl_Initialize_Do(D_ADC3);
+    if (!status)
+      status |= !nECU_FlowControl_Initialize_Do(D_ADC3);
   }
   if (!nECU_FlowControl_Working_Check(D_ADC3))
   {
@@ -291,7 +294,7 @@ uint16_t *nECU_ADC1_getPointer(nECU_ADC1_ID ID)
 }
 uint16_t *nECU_ADC2_getPointer(nECU_ADC2_ID ID)
 {
-  if (ID > SPEED_SENSOR_ID_MAX)
+  if (ID > ADC2_ID_MAX)
     return NULL;
 
   return &adc2_data.out_buffer[0 + ID];

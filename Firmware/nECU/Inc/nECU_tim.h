@@ -28,6 +28,9 @@ extern "C"
   /* Function Prototypes */
   uint8_t nECU_Get_FrameTimer(void); // get current value of frame timer
 
+  static nECU_TIM_ID nECU_TIM_Identify(TIM_HandleTypeDef *htim); // returns ID of given input
+  TIM_HandleTypeDef *nECU_TIM_getPointer(nECU_TIM_ID ID);        // returns pointer to
+
   /* Callback functions */
   void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
   void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim);
@@ -45,13 +48,13 @@ extern "C"
   bool nECU_Delay_Stop(nECU_Delay *inst);                // stop non-blocking delay
 
   /* general nECU timer functions */
-  bool nECU_TIM_Init(nECU_TIM_ID ID);                        // initialize structure and precalculate variables
-  bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel); // function to start PWM on selected timer
-  bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel);  // function to stop PWM on selected timer
-  bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel);  // function to start IC on selected timer
-  bool nECU_TIM_IC_Stop(nECU_TIM_ID ID, uint32_t Channel);   // function to stop IC on selected timer
-  bool nECU_TIM_Base_Start(nECU_TIM_ID ID);                  // function to start base of selected timer
-  bool nECU_TIM_Base_Stop(nECU_TIM_ID ID);                   // function to stop base of selected timer
+  bool nECU_TIM_Init(nECU_TIM_ID ID);                                                         // initialize structure and precalculate variables
+  bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel);                                  // function to start PWM on selected timer
+  bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel);                                   // function to stop PWM on selected timer
+  bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, uint16_t Pin, GPIO_TypeDef *Port); // function to start IC on selected timer
+  bool nECU_TIM_IC_Stop(nECU_TIM_ID ID, uint32_t Channel);                                    // function to stop IC on selected timer
+  bool nECU_TIM_Base_Start(nECU_TIM_ID ID);                                                   // function to start base of selected timer
+  bool nECU_TIM_Base_Stop(nECU_TIM_ID ID);                                                    // function to stop base of selected timer
 
   static bool nECU_TIM_IC_Callback(nECU_TIM_ID ID); // callback function to calculate basic parameters
 

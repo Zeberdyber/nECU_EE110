@@ -11,8 +11,6 @@
 static Oxygen_Handle OX = {0};
 static stock_GPIO Stock_GPIO = {0};
 
-extern nECU_ProgramBlockData D_GPIO, D_OX; // diagnostic and flow control data
-
 /* Oxygen Sensor */
 uint8_t *nECU_OX_GetPointer(void) // returns pointer to resulting data
 {
@@ -59,9 +57,7 @@ void nECU_OX_Update(void) // update narrowband lambda structure
         D_OX.Status |= D_BLOCK_CODE_ERROR;
         return;
     }
-    nECU_ADC1_Routine(); // Pull new data
-    OX.sensor.outputFloat = nECU_getLinearSensor(OX.sensor.ADC_input, &OX.sensor.calibrationData);
-    OX.sensor.output8bit = nECU_FloatToUint8_t(OX.sensor.outputFloat, OXYGEN_DECIMAL_POINT, 8);
+    nECU_InputAnalog_ADC1_Routine(ADC1_OX_ID);
 
     /* Output update */
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
@@ -123,7 +119,7 @@ void nECU_stock_GPIO_update(void) // update structure variables
     Stock_GPIO.Fan_ON_b = (bool)Stock_GPIO.Fan_ON.State;
     Stock_GPIO.Lights_ON_b = (bool)Stock_GPIO.Lights_ON.State;
 
-    nECU_Debug_ProgramBlockData_Update(&D_GPIO);
+    nECU_Debug_ProgramBlockData_Update(D_GPIO);
 }
 bool *nECU_stock_GPIO_getPointer(stock_inputs_ID id) // return pointers of structure variables
 {
@@ -150,4 +146,41 @@ bool none = true;
 bool *nECU_Immo_getPointer(void) // returns pointer to immobilizer valid
 {
     return &none;
+}
+
+/* GPIO */
+bool nECU_GPIO_Init(GPIO_struct *inst, uint16_t Pin, GPIO_TypeDef *Port) // Initialize structure - clear
+{
+    if (inst == NULL) // Check if pointer exist
+        return true;  // Break
+    if (Port == NULL) // Check if pointer exist
+        return true;  // Break
+
+    inst->GPIO_Pin = Pin;
+    inst->GPIOx = Port;
+    HAL_GPIO_Init(inst->GPIOx, inst->GPIO_Pin);
+    return false;
+}
+bool nECU_GPIO_Read(GPIO_struct *inst) // Read value and save to structure
+{
+    if (inst == NULL) // Check if pointer exist
+        return true;  // Break
+
+    if (inst->GPIOx == NULL) // Check if was initialized
+        return true;         // Break
+
+    inst->State = HAL_GPIO_ReadPin(inst->GPIOx, inst->GPIO_Pin);
+    return false;
+}
+bool nECU_GPIO_Write(GPIO_struct *inst, bool state) // Write value
+{
+    if (inst == NULL) // Check if pointer exist
+        return true;  // Break
+
+    if (inst->GPIOx == NULL) // Check if was initialized
+        return true;         // Break
+
+    inst->State = (GPIO_PinState)state;
+    HAL_GPIO_WritePin(inst->GPIOx, inst->GPIO_Pin, inst->State);
+    return false;
 }

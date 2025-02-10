@@ -26,9 +26,16 @@ extern "C"
     /* Function Prototypes */
     static float nECU_correctToVref(float input);
 
-    bool nECU_InputAnalog_Start(nECU_ADC1_ID ID);
-    bool nECU_InputAnalog_Stop(nECU_ADC1_ID ID);
-    void nECU_InputAnalog_Routine(nECU_ADC1_ID ID);
+    /*ADC 1*/
+    bool nECU_InputAnalog_ADC1_Start(nECU_ADC1_ID ID);
+    bool nECU_InputAnalog_ADC1_Stop(nECU_ADC1_ID ID);
+    void nECU_InputAnalog_ADC1_Routine(nECU_ADC1_ID ID);
+    float nECU_InputAnalog_ADC1_getValue(nECU_ADC1_ID ID); // returns output value
+    /*ADC 2*/
+    bool nECU_InputAnalog_ADC2_Start(nECU_ADC2_ID ID);
+    bool nECU_InputAnalog_ADC2_Stop(nECU_ADC2_ID ID);
+    void nECU_InputAnalog_ADC2_Routine(nECU_ADC2_ID ID);
+    float nECU_InputAnalog_ADC2_getValue(nECU_ADC2_ID ID); // returns output value
 
 #ifdef __cplusplus
 }

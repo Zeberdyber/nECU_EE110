@@ -255,7 +255,7 @@ static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, th
 }
 
 /* Interface functions */
-bool nECU_FLASH_Start(void) // initialize FLASH code
+bool nECU_FLASH_Start(void)
 {
     bool status = false;
     if (!nECU_FlowControl_Initialize_Check(D_Flash))
@@ -280,7 +280,20 @@ bool nECU_FLASH_Start(void) // initialize FLASH code
 
     return status;
 }
-bool nECU_FLASH_Erase(void) // erases whole sector
+bool nECU_FLASH_Stop(void)
+{
+    bool status = false;
+    if (nECU_FlowControl_Working_Check(D_Flash) && status == false)
+    {
+        if (!status)
+            status |= !nECU_FlowControl_Stop_Do(D_Flash);
+    }
+    if (status)
+        nECU_FlowControl_Error_Do(D_Flash);
+
+    return status;
+}
+bool nECU_FLASH_Erase(void)
 {
     bool status = false;
     // check if data was initialized

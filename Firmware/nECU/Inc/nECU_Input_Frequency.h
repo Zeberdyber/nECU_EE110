@@ -18,12 +18,8 @@ extern "C"
 #include "nECU_tim.h"
 
 /* Definitions */
-#define VSS_PULSES_PER_KM 5000 // number of pulses that will be recived for a kilometer traveled
-#define VSS_MAX_SPEED 220      // in km/h maximal speed that car can go
-#define VSS_SMOOTH_ALPHA 0.15  // smoothing factor for the data, the higher alpha the higher smoothing
-
-#define IGF_MAX_RPM_RATE 3000 // rpm/s rate; used for missfire detection
-#define IGF_MAX_RPM 10000     // maximal rpm allowed
+#define VSS_PULSES_PER_KM 5000      // number of pulses that will be recived for a kilometer traveled
+#define VSS_SMOOTH_BUFFER_LENGTH 75 // length of smoothing buffer
 
     /* typedef */
 

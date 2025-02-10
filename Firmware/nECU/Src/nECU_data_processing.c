@@ -7,7 +7,7 @@
 
 #include "nECU_data_processing.h"
 /* Analog sensors */
-void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst) // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
+void nECU_calculateLinearCalibration(SensorCalibration *inst) // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
 {
     if (inst == NULL) // break if pointer does not exist
         return;
@@ -15,7 +15,7 @@ void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst) // function 
     inst->factor = (float)(inst->OUT_MeasuredMax - inst->OUT_MeasuredMin) / (inst->ADC_MeasuredMax - inst->ADC_MeasuredMin);
     inst->offset = (float)inst->OUT_MeasuredMax - (inst->factor * inst->ADC_MeasuredMax);
 }
-float nECU_getLinearSensor(uint16_t ADC_Value, AnalogSensorCalibration *inst) // function to get result of linear sensor
+float nECU_getLinearSensor(uint16_t ADC_Value, SensorCalibration *inst) // function to get result of linear sensor
 {
     if (inst == NULL) // break if pointer does not exist
         return 0.0;
@@ -38,6 +38,24 @@ uint64_t nECU_FloatToUint(float in, uint8_t bitCount) // returns float capped to
         out = max_val;
     else if (out < 0)
         out = 0;
+
+    return out;
+}
+int64_t nECU_FloatToInt(float in, uint8_t bitCount) // returns float capped to given bitCount. ex: 8bit - 127<>-128, 10bit - 511<>-512
+{
+    int64_t max_val = 0, min_val = 0;
+    while (bitCount > 0)
+    {
+        max_val << 1;
+        max_val++;
+    }
+    min_val = -max_val - 1;
+
+    int64_t out = in;
+    if (out > max_val)
+        out = max_val;
+    else if (out < min_val)
+        out = min_val;
 
     return out;
 }
@@ -131,26 +149,77 @@ void nECU_decompressBool(uint8_t *in, bool *bufferOut) // decompress byte to boo
         bufferOut[i] = ((*in) >> i) & 1; // copy to outputs
 }
 
-/* Tests */
-static bool nECU_DataProcessing_test_FloatToUint(void) // test nECU_FloatToUint()
+/* Sensors */
+void nECU_Sensor_Routine(Sensor_Handle *sensor)
 {
-    if (nECU_FloatToUint(15.3, 8) != 15)
-        return false;
+    if (sensor == NULL)
+        return;
 
-    if (nECU_FloatToUint(15.5, 8) != 16)
-        return false;
+    nECU_Delay_Update(&(sensor->filter.delay));
+    if (sensor->filter.delay.done == false) // check if time have passed
+        return;                             // drop if not done
 
-    if (nECU_FloatToUint(300, 8) != UINT8_MAX)
-        return false;
+    nECU_Delay_Start(&(sensor->filter.delay)); // restart delay
 
-    if (nECU_FloatToUint(-8.0, 8) != 0)
-        return false;
+    uint16_t SmoothingRresult = *(sensor->Input);
+    if (sensor->filter.buf.Buffer != NULL) // check if buffer was configured
+        SmoothingRresult = nECU_averageSmooth((sensor->filter.buf.Buffer), &SmoothingRresult, sensor->filter.buf.len);
 
-    if (nECU_FloatToUint(2050.15, 11) != 0)
-        return false;
+    SmoothingRresult = nECU_expSmooth(&SmoothingRresult, &(sensor->filter.previous_Input), sensor->filter.smoothingAlpha);
 
-    if (nECU_FloatToUint(2050.15, 2) != 3)
-        return false;
+    sensor->filter.previous_Input = SmoothingRresult;                                // save for smoothing
+    sensor->output = nECU_getLinearSensor(SmoothingRresult, &(sensor->calibration)); // calculate, calibration
+    sensor->output = nECU_correctToVref(sensor->output);                             // correct to vref
+}
+
+/* Tests */
+static bool nECU_DataProcessing_test_Float(void) // test nECU_FloatToUint()
+{
+    /* Float to Uint */
+    typedef struct
+    {
+        uint64_t A;
+        float Q;
+        uint8_t bit;
+    } FloatToUint_Test;
+    FloatToUint_Test data_Uint[] = {
+        [0] = {15, 15.3, 8},
+        [1] = {16, 15.5, 8},
+        [2] = {UINT8_MAX, 300, 8},
+        [3] = {0, -8.0, 8},
+        [4] = {-15, -15.3, 8},
+        [5] = {-16, -15.5, 8},
+        [7] = {0x7FF, 2050.15, 11},
+        [8] = {3, -2050.15, 2},
+    };
+    for (uint8_t test = 0; test < (sizeof(data_Uint) / sizeof(data_Uint[0])); test++)
+    {
+        if (nECU_FloatToUint(data_Uint[test].Q, data_Uint[test].bit) != data_Uint[test].A)
+            return false;
+    }
+
+    /* Float to Int */
+    typedef struct
+    {
+        int64_t A;
+        float Q;
+        uint8_t bit;
+    } FloatToInt_Test;
+    FloatToInt_Test data_Int[] = {
+        [0] = {15, 15.3, 8},
+        [1] = {16, 15.5, 8},
+        [2] = {INT8_MAX, 300, 8},
+        [3] = {INT8_MIN, -300, 8},
+        [4] = {-15, -15.3, 8},
+        [5] = {-16, -15.5, 8},
+        [7] = {0x3FF, 2050.15, 11},
+        [8] = {(-0x3FF - 1), -2050.15, 11},
+    };
+    for (uint8_t test = 0; test < (sizeof(data_Int) / sizeof(data_Int[0])); test++)
+    {
+        if (nECU_FloatToInt(data_Int[test].Q, data_Int[test].bit) != data_Int[test].A)
+            return false;
+    }
 
     return true;
 }
@@ -160,9 +229,11 @@ static bool nECU_DataProcessing_test_ADC_AverageDMA(void) // test nECU_ADC_Avera
     testADC.Init.NbrOfConversion = 2;
 
     uint16_t inputBuf[] = {10, 0, 20, 1, 30, 3, 40, 32768, 10, 0, 20, 1, 30, 3, 40, 32768};
-    uint16_t outputBuf[] = {0, 0, 0, 0}; // tool large buffer to test data spilage
+    uint16_t outputBuf[testADC.Init.NbrOfConversion + 2]; // too large buffer to test data spilage
+    outputBuf[0] = 0;
+    outputBuf[(sizeof(outputBuf) / sizeof(outputBuf[0])) - 1] = 0;
 
-    nECU_ADC_AverageDMA(&testADC, inputBuf, 16, &outputBuf[1], 1); // no smoothing
+    nECU_ADC_AverageDMA(&testADC, inputBuf, (sizeof(inputBuf) / sizeof(inputBuf[0])), &outputBuf[1], 1); // no smoothing
 
     // check limits for spilage
     if (outputBuf[0] != 0)
@@ -180,36 +251,22 @@ static bool nECU_DataProcessing_test_ADC_AverageDMA(void) // test nECU_ADC_Avera
 }
 static bool nECU_DataProcessing_test_expSmooth(void) // test nECU_expSmooth()
 {
-    uint16_t A, B;
-    float alpha;
-
-    A = 100;
-    B = 0;
-    alpha = 0.5;
-    B = nECU_expSmooth(&A, &B, alpha);
-    if (B != 50)
-        return false;
-
-    A = 0;
-    B = 100;
-    alpha = 0.5;
-    B = nECU_expSmooth(&A, &B, alpha);
-    if (B != 50)
-        return false;
-
-    A = 100;
-    B = 200;
-    alpha = 0.2;
-    B = nECU_expSmooth(&A, &B, alpha);
-    if (B != 180)
-        return false;
-
-    A = 100;
-    B = 200;
-    alpha = 0.8;
-    B = nECU_expSmooth(&A, &B, alpha);
-    if (B != 120)
-        return false;
+    typedef struct
+    {
+        float Alpha;
+        uint16_t in, in_Prev, out;
+    } expSmooth_Test;
+    expSmooth_Test data[] = {
+        [0] = {0.5, 100, 0, 50},
+        [1] = {0.5, 0, 100, 50},
+        [2] = {0.2, 100, 200, 180},
+        [3] = {0.8, 100, 200, 120},
+    };
+    for (uint8_t test = 0; test < (sizeof(data) / sizeof(data[0])); test++)
+    {
+        if (nECU_expSmooth(&data[test].in, &data[test].in_Prev, data[test].Alpha) != data[test].out)
+            return false;
+    }
 
     return true;
 }
@@ -261,10 +318,10 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
     if (logging_enable)
         printf("Started test of 'nECU_data_processing.c\n\r");
 
-    if (!nECU_DataProcessing_test_FloatToUint())
+    if (!nECU_DataProcessing_test_Float())
     {
         if (logging_enable)
-            printf("\n\rFAIL on nECU_DataProcessing_test_FloatToUint()\n\r");
+            printf("\n\rFAIL on nECU_DataProcessing_test_Float()\n\r");
         return false;
     }
     if (!nECU_DataProcessing_test_ADC_AverageDMA())

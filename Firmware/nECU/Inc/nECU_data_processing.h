@@ -26,11 +26,12 @@ extern "C"
 
     /* Function Prototypes */
     /* Analog sensors */
-    void nECU_calculateLinearCalibration(AnalogSensorCalibration *inst);           // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
-    float nECU_getLinearSensor(uint16_t ADC_Value, AnalogSensorCalibration *inst); // function to get result of linear sensor
+    void nECU_calculateLinearCalibration(SensorCalibration *inst);           // function to calculate factor (a) and offset (b) for linear formula: y=ax+b
+    float nECU_getLinearSensor(uint16_t ADC_Value, SensorCalibration *inst); // function to get result of linear sensor
 
     /* Conversion */
     uint64_t nECU_FloatToUint(float in, uint8_t bitCount); // returns float capped to given bitCount. ex: 8bit - 255max, 10bit - 1023max
+    int64_t nECU_FloatToInt(float in, uint8_t bitCount);   // returns float capped to given bitCount. ex: 8bit - 127<>-128, 10bit - 511<>-512
     float ADCToVolts(uint16_t ADCValue);
     uint16_t VoltsToADC(float Voltage);
 
@@ -45,6 +46,9 @@ extern "C"
     /* Bool <-> Byte */
     void nECU_compressBool(bool *bufferIn, uint8_t *out);   // compress bool array to one byte
     void nECU_decompressBool(uint8_t *in, bool *bufferOut); // decompress byte to bool array
+
+    /* Sensors */
+    void nECU_Sensor_Routine(Sensor_Handle *sensor);
 
     /* Tests */
     bool nECU_DataProcessing_test(bool logging_enable); // Run test

@@ -7,10 +7,10 @@
 
 #include "nECU_Input_Analog.h"
 
-static AnalogSensor_Handle AnalogSensor_List[ADC1_ID_MAX] = {0}; // List of sensors
-
+/*ADC 1*/
+static Sensor_Handle ADC1_List[ADC1_ID_MAX] = {0}; // List of sensors ADC1
 // Adjust below values!!
-static AnalogSensorCalibration calibPreset_List[ADC1_ID_MAX] = {
+static SensorCalibration ADC1_calib_List[ADC1_ID_MAX] = {
     [ADC1_MAP_ID] = {
         1203, 3020, // limits of ADC readout
         270, 1020,  // limits of resulting output
@@ -56,7 +56,7 @@ static AnalogSensorCalibration calibPreset_List[ADC1_ID_MAX] = {
         0.0, 1.0                        // Place holders
     },
 }; // List of default calibration values
-static uint32_t delay_List[ADC1_ID_MAX] = {
+static uint32_t ADC1_delay_List[ADC1_ID_MAX] = {
     [ADC1_MAP_ID] = 0,
     [ADC1_BackPressure_ID] = 0,
     [ADC1_OX_ID] = 0,
@@ -66,7 +66,7 @@ static uint32_t delay_List[ADC1_ID_MAX] = {
     [ADC1_MCUTemp_ID] = 0,
     [ADC1_VREF_ID] = 0,
 }; // List of delay values between updates in ms
-static AnalogSensorBuffer SmoothingBuffer_List[ADC1_ID_MAX] = {
+static Buffer ADC1_Buffer_List[ADC1_ID_MAX] = {
     [ADC1_MAP_ID] = {NULL, 0},
     [ADC1_BackPressure_ID] = {NULL, 0},
     [ADC1_OX_ID] = {NULL, 0},
@@ -76,7 +76,7 @@ static AnalogSensorBuffer SmoothingBuffer_List[ADC1_ID_MAX] = {
     [ADC1_MCUTemp_ID] = {NULL, 0},
     [ADC1_VREF_ID] = {NULL, 0},
 }; // List of pointers to smoothing buffers and its lenghts
-static float SmoothingAlpha_List[ADC1_ID_MAX] = {
+static float ADC1_Alpha_List[ADC1_ID_MAX] = {
     [ADC1_MAP_ID] = 1.0,
     [ADC1_BackPressure_ID] = 1.0,
     [ADC1_OX_ID] = 1.0,
@@ -87,16 +87,61 @@ static float SmoothingAlpha_List[ADC1_ID_MAX] = {
     [ADC1_VREF_ID] = 1.0,
 }; // List of alphas for smoothing
 
+/*ADC 2*/
+static Sensor_Handle ADC2_List[ADC2_ID_MAX] = {0};                      // List of sensors ADC1
+static uint16_t ADC2_Smoothing[ADC2_ID_MAX][SPEED_AVERAGE_BUFFER_SIZE]; // buffer to be filled with ADC data
+// Adjust below values!!
+static SensorCalibration ADC2_calib_List[ADC2_ID_MAX] = {
+    [ADC2_VSS_FL_ID] = {
+        0, 575,  // limits of ADC readout
+        0, 1000, // limits of resulting output 0-100km/h
+        0.0, 1.0 // Place holders
+    },
+    [ADC2_VSS_FR_ID] = {
+        0, 575,  // limits of ADC readout
+        0, 1000, // limits of resulting output 0-100km/h
+        0.0, 1.0 // Place holders
+    },
+    [ADC2_VSS_RL_ID] = {
+        0, 575,  // limits of ADC readout
+        0, 1000, // limits of resulting output 0-100km/h
+        0.0, 1.0 // Place holders
+    },
+    [ADC2_VSS_RR_ID] = {
+        0, 575,  // limits of ADC readout
+        0, 1000, // limits of resulting output 0-100km/h
+        0.0, 1.0 // Place holders
+    },
+}; // List of default calibration values
+static uint32_t ADC2_delay_List[ADC2_ID_MAX] = {
+    [ADC2_VSS_FL_ID] = 0,
+    [ADC2_VSS_FR_ID] = 0,
+    [ADC2_VSS_RL_ID] = 0,
+    [ADC2_VSS_RR_ID] = 0,
+}; // List of delay values between updates in ms
+static Buffer ADC2_Buffer_List[ADC2_ID_MAX] = {
+    [ADC2_VSS_FL_ID] = {ADC2_Smoothing[ADC2_VSS_FL_ID], 0},
+    [ADC2_VSS_FR_ID] = {ADC2_Smoothing[ADC2_VSS_FR_ID], 0},
+    [ADC2_VSS_RL_ID] = {ADC2_Smoothing[ADC2_VSS_RL_ID], 0},
+    [ADC2_VSS_RR_ID] = {ADC2_Smoothing[ADC2_VSS_RR_ID], 0},
+}; // List of pointers to smoothing buffers and its lenghts
+static float ADC2_Alpha_List[ADC2_ID_MAX] = {
+    [ADC2_VSS_FL_ID] = 0.04,
+    [ADC2_VSS_FR_ID] = 0.04,
+    [ADC2_VSS_RL_ID] = 0.04,
+    [ADC2_VSS_RR_ID] = 0.04,
+}; // List of alphas for smoothing
+
 static float nECU_correctToVref(float input)
 {
     if (!nECU_FlowControl_Working_Check(D_ANALOG_VREF))
         return input;
 
-    return (AnalogSensor_List[ADC1_VREF_ID].output * input) / (VREFINT_CAL_VREF / 1000);
+    return (ADC1_List[ADC1_VREF_ID].output * input) / (VREFINT_CAL_VREF / 1000);
 }
 
-/* General functions */
-bool nECU_InputAnalog_Start(nECU_ADC1_ID ID)
+/*ADC 1*/
+bool nECU_InputAnalog_ADC1_Start(nECU_ADC1_ID ID)
 {
     if (ID >= ADC1_ID_MAX) // check if ID valid
         return true;
@@ -106,38 +151,38 @@ bool nECU_InputAnalog_Start(nECU_ADC1_ID ID)
     {
         if (ID == ADC1_MCUTemp_ID)
         {
-            calibPreset_List[ID].ADC_MeasuredMin = *(TEMPSENSOR_CAL1_ADDR);
-            calibPreset_List[ID].ADC_MeasuredMax = *(TEMPSENSOR_CAL2_ADDR);
+            ADC1_calib_List[ID].ADC_MeasuredMin = *(TEMPSENSOR_CAL1_ADDR);
+            ADC1_calib_List[ID].ADC_MeasuredMax = *(TEMPSENSOR_CAL2_ADDR);
         }
         if (ID == ADC1_VREF_ID)
         {
-            calibPreset_List[ID].ADC_MeasuredMax = *(VREFINT_CAL_ADDR);
+            ADC1_calib_List[ID].ADC_MeasuredMax = *(VREFINT_CAL_ADDR);
         }
 
         // Pointers
         if (nECU_ADC1_getPointer(ID))
-            AnalogSensor_List[ID].ADC_input = nECU_ADC1_getPointer(ID);
+            ADC1_List[ID].Input = nECU_ADC1_getPointer(ID);
         else
             status |= true;
 
         // Calibration
-        AnalogSensor_List[ID].calibration = calibPreset_List[ID];
-        nECU_calculateLinearCalibration(&(AnalogSensor_List[ID].calibration));
+        ADC1_List[ID].calibration = ADC1_calib_List[ID];
+        nECU_calculateLinearCalibration(&(ADC1_List[ID].calibration));
 
         // Filtering
-        AnalogSensor_List[ID].filter.smoothingAlpha = SmoothingAlpha_List[ID];
-        AnalogSensor_List[ID].filter.buf = SmoothingBuffer_List[ID];
-        status |= nECU_Delay_Set(&(AnalogSensor_List[ID].filter.delay), delay_List[ID]);
+        ADC1_List[ID].filter.smoothingAlpha = ADC1_Alpha_List[ID];
+        ADC1_List[ID].filter.buf = ADC1_Buffer_List[ID];
+        status |= nECU_Delay_Set(&(ADC1_List[ID].filter.delay), ADC1_delay_List[ID]);
 
         // Default value
-        AnalogSensor_List[ID].output = 0.0;
+        ADC1_List[ID].output = 0.0;
 
         if (!status)
             status |= !nECU_FlowControl_Initialize_Do(D_ANALOG_MAP + ID);
     }
     if (!nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID) && status == false)
     {
-        status |= nECU_Delay_Start(&(AnalogSensor_List[ID].filter.delay));
+        status |= nECU_Delay_Start(&(ADC1_List[ID].filter.delay));
         status |= nECU_ADC1_START();
         if (!status)
             status |= !nECU_FlowControl_Working_Do(D_ANALOG_MAP + ID);
@@ -147,7 +192,7 @@ bool nECU_InputAnalog_Start(nECU_ADC1_ID ID)
 
     return status;
 }
-bool nECU_InputAnalog_Stop(nECU_ADC1_ID ID)
+bool nECU_InputAnalog_ADC1_Stop(nECU_ADC1_ID ID)
 {
     if (ID >= ADC1_ID_MAX) // check if ID valid
         return true;
@@ -155,7 +200,7 @@ bool nECU_InputAnalog_Stop(nECU_ADC1_ID ID)
     bool status = false;
     if (nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID) && status == false)
     {
-        status |= nECU_Delay_Stop(&(AnalogSensor_List[ID].filter.delay));
+        status |= nECU_Delay_Stop(&(ADC1_List[ID].filter.delay));
         if (!status)
             status |= !nECU_FlowControl_Stop_Do(D_ANALOG_MAP + ID);
 
@@ -166,28 +211,127 @@ bool nECU_InputAnalog_Stop(nECU_ADC1_ID ID)
 
     return status;
 }
-void nECU_InputAnalog_Routine(nECU_ADC1_ID ID)
+void nECU_InputAnalog_ADC1_Routine(nECU_ADC1_ID ID)
 {
     if (ID >= ADC1_ID_MAX) // check if ID valid
         return;
 
+    if (!nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID)) // Check if currently working
+    {
+        nECU_FlowControl_Error_Do(D_ANALOG_MAP + ID);
+        return; // Break
+    }
+
     nECU_ADC1_Routine(); // Pull new data
 
-    nECU_Delay_Update(&(AnalogSensor_List[ID].filter.delay));
-    if (AnalogSensor_List[ID].filter.delay.done == false) // check if time have passed
-        return;                                           // drop if not done
-
-    nECU_Delay_Start(&(AnalogSensor_List[ID].filter.delay)); // restart delay
-
-    uint16_t SmoothingRresult = *(AnalogSensor_List[ID].ADC_input);
-    if (AnalogSensor_List[ID].filter.buf.Buffer != NULL) // check if buffer was configured
-        SmoothingRresult = nECU_averageSmooth((AnalogSensor_List[ID].filter.buf.Buffer), &SmoothingRresult, AnalogSensor_List[ID].filter.buf.len);
-
-    SmoothingRresult = nECU_expSmooth(&SmoothingRresult, &(AnalogSensor_List[ID].filter.previous_ADC_Data), AnalogSensor_List[ID].filter.smoothingAlpha);
-
-    AnalogSensor_List[ID].filter.previous_ADC_Data = SmoothingRresult;                                           // save for smoothing
-    AnalogSensor_List[ID].output = nECU_getLinearSensor(SmoothingRresult, &(AnalogSensor_List[ID].calibration)); // calculate, calibration
-    AnalogSensor_List[ID].output = nECU_correctToVref(AnalogSensor_List[ID].output);                             // correct to vref
+    nECU_Sensor_Routine(&(ADC1_List[ID]));
 
     nECU_Debug_ProgramBlockData_Update(D_ANALOG_MAP + ID);
+}
+
+float nECU_InputAnalog_ADC1_getValue(nECU_ADC1_ID ID) // returns output value
+{
+    if (ID >= ADC1_ID_MAX) // check if ID valid
+        return 0.0;
+
+    if (!nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID)) // Check if currently working
+    {
+        nECU_FlowControl_Error_Do(D_ANALOG_MAP + ID);
+        return 0.0; // Break
+    }
+
+    return ADC1_List[ID].output;
+}
+
+/*ADC 2*/
+bool nECU_InputAnalog_ADC2_Start(nECU_ADC2_ID ID)
+{
+    if (ID >= ADC2_ID_MAX) // check if ID valid
+        return true;
+
+    bool status = false;
+    if (!nECU_FlowControl_Initialize_Check(D_ANALOG_SS1 + ID) && status == false)
+    {
+        // Pointers
+        if (nECU_ADC2_getPointer(ID))
+            ADC2_List[ID].Input = nECU_ADC2_getPointer(ID);
+        else
+            status |= true;
+
+        // Calibration
+        ADC2_List[ID].calibration = ADC2_calib_List[ID];
+        nECU_calculateLinearCalibration(&(ADC2_List[ID].calibration));
+
+        // Filtering
+        ADC2_List[ID].filter.smoothingAlpha = ADC1_Alpha_List[ID];
+        ADC2_List[ID].filter.buf = ADC2_Buffer_List[ID];
+        status |= nECU_Delay_Set(&(ADC2_List[ID].filter.delay), ADC2_delay_List[ID]);
+
+        // Default value
+        ADC2_List[ID].output = 0.0;
+
+        if (!status)
+            status |= !nECU_FlowControl_Initialize_Do(D_ANALOG_SS1 + ID);
+    }
+    if (!nECU_FlowControl_Working_Check(D_ANALOG_SS1 + ID) && status == false)
+    {
+        status |= nECU_Delay_Start(&(ADC2_List[ID].filter.delay));
+        status |= nECU_ADC2_START();
+        if (!status)
+            status |= !nECU_FlowControl_Working_Do(D_ANALOG_SS1 + ID);
+    }
+    if (status)
+        nECU_FlowControl_Error_Do(D_ANALOG_SS1 + ID);
+
+    return status;
+}
+bool nECU_InputAnalog_ADC2_Stop(nECU_ADC2_ID ID)
+{
+    if (ID >= ADC2_ID_MAX) // check if ID valid
+        return true;
+
+    bool status = false;
+    if (nECU_FlowControl_Working_Check(D_ANALOG_SS1 + ID) && status == false)
+    {
+        status |= nECU_Delay_Stop(&(ADC2_List[ID].filter.delay));
+        if (!status)
+            status |= !nECU_FlowControl_Stop_Do(D_ANALOG_SS1 + ID);
+
+        status |= nECU_ADC2_STOP();
+    }
+    if (status)
+        nECU_FlowControl_Error_Do(D_ANALOG_SS1 + ID);
+
+    return status;
+}
+void nECU_InputAnalog_ADC2_Routine(nECU_ADC2_ID ID)
+{
+    if (ID >= ADC2_ID_MAX) // check if ID valid
+        return;
+
+    if (!nECU_FlowControl_Working_Check(D_ANALOG_SS1 + ID)) // Check if currently working
+    {
+        nECU_FlowControl_Error_Do(D_ANALOG_SS1 + ID);
+        return; // Break
+    }
+
+    nECU_ADC2_Routine(); // Pull new data
+
+    nECU_Sensor_Routine(&(ADC2_List[ID]));
+
+    nECU_Debug_ProgramBlockData_Update(D_ANALOG_SS1 + ID);
+}
+
+float nECU_InputAnalog_ADC2_getValue(nECU_ADC2_ID ID) // returns output value
+{
+    if (ID >= ADC2_ID_MAX) // check if ID valid
+        return 0.0;
+
+    if (!nECU_FlowControl_Working_Check(D_ANALOG_SS1 + ID)) // Check if currently working
+    {
+        nECU_FlowControl_Error_Do(D_ANALOG_SS1 + ID);
+        return 0.0; // Break
+    }
+
+    return ADC2_List[ID].output;
 }

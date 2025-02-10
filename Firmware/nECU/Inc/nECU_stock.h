@@ -36,6 +36,10 @@ extern "C"
     bool *nECU_stock_GPIO_getPointer(stock_inputs_ID id); // return pointers of structure variables
     /* Immobilizer */
     bool *nECU_Immo_getPointer(void); // returns pointer to immobilizer valid
+    /* GPIO */
+    bool nECU_GPIO_Init(GPIO_struct *inst, uint16_t Pin, GPIO_TypeDef *Port); // Initialize structure - clear
+    bool nECU_GPIO_Read(GPIO_struct *inst);                                   // Read value and save to structure
+    bool nECU_GPIO_Write(GPIO_struct *inst, bool state);                      // Write value
 
 #ifdef __cplusplus
 }

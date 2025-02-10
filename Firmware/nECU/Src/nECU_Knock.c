@@ -8,16 +8,13 @@
 #include "nECU_Knock.h"
 
 static nECU_Knock Knock = {0};
-extern IGF_Handle IGF; // For RPM reference
-
-extern nECU_ProgramBlockData D_Knock; // diagnostic and flow control data
 
 /* Knock detection */
 bool nECU_Knock_Start(void) // initialize and start
 {
     bool status = false;
 
-    if (D_Knock.Status == D_BLOCK_STOP)
+    if (!nECU_FlowControl_Initialize_Check(D_Knock))
     {
         // UART
         status |= nECU_UART_Init(&Knock.uart, &PC_UART, Knock.UART_data_buffer);
@@ -37,33 +34,32 @@ bool nECU_Knock_Start(void) // initialize and start
         // initialize FFT module
         Knock.fft.Index = 0;
         Knock.fft.flag = false;
-        float SamplingFreq = TIM_CLOCK / ((KNOCK_ADC_SAMPLING_TIMER.Init.Prescaler + 1) * (KNOCK_ADC_SAMPLING_TIMER.Init.Period + 1));
+        TIM_HandleTypeDef tim = *nECU_TIM_getPointer(TIM_ADC_KNOCK_ID);
+        float SamplingFreq = TIM_CLOCK / ((tim.Init.Prescaler + 1) * (tim.Init.Period + 1));
         Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * FFT_LENGTH) / (SamplingFreq)) * 2) - 1;
         status |= (arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH) != ARM_MATH_SUCCESS);
 
-        // set initialized flag
-        D_Knock.Status |= D_BLOCK_INITIALIZED;
+        if (!status)
+            status |= !nECU_FlowControl_Initialize_Do(D_Knock);
     }
-    if (D_Knock.Status & D_BLOCK_INITIALIZED)
+    if (!nECU_FlowControl_Working_Check(D_Knock) && status == false)
     {
-        // ADC start
-        status |= nECU_ADC3_START();
-        // RPM reference
-        status |= nECU_IGF_Start();
-        // set working flag
-        printf("Knock sensing -> STARTED!\n");
-        D_Knock.Status |= D_BLOCK_WORKING;
+        status |= nECU_ADC3_START(); // ADC start
+        status |= nECU_IGF_Start();  // RPM reference
+        if (!status)
+            status |= !nECU_FlowControl_Working_Do(D_Knock);
     }
+    if (status)
+        nECU_FlowControl_Error_Do(D_Knock);
 
     return status;
 }
 void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 {
-
-    if (!(D_Knock.Status & D_BLOCK_WORKING))
+    if (!nECU_FlowControl_Working_Check(D_Knock)) // Check if currently working
     {
-        D_Knock.Status |= D_BLOCK_CODE_ERROR;
-        return;
+        nECU_FlowControl_Error_Do(D_Knock);
+        return; // Break
     }
 
     if (Knock.UART_Transmission == true)
@@ -90,12 +86,11 @@ void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 }
 void nECU_Knock_UpdatePeriodic(void) // function to calculate current retard value
 {
-    if (!(D_Knock.Status & D_BLOCK_WORKING))
+    if (!nECU_FlowControl_Working_Check(D_Knock)) // Check if currently working
     {
-        D_Knock.Status |= D_BLOCK_CODE_ERROR;
-        return;
+        nECU_FlowControl_Error_Do(D_Knock);
+        return; // Break
     }
-
     nECU_ADC3_Routine(); // Pull new data
     nECU_TickTrack_Update(&(Knock.regres));
     nECU_Delay_Update(&(Knock.delay));
@@ -127,7 +122,7 @@ void nECU_Knock_UpdatePeriodic(void) // function to calculate current retard val
         Knock.RetardOut = (uint8_t)Knock.RetardPerc;
     }
 
-    nECU_Debug_ProgramBlockData_Update(&D_Knock);
+    nECU_Debug_ProgramBlockData_Update(D_Knock);
 }
 static void nECU_Knock_DetectMagn(void) // function to detect knock based on ADC input
 {

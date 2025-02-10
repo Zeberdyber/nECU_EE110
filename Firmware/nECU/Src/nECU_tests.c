@@ -130,46 +130,6 @@ void nECU_systest_error(void) // function to call when error detected
 }
 
 /* code tests */
-bool nECU_codetest_Speed_SensorUpdate(void) // function to test Speed functions
-{
-    // Success values
-    uint16_t Corr_Circ = Wheel_Circ_Set_1; // according to definitions
-    uint16_t Corr_Speed = 150;             // 150km/h
-
-    uint16_t Input = VoltsToADC(((Corr_Speed)*Speed_ToothCount) / (3.6 * Wheel_Circ_Set_1 * Speed_HzTomVolts)); // ADC value to plug into test, calculated from known Voltage
-
-    for (uint8_t i = 0; i < Speed_DecimalPoint; i++) // move decimal point
-    {
-        Corr_Speed = Corr_Speed * 10;
-    }
-
-    // Create test object
-    Speed_Sensor Test_Obj;
-    Test_Obj.InputData = &Input;
-    uint8_t setup = 1;
-    Test_Obj.WheelSetup = &setup;
-    Test_Obj.SensorCorrection = 1.0;
-
-    // Perfrom tests
-    for (uint8_t i = 0; i < 255; i++) // do it 255 times to rule out any smoothing
-    {
-        Speed_SensorUpdate(&Test_Obj);
-    }
-    Speed_SensorUpdate(&Test_Obj);
-
-    // Check results
-    if (Test_Obj.WheelCirc != Corr_Circ)
-    {
-        return true;
-    }
-    int32_t result = Test_Obj.SpeedData - Corr_Speed;
-    if (result > 50 || result < -50) // Allow for 0.5km/h error due to rounding
-    {
-        return true;
-    }
-
-    return false;
-}
 bool nECU_codetest_run(void) // run tests of type codetest
 {
     bool status = false;
@@ -177,12 +137,6 @@ bool nECU_codetest_run(void) // run tests of type codetest
     if (nECU_DataProcessing_test(true))
     {
         printf("\nTest failed on nECU_DataProcessing_test()\n");
-        nECU_codetest_error();
-        status |= true;
-    }
-    if (nECU_codetest_Speed_SensorUpdate())
-    {
-        printf("\nTest failed on Speed_SensorUpdate\n");
         nECU_codetest_error();
         status |= true;
     }

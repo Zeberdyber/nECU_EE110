@@ -41,10 +41,14 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     [D_F1] = "CAN Frame 1",
     [D_F2] = "CAN Frame 2",
     // nECU_Input_Analog.c
-    [D_MAP] = "Stock MAP",
-    [D_BackPressure] = "BackPressure",
-    [D_MCU_temperature] = "nECU temperature",
-    [D_AdditionalAI] = "Additional Analog Input",
+    [D_ANALOG_MAP] = "Stock MAP",
+    [D_ANALOG_BackPressure] = "BackPressure",
+    [D_ANALOG_OX] = "OX analog sensor",
+    [D_ANALOG_AI_1] = "Additional Analog Input 1",
+    [D_ANALOG_AI_2] = "Additional Analog Input 2",
+    [D_ANALOG_AI_3] = "Additional Analog Input 3",
+    [D_ANALOG_MCUTemp] = "nECU temperature",
+    [D_ANALOG_VREF] = "Reference voltage sensing",
     // nECU_Input_Frequency.c
     [D_VSS] = "Stock VSS",
     [D_IGF] = "Stock Ignition Fault Detection",
@@ -61,10 +65,10 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     // nECU_PC.c
     [D_PC] = "PC communication",
     // nECU_Speed.c
-    [D_SS1] = "ABS Speed Sensor 1",
-    [D_SS2] = "ABS Speed Sensor 2",
-    [D_SS3] = "ABS Speed Sensor 3",
-    [D_SS4] = "ABS Speed Sensor 4",
+    [D_ANALOG_SS1] = "ABS Speed Sensor 1",
+    [D_ANALOG_SS2] = "ABS Speed Sensor 2",
+    [D_ANALOG_SS3] = "ABS Speed Sensor 3",
+    [D_ANALOG_SS4] = "ABS Speed Sensor 4",
     // nECU_stock.c
     [D_GPIO] = "GPIO",
     [D_OX] = "Stock Lambda sensor",
@@ -88,7 +92,7 @@ bool nECU_Debug_Start(void) // starts up debugging functions
     {
         status |= nECU_Debug_Init_Struct();
         status |= nECU_Debug_Init_Que();
-        status |= nECU_InternalTemp_Start();
+        status |= nECU_InputAnalog_ADC1_Start(ADC1_MCUTemp_ID);
         if (!status)
         {
             status |= !nECU_FlowControl_Initialize_Do(D_Debug);
@@ -111,10 +115,6 @@ bool nECU_Debug_Start(void) // starts up debugging functions
 static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
 {
     bool status = false;
-
-    /* Device temperature */
-    dbg_data.device_temperature.MCU = nECU_InternalTemp_getPointer();
-
     // EGT sensors
     for (uint8_t current_ID = 0; current_ID < EGT_ID_MAX; current_ID++) // Do for all EGT sensors
     {
@@ -156,6 +156,8 @@ void nECU_Debug_Periodic(void) // checks states of variables
         nECU_FlowControl_Error_Do(D_Debug);
         return;
     }
+    nECU_InputAnalog_ADC1_Routine(ADC1_MCUTemp_ID);
+    dbg_data.device_temperature.MCU = nECU_FloatToInt(nECU_InputAnalog_ADC1_getValue(ADC1_MCUTemp_ID), 16);
 
     nECU_Debug_IntTemp_Check(&(dbg_data.device_temperature));
     nECU_Debug_EGTTemp_Check(&(dbg_data.egt_temperature));
@@ -168,12 +170,12 @@ void nECU_Debug_Periodic(void) // checks states of variables
 /* Check states routines */
 static void nECU_Debug_IntTemp_Check(nECU_Debug_IC_temp *inst) // check for errors of device temperature
 {
-    if (*nECU_InternalTemp_StartupDelay_DoneFlag() == true) // do after startup delay is done
+    if (nECU_FlowControl_Working_Check(D_ANALOG_MCUTemp)) // do after startup delay is done
     {
-        if (nECU_Debug_IntTemp_CheckSingle(inst->MCU)) // check main IC
+        if (nECU_Debug_IntTemp_CheckSingle(&(inst->MCU))) // check main IC
         {
             nECU_Debug_error_mesage temp;
-            nECU_Debug_Message_Set(&temp, *(inst->MCU), nECU_ERROR_DEVICE_TEMP_MCU_ID);
+            nECU_Debug_Message_Set(&temp, (inst->MCU), nECU_ERROR_DEVICE_TEMP_MCU_ID);
         }
     }
     for (uint8_t i = 0; i < 4; i++) // check all EGT devices
@@ -188,41 +190,34 @@ static void nECU_Debug_IntTemp_Check(nECU_Debug_IC_temp *inst) // check for erro
 static bool nECU_Debug_IntTemp_CheckSingle(int16_t *temperature) // checks if passed temperature is in defined bounds
 {
     /* true => out of bounds, false => no errors */
-    if ((*temperature / INTERNAL_TEMP_MULTIPLIER) > DEVICE_TEMPERATURE_MAX)
-    {
+    if ((*temperature) > DEVICE_TEMPERATURE_MAX)
         return true;
-    }
-    else if ((*temperature / INTERNAL_TEMP_MULTIPLIER) < DEVICE_TEMPERATURE_MIN)
-    {
+
+    else if ((*temperature) < DEVICE_TEMPERATURE_MIN)
         return true;
-    }
+
     return false;
 }
 static void nECU_Debug_EGTTemp_Check(nECU_Debug_EGT_Temp *inst) // check if TCs did not exceed fault value
 {
     for (uint8_t i = 0; i < 4; i++)
-    {
         if (nECU_Debug_EGTTemp_CheckSingle(inst->EGT_IC[i]))
         {
             nECU_Debug_error_mesage temp;
             nECU_Debug_Message_Set(&temp, *(inst->EGT_IC[i]), nECU_ERROR_EGT_TC_EGT1_ID + i);
         }
-    }
 }
 static bool nECU_Debug_EGTTemp_CheckSingle(uint16_t *temperature) // checks if passed temperature is in defined bound
 {
     if (*temperature > TC_TEMPERATURE_MAX)
-    {
         return true;
-    }
+
     return false;
 }
 static void nECU_Debug_EGTsensor_error(nECU_Debug_EGT_Comm *inst) // check EGT ICs for error flags
 {
     if (BENCH_MODE == true)
-    {
         return;
-    }
 
     for (uint8_t i = 0; i < 4; i++)
     {
@@ -236,14 +231,12 @@ static void nECU_Debug_EGTsensor_error(nECU_Debug_EGT_Comm *inst) // check EGT I
 static void nECU_Debug_CAN_Check(void) // checks if CAN have any error pending
 {
     if (!nECU_FlowControl_Working_Check(D_CAN_TX) || !nECU_FlowControl_Working_Check(D_CAN_RX)) // Check if RX or TX is working
-    {
         if (nECU_CAN_GetError())
         {
             uint32_t error = HAL_CAN_GetError(&hcan1);
             nECU_Debug_error_mesage temp;
             nECU_Debug_Message_Set(&temp, error, nECU_ERROR_CAN_ID);
         }
-    }
 }
 static void nECU_Debug_SPI_Check(void) // checks if SPI have any error pending
 {
@@ -443,10 +436,6 @@ static uint8_t nECU_Debug_ProgramBlockData_Check_Single(nECU_ProgramBlockData *i
         inst->Status |= D_BLOCK_ERROR_OLD; // store error to memory
         inst->Status -= D_BLOCK_ERROR;
     }
-    if (inst->Status & D_BLOCK_CODE_ERROR) // major error as programming was bad :O
-    {
-        result = 2;
-    }
 
     return result;
 }
@@ -504,11 +493,15 @@ bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status i
     switch (ID) /* Stopping of shared resources */
     {
     case D_ADC1:
-        if (nECU_FlowControl_Working_Check(D_AdditionalAI) || nECU_FlowControl_Working_Check(D_BackPressure) || nECU_FlowControl_Working_Check(D_MAP) || nECU_FlowControl_Working_Check(D_MCU_temperature) || nECU_FlowControl_Working_Check(D_OX))
+        if (nECU_FlowControl_Working_Check(D_ANALOG_MAP) || nECU_FlowControl_Working_Check(D_ANALOG_BackPressure) || nECU_FlowControl_Working_Check(D_ANALOG_OX) || nECU_FlowControl_Working_Check(D_ANALOG_AI_1) || nECU_FlowControl_Working_Check(D_ANALOG_AI_2) || nECU_FlowControl_Working_Check(D_ANALOG_AI_3) || nECU_FlowControl_Working_Check(D_ANALOG_MCUTemp) || nECU_FlowControl_Working_Check(D_ANALOG_VREF))
             return false;
         break;
     case D_ADC2:
-        if (nECU_FlowControl_Working_Check(D_SS1) || nECU_FlowControl_Working_Check(D_SS2) || nECU_FlowControl_Working_Check(D_SS3) || nECU_FlowControl_Working_Check(D_SS4))
+        if (nECU_FlowControl_Working_Check(D_ANALOG_SS1) || nECU_FlowControl_Working_Check(D_ANALOG_SS2) || nECU_FlowControl_Working_Check(D_ANALOG_SS3) || nECU_FlowControl_Working_Check(D_ANALOG_SS4))
+            return false;
+        break;
+    case D_Flash:
+        if (nECU_FlowControl_Working_Check(D_ANALOG_SS1) || nECU_FlowControl_Working_Check(D_ANALOG_SS2) || nECU_FlowControl_Working_Check(D_ANALOG_SS3) || nECU_FlowControl_Working_Check(D_ANALOG_SS4) || nECU_FlowControl_Working_Check(D_Debug_Que) || nECU_FlowControl_Working_Check(D_Menu))
             return false;
         break;
 

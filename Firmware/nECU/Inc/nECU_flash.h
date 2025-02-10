@@ -48,8 +48,9 @@ extern "C"
     static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void);        // save everything, then read to RAM
 
     /* Interface functions */
-    bool nECU_FLASH_Start(void); // initialize FLASH code
-    bool nECU_FLASH_Erase(void); // erases whole sector
+    bool nECU_FLASH_Start(void);
+    bool nECU_FLASH_Stop(void);
+    bool nECU_FLASH_Erase(void);
 
 #ifdef __cplusplus
 }

@@ -7,46 +7,95 @@
 
 #include "nECU_Input_Frequency.h"
 
-// internal variables
-VSS_Handle VSS = {0};
-IGF_Handle IGF = {0};
+static uint16_t VSS_Buffer[75] = {0};
 
-/* VSS - Vehicle Speed Sensor */
-uint8_t *nECU_VSS_GetPointer() // returns pointer to resulting data
-{
-    return &VSS.Speed;
-}
-bool nECU_VSS_Start(void) // initialize VSS structure
+static nECU_InputFreq Sensor_List[FREQ_ID_MAX] = {0};
+static SensorCalibration Sensor_calib_List[FREQ_ID_MAX] = {
+    [FREQ_VSS_ID] = {
+        1203, 3020, // limits of freq readout
+        270, 1020,  // limits of resulting output
+        0.0, 1.0    // Place holders
+    },
+    [FREQ_IGF_ID] = {
+        0, 1000, // limits of freq readout
+        0, 500,  // limits of resulting output
+        0.0, 1.0 // Place holders
+    },
+}; // List of default calibration values
+static uint32_t Sensor_delay_List[FREQ_ID_MAX] = {
+    [FREQ_VSS_ID] = 0,
+    [FREQ_IGF_ID] = 0,
+}; // List of delay values between updates in ms
+static Buffer Sensor_Buffer_List[FREQ_ID_MAX] = {
+    [FREQ_VSS_ID] = {&VSS_Buffer, 75},
+    [FREQ_IGF_ID] = {NULL, 0},
+}; // List of pointers to smoothing buffers and its lenghts
+static float Sensor_Alpha_List[FREQ_ID_MAX] = {
+    [FREQ_VSS_ID] = 0.15,
+    [FREQ_IGF_ID] = 1.0,
+}; // List of alphas for smoothing
+static nECU_TIM_ID Timer_List[FREQ_ID_MAX] = {
+    [FREQ_VSS_ID] = TIM_IC_FREQ_ID,
+    [FREQ_IGF_ID] = TIM_IC_FREQ_ID,
+}; // List of timers for IC
+static uint32_t Channel_List[FREQ_ID_MAX] = {
+    [FREQ_VSS_ID] = TIM_CHANNEL_2,
+    [FREQ_IGF_ID] = TIM_CHANNEL_1,
+}; // Timer channel list
+static uint16_t Pin_List[FREQ_ID_MAX] = {
+    [FREQ_VSS_ID] = GPIO_PIN_13,
+    [FREQ_IGF_ID] = GPIO_PIN_12,
+}; // List of Pins
+static TIM_HandleTypeDef *Port_List[FREQ_ID_MAX] = {
+    [FREQ_VSS_ID] = GPIOD,
+    [FREQ_IGF_ID] = GPIOD,
+}; // List of Ports
+
+bool nECU_VSS_Start(nECU_Freq_ID ID) // initialize VSS structure
 {
     bool status = false;
 
-    if (D_VSS.Status == D_BLOCK_STOP)
+    if (!nECU_FlowControl_Initialize_Check(D_VSS + ID))
     {
-        VSS.ic.previous_CCR = 0;
-        VSS.tim.htim = &FREQ_INPUT_TIMER;
-        nECU_TIM_Init(&VSS.tim);
-        VSS.tim.Channel_Count = 1;
-        VSS.tim.Channel_List[0] = TIM_CHANNEL_2;
-
-        uint32_t zero_delay = ((VSS.tim.htim->Init.Period + 1) * (VSS.tim.period * 1000)) + 10; // time for the whole timer count up + 10ms (* 1000 for sec to ms conversion);
-        nECU_Delay_Set(&VSS.VSS_ZeroDetect, zero_delay);
-
-        D_VSS.Status |= D_BLOCK_INITIALIZED;
+        if (!status)
+            status |= !nECU_FlowControl_Initialize_Do(D_VSS + ID);
     }
-    if (D_VSS.Status & D_BLOCK_INITIALIZED)
+    if (!nECU_FlowControl_Working_Check(D_VSS + ID) && status == false)
     {
-        status |= nECU_TIM_IC_Start(&VSS.tim);
-        printf("Stock VSS -> STARTED!\n");
-        D_VSS.Status |= D_BLOCK_WORKING;
+        status |= nECU_TIM_IC_Start(Timer_List[ID], Channel_List[ID], Pin_List[ID], Port_List[ID]);
+
+        // Pointers
+        if (nECU_ADC1_getPointer(ID))
+            Sensor_List[ID].sensor.Input = (ID);
+        else
+            status |= true;
+
+        // Calibration
+        ADC1_List[ID].calibration = ADC1_calib_List[ID];
+        nECU_calculateLinearCalibration(&(ADC1_List[ID].calibration));
+
+        // Filtering
+        ADC1_List[ID].filter.smoothingAlpha = ADC1_Alpha_List[ID];
+        ADC1_List[ID].filter.buf = ADC1_Buffer_List[ID];
+        status |= nECU_Delay_Set(&(ADC1_List[ID].filter.delay), ADC1_delay_List[ID]);
+
+        // Default value
+        ADC1_List[ID].output = 0.0;
+
+        if (!status)
+            status |= !nECU_FlowControl_Working_Do(D_VSS + ID);
     }
+    if (status)
+        nECU_FlowControl_Error_Do(D_VSS + ID);
 
     return status;
 }
 void nECU_VSS_Update(void) // update VSS structure
 {
-    if (!(D_VSS.Status & D_BLOCK_WORKING)) // check if working
+    if (!nECU_FlowControl_Working_Check(D_VSS)) // Check if currently working
     {
-        return;
+        nECU_FlowControl_Error_Do(D_VSS);
+        return; // Break
     }
 
     float speed = (VSS.ic.frequency) * (3600.0f / VSS_PULSES_PER_KM); // 3600 for m/s to km/h

@@ -10,41 +10,9 @@
 static Button Button_List[BUTTON_ID_MAX] = {0};
 
 /* All button functions */
-bool nECU_Button_Start(void)
+bool nECU_Button_Start(Button_ID ID) // Perform start on single button
 {
-  bool status = false;
-
-  for (uint8_t Current_ID = 0; Current_ID < BUTTON_ID_MAX; Current_ID++)
-  {
-    status |= nECU_Button_Start_Single(Current_ID);
-  }
-
-  return status;
-}
-bool nECU_Button_Stop(void)
-{
-  bool status = false;
-  for (uint8_t Current_ID = 0; Current_ID < BUTTON_ID_MAX; Current_ID++)
-  {
-    bool current_status = false;
-    if (!nECU_FlowControl_Stop_Check(D_Button_Red + Current_ID))
-    {
-      nECU_Button_Light_Stop(&Button_List[Current_ID].light);
-      nECU_Button_Input_Stop(&Button_List[Current_ID].input);
-      current_status |= !nECU_FlowControl_Stop_Do(D_Button_Red + Current_ID);
-    }
-    if (current_status)
-    {
-      nECU_FlowControl_Error_Do(D_Button_Red + Current_ID);
-    }
-    status |= current_status;
-  }
-  return status;
-}
-
-static bool nECU_Button_Start_Single(Button_ID ID) // Perform start on single button
-{
-  if (ID >= EGT_ID_MAX)
+  if (ID >= BUTTON_ID_MAX)
     return true;
 
   bool status = false;
@@ -68,11 +36,25 @@ static bool nECU_Button_Start_Single(Button_ID ID) // Perform start on single bu
   }
   return status;
 }
-static bool nECU_Button_Stop_Single(Button_ID ID) // Perform stop on single button
+bool nECU_Button_Stop(Button_ID ID) // Perform stop on single button
 {
-  if (ID >= EGT_ID_MAX)
+  if (ID >= BUTTON_ID_MAX)
     return true;
+
+  bool status = false;
+
+  if (!nECU_FlowControl_Stop_Check(ID))
+  {
+    nECU_Button_Light_Stop(&Button_List[ID].light);
+    nECU_Button_Input_Stop(&Button_List[ID].input);
+    status |= !nECU_FlowControl_Stop_Do(ID);
+  }
+  if (status)
+    nECU_FlowControl_Error_Do(ID);
+
+  return status;
 }
+
 /* BUTTON LIGHT BEGIN */
 static bool nECU_Button_Light_Start(ButtonLight *Light, uint8_t Channel, TIM_HandleTypeDef *htim) // function to initialize ButtonLight object with corresponding timer
 {

@@ -144,7 +144,7 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
   {
     nECU_CAN_TX_TransmitFrame(nECU_Frame_Speed);
     nECU_Delay_Start(&(F0_var.frame_delay));
-    *F0_var.ClearEngineCode = false;
+    *F0_var.ClearCode = false;
   }
   if (*(nECU_Delay_DoneFlag(&(F1_var.frame_delay))) && nECU_FlowControl_Working_Check(D_F1))
   {

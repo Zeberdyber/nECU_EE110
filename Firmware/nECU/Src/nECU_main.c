@@ -55,8 +55,7 @@ void nECU_main(void) // main rutine of the program
     // call periodic functions
     nECU_Knock_UpdatePeriodic();
     nECU_EGT_Routine();
-    Button_Menu();
-    nECU_Delay_UpdateAll();
+    nECU_Menu_Routine();
 
     // update all variables for CAN transmission
     Frame0_PrepareBuffer();
@@ -77,7 +76,6 @@ void nECU_main(void) // main rutine of the program
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {
     bool status = false;
-    status |= nECU_Button_Stop();
     status |= nECU_CAN_Stop();
     status |= nECU_Knock_Stop();
     if (!status)

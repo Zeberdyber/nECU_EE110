@@ -16,7 +16,6 @@ extern "C"
 /* Includes */
 #include "main.h"
 #include "nECU_types.h"
-#include "nECU_Speed.h"
 #include "nECU_EGT.h"
 #include "nECU_can.h"
 #include "nECU_menu.h"

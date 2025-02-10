@@ -24,7 +24,6 @@
 #include "nECU_menu.h"
 #include "nECU_OnBoardLED.h"
 #include "nECU_PC.h"
-#include "nECU_Speed.h"
 #include "nECU_spi.h"
 #include "nECU_stock.h"
 #include "nECU_table.h"

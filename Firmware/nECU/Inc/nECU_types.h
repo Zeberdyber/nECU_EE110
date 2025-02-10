@@ -32,7 +32,6 @@
 #define SPEED_TARGET_UPDATE 25                                                                                                                                                                                             // time in ms how often should values be updated
 #define SPEED_DMA_LEN (((uint16_t)(((APB2_CLOCK * SPEED_TARGET_UPDATE) / 1000) / ((SPEED_ADC_RESOLUTIONCYCLES + SPEED_ADC_SAMPLINGCYCLES) * SPEED_ADC_CLOCKDIVIDER * SPEED_CHANNEL_COUNT))) / 2) * 2 * SPEED_CHANNEL_COUNT // length of DMA buffer for SPEED_ADC, '2' for divisibility by two
 #define SPEED_AVERAGE_BUFFER_SIZE 100                                                                                                                                                                                      // number of conversions to average
-#define VSS_SMOOTH_BUFFER_LENGTH 75                                                                                                                                                                                        // length of smoothing buffer
 
 #define KNOCK_CHANNEL_COUNT 1 // number of initialized channels of KNOCK_ADC
 #define KNOCK_DMA_LEN 512     // length of DMA buffer for KNOCK_ADC
@@ -92,8 +91,8 @@ typedef struct
 {
     GPIO_struct buttonPin; // GPIO structure
     uint32_t CCR_High, CCR_Low, CCR_prev;
-    float frequency; // of callbacks in Hz
-    bool newData;    // flag that new data have arrived
+    uint16_t frequency; // of callbacks in Hz
+    bool newData;       // flag that new data have arrived
 } nECU_InputCapture;
 typedef struct
 {
@@ -120,15 +119,36 @@ typedef struct
 } nECU_Delay;
 
 /* ADCs */
+typedef enum
+{
+    ADC1_MAP_ID,
+    ADC1_BackPressure_ID,
+    ADC1_OX_ID,
+    ADC1_AI_1_ID,
+    ADC1_AI_2_ID,
+    ADC1_AI_3_ID,
+    ADC1_MCUTemp_ID,
+    ADC1_VREF_ID,
+    ADC1_ID_MAX
+} nECU_ADC1_ID;
+typedef enum
+{
+    ADC2_VSS_FL_ID,
+    ADC2_VSS_FR_ID,
+    ADC2_VSS_RL_ID,
+    ADC2_VSS_RR_ID,
+    ADC2_ID_MAX
+} nECU_ADC2_ID;
+
 typedef struct
 {
     bool callback_half, callback_full, overflow; // callback flags to indicate DMA buffer states
 } nECU_ADC_Status;
 typedef struct
 {
-    uint16_t in_buffer[GENERAL_DMA_LEN];        // input buffer (from DMA)
-    uint16_t out_buffer[GENERAL_CHANNEL_COUNT]; // output buffer (after processing, like average)
-    nECU_ADC_Status status;                     // statuses
+    uint16_t in_buffer[GENERAL_DMA_LEN];     // input buffer (from DMA)
+    uint16_t out_buffer[ADC1_CHANNEL_COUNT]; // output buffer (after processing, like average)
+    nECU_ADC_Status status;                  // statuses
 } nECU_ADC1;
 typedef struct
 {
@@ -254,8 +274,8 @@ typedef enum
 } LaunchControl_ID;
 typedef enum
 {
-    TACHO_ID_TuneSelector,
-    TACHO_ID_LaunchControl,
+    TACHO_ID_TuneSel,
+    TACHO_ID_LunchLvl,
     TACHO_ID_MenuLvl,
     TACHO_ID_MAX
 } Tacho_ID;
@@ -270,43 +290,12 @@ typedef struct
 typedef struct
 {
     // output variables
-    bool Antilag, TractionOFF, ClearEngineCode;
-    uint16_t LunchControlLevel, TuneSelector;
+    bool Antilag, TractionOFF, ClearCode;
+    uint16_t LunchLvl, TuneSel;
     // internal variables
-    uint16_t MenuLevel;    // Level of button menu
+    uint16_t MenuLvl;      // Level of button menu
     nECU_Delay save_delay; // Delay until data is saved to FLASH
 } ButtonMenu;
-
-/* Speed */
-typedef enum
-{
-    SPEED_SENSOR_ID_FL,
-    SPEED_SENSOR_ID_FR,
-    SPEED_SENSOR_ID_RL,
-    SPEED_SENSOR_ID_RR,
-    SPEED_SENSOR_ID_MAX
-} nECU_ADC2_ID; // Here update if connected otherwise
-typedef struct
-{
-    uint16_t Buffer[SPEED_AVERAGE_BUFFER_SIZE]; // buffer to be filled with ADC data
-    uint8_t BufferIndex;                        // current index at which data should be plugged
-} SpeedAverage;
-typedef struct
-{
-    uint16_t *InputData;    // pointer to ADC input data
-    uint8_t *WheelSetup;    // pointer to current wheel setup selected
-    float SensorCorrection; // factor by which result will be multiplied to correct by calibration
-    uint16_t SpeedData;     // output speed
-    uint16_t SpeedDataSlow; // output speed, averaged from multiple measuerements
-    uint16_t WheelCirc;     // circumference of wheel (according to wheel setup)
-    SpeedAverage Average;   // averaging structure
-    nECU_ADC2_ID id;        // id of this speed sensor
-} Speed_Sensor;
-typedef struct
-{
-    bool active;                            // routine is running
-    bool averageReady[SPEED_SENSOR_ID_MAX]; // flags indicating end of data collection on each sensor
-} CalibrateRoutine;
 
 /* Frames */
 typedef struct
@@ -332,9 +321,9 @@ typedef struct
     // outside variables
     bool *Cranking, *Fan_ON, *Lights_ON, *IgnitionKey;
     bool *TachoShow[TACHO_ID_MAX];
-    bool *Antilag, *TractionOFF, *ClearEngineCode;
-    uint16_t *LunchControlLevel;
-    uint16_t *SpeedSensor[SPEED_SENSOR_ID_MAX];
+    bool *Antilag, *TractionOFF, *ClearCode;
+    uint16_t *LunchLvl;
+    uint16_t SpeedSensor[ADC2_ID_MAX];
 } Frame0_struct;
 typedef struct
 {
@@ -344,7 +333,7 @@ typedef struct
     // outside variables
     uint16_t *EGT[EGT_ID_MAX];
     uint8_t *TachoVal[TACHO_ID_MAX];
-    uint16_t *TuneSelector;
+    uint16_t *TuneSel;
 } Frame1_struct;
 typedef struct
 {
@@ -352,52 +341,39 @@ typedef struct
     nECU_Delay frame_delay;    // timing between frames
 
     // outside variables
-    uint8_t *Backpressure, *OX_Val;
-    uint16_t *MAP_Stock_10bit;
+    uint8_t Backpressure, OX_Val;
+    uint16_t MAP_Stock_10bit;
     uint8_t *Knock;
     uint8_t *VSS;
     uint32_t *loop_time;
 } Frame2_struct;
 
 /* Input Analog */
-typedef enum
-{
-    ADC1_MAP_ID,
-    ADC1_BackPressure_ID,
-    ADC1_OX_ID,
-    ADC1_AI_1_ID,
-    ADC1_AI_2_ID,
-    ADC1_AI_3_ID,
-    ADC1_MCUTemp_ID,
-    ADC1_VREF_ID,
-    ADC1_ID_MAX
-} nECU_ADC1_ID;
 typedef struct
 {
     uint16_t ADC_MeasuredMax, ADC_MeasuredMin; // limits of ADC readout
     float OUT_MeasuredMax, OUT_MeasuredMin;    // limits of resulting output
     float offset, factor;                      // offset that is added to result, factor by which output is multiplied
-} AnalogSensorCalibration;
+} SensorCalibration;
 typedef struct
 {
     uint16_t *Buffer; // pointer to buffer
     uint8_t len;      // lenght of the buffer
-} AnalogSensorBuffer;
-
+} Buffer;
 typedef struct
 {
-    nECU_Delay delay;           // update delay structure
-    float smoothingAlpha;       // value for smoothing
-    uint16_t previous_ADC_Data; // value from previous run
-    AnalogSensorBuffer buf;     // smoothing buffer
-} AnalogSensorFiltering;
+    nECU_Delay delay;        // update delay structure
+    float smoothingAlpha;    // value for smoothing
+    uint16_t previous_Input; // value from previous run
+    Buffer buf;              // smoothing buffer
+} SensorFiltering;
 typedef struct
 {
-    AnalogSensorCalibration calibration; // calibration structure
-    AnalogSensorFiltering filter;        // filtering structure
-    uint16_t *ADC_input;                 // pointer to ADC input data
-    float output;                        // resulting value in float
-} AnalogSensor_Handle;
+    SensorCalibration calibration; // calibration structure
+    SensorFiltering filter;        // filtering structure
+    uint16_t *Input;               // pointer to ADC input data
+    float output;                  // resulting value in float
+} Sensor_Handle;
 
 /* Knock */
 typedef struct
@@ -450,24 +426,22 @@ typedef struct
 {
     nECU_Timer Heater;              // timer structure
     float Heater_Infill;            // infill of PWM signal
-    AnalogSensor_Handle sensor;     // Analog sensor structure
+    Sensor_Handle sensor;           // Analog sensor structure
     uint8_t *Coolant;               // pointer to coolant temperature
     float Infill_max, Infill_min;   // ranges of heater infill
     float Coolant_max, Coolant_min; // ranges of coolant temperature
 } Oxygen_Handle;
+typedef enum
+{
+    FREQ_VSS_ID,
+    FREQ_IGF_ID,
+    FREQ_ID_MAX
+} nECU_Freq_ID;
 typedef struct
 {
-    uint8_t Speed;        // resulting speed
-    bool overspeed_error; // flag to indicate speed reached maximal allowed
-
-    uint16_t VSS_Smooth_buffer[VSS_SMOOTH_BUFFER_LENGTH];
-    nECU_Delay VSS_ZeroDetect;
-} VSS_Handle;
-typedef struct
-{
-    nECU_InputCapture *channel;
-    uint16_t RPM; // resulting RPM
-} IGF_Handle;
+    Sensor_Handle sensor;
+    nECU_InputCapture *ic; // IC data
+} nECU_InputFreq;
 typedef enum
 {
     INPUT_CRANKING_ID = 1,
@@ -566,7 +540,7 @@ typedef struct
 } nECU_Debug_error_mesage;
 typedef struct
 {
-    int16_t *MCU;       // internal temperature of MCU
+    int16_t MCU;        // internal temperature of MCU
     int16_t *EGT_IC[4]; // internal temperature of EGT ICs
 } nECU_Debug_IC_temp;   // error due to over/under temperature of ICs
 typedef struct
@@ -669,6 +643,10 @@ typedef enum
     D_ANALOG_AI_3,
     D_ANALOG_MCUTemp,
     D_ANALOG_VREF,
+    D_ANALOG_SS1, //! Have to be in the same order as 'nECU_ADC2_ID'!
+    D_ANALOG_SS2,
+    D_ANALOG_SS3,
+    D_ANALOG_SS4,
     // nECU_Input_Frequency.c
     D_VSS,
     D_IGF,
@@ -684,11 +662,6 @@ typedef enum
     D_OnboardLED,
     // nECU_PC.c
     D_PC,
-    // nECU_Speed.c
-    D_SS1,
-    D_SS2,
-    D_SS3,
-    D_SS4,
     // nECU_stock.c
     D_GPIO,
     D_OX,

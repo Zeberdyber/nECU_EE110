@@ -27,9 +27,12 @@ extern "C"
 
     /* Function Prototypes */
     void test_uart(void); // test function only
+
     /* General functions */
-    bool nECU_PC_Start(void); // initializes structures for PC communication over UART
-    bool nECU_PC_Stop(void);  // call to stop transmission
+    bool nECU_PC_Start(void);
+    bool nECU_PC_Stop(void);
+    void nECU_PC_Routine(void);
+
     /* Flow control */
     static void nECU_PC_Transmit(void); // call to send a frame
     static void nECU_PC_Recieve(void);  // call to start listening for frames
