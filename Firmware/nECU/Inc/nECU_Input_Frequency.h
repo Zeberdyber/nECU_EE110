@@ -24,22 +24,11 @@ extern "C"
     /* typedef */
 
     /* Function Prototypes */
-    /* VSS - Vehicle Speed Sensor */
-    uint8_t *nECU_VSS_GetPointer(void);  // returns pointer to resulting data
-    bool nECU_VSS_Start(void);           // initialize VSS structure
-    void nECU_VSS_Update(void);          // update VSS structure
-    static void nECU_VSS_Validate(void); // checks if recived signal is correct
-    void nECU_VSS_Stop(void);            // deinitialize VSS structure
+    bool nECU_FreqInput_Start(nECU_Freq_ID ID);
+    bool nECU_FreqInput_Stop(nECU_Freq_ID ID);
+    void nECU_FreqInput_Routine(nECU_Freq_ID ID);
 
-    /* IGF - Ignition feedback */
-    bool nECU_IGF_Start(void);  // initialize and start
-    void nECU_IGF_Update(void); // calculate RPM based on IGF signal, detect missfire
-    bool nECU_IGF_Stop(void);   // stop
-
-    /* General */
-    bool nECU_Frequency_Start(void);  // start of frequency input functions
-    void nECU_Frequency_Stop(void);   // stop of frequency input functions
-    void nECU_Frequency_Update(void); // update of frequency input functions
+    float nECU_FreqInput_getValue(nECU_Freq_ID ID);
 
 #ifdef __cplusplus
 }

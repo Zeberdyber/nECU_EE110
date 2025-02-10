@@ -22,7 +22,7 @@ extern Frame2_struct F2_var;
 // General functions
 bool nECU_CAN_Start(void) // start periodic transmission of data accroding to the timers
 {
-  bool status_TX, status_RX = false;
+  bool status_TX = false, status_RX = false;
 
   /* TX */
   if (!nECU_FlowControl_Initialize_Check(D_CAN_TX) && status_TX == false)
@@ -44,7 +44,7 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
 
     if (!status_TX)
     {
-      !nECU_FlowControl_Initialize_Do(D_CAN_TX);
+      status_TX |= nECU_FlowControl_Initialize_Do(D_CAN_TX);
     }
   }
   if (!nECU_FlowControl_Working_Check(D_CAN_TX) && status_TX == false)
@@ -236,14 +236,6 @@ static uint8_t nECU_CAN_IsBusy(void) // Check if any messages are pending
   result += HAL_CAN_IsTxMessagePending(&hcan1, F1_var.can_data.Mailbox);
   result += HAL_CAN_IsTxMessagePending(&hcan1, F2_var.can_data.Mailbox);
   return result;
-}
-static bool nECU_CAN_GetState(void) // get data if can periperal buisy
-{
-  if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_LISTENING || nECU_CAN_IsBusy()) // check RX/TX transmission ongoing
-  {
-    return true;
-  }
-  return false;
 }
 bool nECU_CAN_GetError(void) // get error state pf can periperal buisy
 {

@@ -89,18 +89,6 @@ static bool nECU_SPI_getBusy(nECU_SPI_ID ID) // get state (if busy) of the SPI c
 
   return output;
 }
-static bool nECU_SPI_getError(nECU_SPI_ID ID) // get error type (if not ready and not busy)
-{
-  if (ID >= SPI_ID_MAX) // Break if invalid ID
-    return false;
-
-  HAL_SPI_StateTypeDef EGT_CurrentState = HAL_SPI_GetState(SPI_Handle_List[ID]);
-  bool output = false;
-  if (EGT_CurrentState == HAL_SPI_STATE_RESET && EGT_CurrentState > HAL_SPI_STATE_BUSY_TX_RX)
-    output = true;
-
-  return output;
-}
 
 static nECU_SPI_ID nECU_SPI_Identify(SPI_HandleTypeDef *hspi) // returns ID of given input
 {

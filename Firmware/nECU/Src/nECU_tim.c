@@ -7,8 +7,7 @@
 
 #include "nECU_tim.h"
 
-static nECU_Delay MCU_temperature_Startup = {0}, MCU_temperature_Update = {0};
-static nECU_tim_Watchdog Button_Out_Watchdog = {0}, Ox_Out_Watchdog = {0};
+// static nECU_tim_Watchdog Button_Out_Watchdog = {0}, Ox_Out_Watchdog = {0};
 
 /* Used in watchdogs */
 extern Oxygen_Handle OX;
@@ -35,9 +34,9 @@ uint8_t nECU_Get_FrameTimer(void) // get current value of frame timer -> Used fo
   /* timer 11 is set to work with 0,1ms count up time, and have 8bit period*/
   bool status = false;
   if (!nECU_FlowControl_Initialize_Check(D_TIM_FRAME))
-    status |= nECU_TIM_Init(D_TIM_FRAME);
+    status |= nECU_TIM_Init(TIM_FRAME_ID);
   if (!nECU_FlowControl_Working_Check(D_TIM_FRAME) && status == false)
-    status |= nECU_TIM_Base_Start(D_TIM_FRAME);
+    status |= nECU_TIM_Base_Start(TIM_FRAME_ID);
   if (status) // Break on error
     return 0;
 
@@ -49,7 +48,7 @@ static nECU_TIM_ID nECU_TIM_Identify(TIM_HandleTypeDef *htim) // returns ID of g
   if (htim == NULL) // break if pointer does not exist
     return TIM_ID_MAX;
 
-  for (nECU_SPI_ID current_ID = 0; current_ID < TIM_ID_MAX; current_ID++) // search for handle
+  for (nECU_TIM_ID current_ID = 0; current_ID < TIM_ID_MAX; current_ID++) // search for handle
   {
     if (htim == TIM_Handle_List[current_ID]) // check if found
     {
@@ -58,15 +57,22 @@ static nECU_TIM_ID nECU_TIM_Identify(TIM_HandleTypeDef *htim) // returns ID of g
   }
   return TIM_ID_MAX; // return ID_MAX if not found
 }
-TIM_HandleTypeDef *nECU_TIM_getPointer(nECU_TIM_ID ID) // returns pointer to
+TIM_HandleTypeDef *nECU_TIM_getPointer(nECU_TIM_ID ID) // returns pointer to timer
 {
   if (ID >= TIM_ID_MAX) // Break if invalid ID
     return NULL;
 
   return TIM_Handle_List[ID];
 }
-nECU_InputCapture *nECU_TIM_IC_getPointer(nECU_TIM_ID ID, uint32_t Channel)
+nECU_InputCapture *nECU_TIM_IC_getPointer(nECU_TIM_ID ID, uint32_t Channel) // pointer to IC stucture
 {
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
+    return NULL;
+
+  if (TIM_List[ID].Channels[Channel] != TIM_Channel_IC) // Check if this is IC channel
+    return NULL;
+
+  return &TIM_List[ID].IC[Channel];
 }
 
 /* Callback functions */
@@ -87,7 +93,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
   if (current_ID >= TIM_ID_MAX) // Break if invalid ID
     return;
 
-  nECU_TIM_IC_Callback(TIM_Handle_List[TIM_IC_FREQ_ID]);
+  nECU_TIM_IC_Callback(TIM_IC_FREQ_ID);
 }
 
 /* Used for simple time tracking */
@@ -197,9 +203,7 @@ bool nECU_TIM_Init(nECU_TIM_ID ID) // initialize structure and precalculate vari
     TIM_List[ID].IC[channel].CCR_prev = 0;
     TIM_List[ID].IC[channel].frequency = 0;
     TIM_List[ID].IC[channel].newData = false;
-    TIM_List[ID].IC[channel].buttonPin.GPIOx = NULL;
-    TIM_List[ID].IC[channel].buttonPin.GPIO_Pin = 0;
-    TIM_List[ID].IC[channel].buttonPin.State = GPIO_PIN_RESET;
+    TIM_List[ID].IC[channel].Digi_Input = DigiInput_ID_MAX;
   }
 
   bool status = false;
@@ -266,9 +270,12 @@ bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop PWM
 
   return false;
 }
-bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, uint16_t Pin, GPIO_TypeDef *Port) // function to start IC on selected timer
+bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, nECU_DigiInput_ID Digi_ID) // function to start IC on selected timer
 {
   if (ID >= TIM_ID_MAX)
+    return true;
+
+  if (Digi_ID > DigiInput_ID_MAX)
     return true;
 
   bool status = false;
@@ -292,7 +299,11 @@ bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, uint16_t Pin, GPIO_Type
     return true; // indicate if not successful
   }
 
-  nECU_GPIO_Init(&TIM_List[ID].IC[Channel].buttonPin, Pin, Port);
+  TIM_List[ID].IC[Channel].Digi_Input = Digi_ID;
+  if (TIM_List[ID].IC[Channel].Digi_Input > DigiInput_ID_MAX)
+    TIM_List[ID].IC[Channel].Digi_Input = DigiInput_ID_MAX;
+  if (!nECU_DigitalInput_Start(TIM_List[ID].IC[Channel].Digi_Input))
+    return false;
 
   TIM_List[ID].Channels[Channel] = TIM_Channel_IC;
 
@@ -323,6 +334,10 @@ bool nECU_TIM_IC_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop IC o
     return true; // indicate if not successful
   }
 
+  if (!nECU_DigitalInput_Stop(TIM_List[ID].IC[Channel].Digi_Input))
+    return false;
+
+  TIM_List[ID].IC[Channel].Digi_Input = DigiInput_ID_MAX;
   TIM_List[ID].Channels[Channel] = TIM_Channel_NONE;
 
   nECU_TIM_Base_Stop(ID); // Stop if possible
@@ -356,7 +371,7 @@ bool nECU_TIM_Base_Start(nECU_TIM_ID ID) // function to start base of selected t
 bool nECU_TIM_Base_Stop(nECU_TIM_ID ID) // function to stop base of selected timer
 {
   if (ID >= TIM_ID_MAX)
-    return;
+    return true;
 
   if (nECU_FlowControl_Working_Check(D_TIM_PWM_BUTTON + ID))
   {
@@ -402,10 +417,12 @@ static bool nECU_TIM_IC_Callback(nECU_TIM_ID ID) // callback function to calcula
   if (Difference < 10) // Pulse has to be at least 10x longer then channel period
     return false;
 
+  nECU_DigitalInput_Routine(TIM_List[ID].IC[channel_ic].Digi_Input);
+
   /* If GPIO was defined: Detect edge and calculate times */
-  if (!nECU_GPIO_Read(&TIM_List[ID].IC[channel_ic].buttonPin))
+  if (TIM_List[ID].IC[channel_ic].Digi_Input < DigiInput_ID_MAX)
   {
-    if (TIM_List[ID].IC[channel_ic].buttonPin.State == GPIO_PIN_SET)
+    if (nECU_DigitalInput_getValue(TIM_List[ID].IC[channel_ic].Digi_Input))
       TIM_List[ID].IC[channel_ic].CCR_Low = Difference;
     else
       TIM_List[ID].IC[channel_ic].CCR_High = Difference;

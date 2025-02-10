@@ -15,6 +15,7 @@ extern "C"
 /* Includes */
 #include "main.h"
 #include "nECU_types.h"
+#include "nECU_tim.h"
 #include "string.h"
 #include "stdbool.h"
 #include "stdio.h"

@@ -70,7 +70,11 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     [D_ANALOG_SS3] = "ABS Speed Sensor 3",
     [D_ANALOG_SS4] = "ABS Speed Sensor 4",
     // nECU_stock.c
-    [D_GPIO] = "GPIO",
+    [D_DigiInput_CRANKING] = "Digital Input Cranking",
+    [D_DigiInput_FAN_ON] = "Digital Input Radiator Fan",
+    [D_DigiInput_LIGHTS_ON] = "Digital Input Headlights",
+    [D_DigiInput_VSS] = "Digital Input VSS (Edge Sensing)",
+    [D_DigiInput_IGF] = "Digital Input IGF (Edge Sensing)",
     [D_OX] = "Stock Lambda sensor",
     // nECU_tim.c
     [D_TIM_PWM_BUTTON] = "Button PWM Timer",

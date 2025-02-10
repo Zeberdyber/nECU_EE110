@@ -19,7 +19,7 @@ static bool OnBoard_LED_GPIO_Init(OnBoardLED *inst, uint16_t GPIO_Pin, GPIO_Type
     inst->LEDPin.State = GPIO_PIN_RESET;
     return false;
 }
-static bool OnBoard_LED_GPIO_Update(GPIO_struct *inst, GPIO_PinState State) // update of GPIO output
+static void OnBoard_LED_GPIO_Update(GPIO_struct *inst, GPIO_PinState State) // update of GPIO output
 {
     inst->State = State; // copy animation to the output
     HAL_GPIO_WritePin(inst->GPIOx, inst->GPIO_Pin, inst->State);

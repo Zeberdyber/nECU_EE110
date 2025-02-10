@@ -7,9 +7,9 @@
 
 #include "nECU_frames.h"
 
-static Frame0_struct F0_var = {0};
-static Frame1_struct F1_var = {0};
-static Frame2_struct F2_var = {0};
+Frame0_struct F0_var = {0};
+Frame1_struct F1_var = {0};
+Frame2_struct F2_var = {0};
 
 /* Frame 0 */
 bool Frame0_Start(void) // initialization of data structure
@@ -49,24 +49,9 @@ bool Frame0_Start(void) // initialization of data structure
                 status |= true;
         }
 
-        status |= nECU_stock_GPIO_Init();
-        if (!status) // do only if no error
-        {
-            if (nECU_stock_GPIO_getPointer(INPUT_CRANKING_ID)) // Check if pointers exist
-                F0_var.Cranking = nECU_stock_GPIO_getPointer(INPUT_CRANKING_ID);
-            else
-                status |= true;
-
-            if (nECU_stock_GPIO_getPointer(INPUT_FAN_ON_ID)) // Check if pointers exist
-                F0_var.Fan_ON = nECU_stock_GPIO_getPointer(INPUT_FAN_ON_ID);
-            else
-                status |= true;
-
-            if (nECU_stock_GPIO_getPointer(INPUT_LIGHTS_ON_ID)) // Check if pointers exist
-                F0_var.Lights_ON = nECU_stock_GPIO_getPointer(INPUT_LIGHTS_ON_ID);
-            else
-                status |= true;
-        }
+        status |= nECU_DigitalInput_Start(DigiInput_CRANKING_ID);
+        status |= nECU_DigitalInput_Start(DigiInput_FAN_ON_ID);
+        status |= nECU_DigitalInput_Start(DigiInput_LIGHTS_ON_ID);
 
         // add immo init (when implemented)
         F0_var.IgnitionKey = nECU_Immo_getPointer();
@@ -109,7 +94,9 @@ void Frame0_Routine(void) // update variables for frame 0
         F0_var.SpeedSensor[current_ID] = nECU_FloatToUint(nECU_InputAnalog_ADC2_getValue(D_ANALOG_SS1 + current_ID), 12);
     }
 
-    nECU_stock_GPIO_update();
+    nECU_DigitalInput_Routine(DigiInput_CRANKING_ID);
+    nECU_DigitalInput_Routine(DigiInput_FAN_ON_ID);
+    nECU_DigitalInput_Routine(DigiInput_LIGHTS_ON_ID);
     nECU_Tacho_Routine();
 
     memset(F0_var.LunchControl, 0, LaunchControl_ID_MAX); // clear memory
@@ -129,8 +116,13 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
         return;
     }
     Frame0_Routine();
+
+    F0_var.Stock_GPIO[DigiInput_CRANKING_ID] = nECU_DigitalInput_getValue(DigiInput_CRANKING_ID);
+    F0_var.Stock_GPIO[DigiInput_FAN_ON_ID] = nECU_DigitalInput_getValue(DigiInput_FAN_ON_ID);
+    F0_var.Stock_GPIO[DigiInput_LIGHTS_ON_ID] = nECU_DigitalInput_getValue(DigiInput_LIGHTS_ON_ID);
+
     uint8_t TxFrame[8];
-    Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, F0_var.Fan_ON, F0_var.Lights_ON, F0_var.Cranking, &F0_var.SpeedSensor[ADC2_VSS_FL_ID]);
+    Frame0_ComposeWord(&TxFrame[0], F0_var.IgnitionKey, &F0_var.Stock_GPIO[DigiInput_FAN_ON_ID], &F0_var.Stock_GPIO[DigiInput_LIGHTS_ON_ID], &F0_var.Stock_GPIO[DigiInput_CRANKING_ID], &F0_var.SpeedSensor[ADC2_VSS_FL_ID]);
     Frame0_ComposeWord(&TxFrame[2], F0_var.ClearCode, F0_var.TachoShow[TACHO_ID_MenuLvl], F0_var.TachoShow[TACHO_ID_LunchLvl], F0_var.TachoShow[TACHO_ID_TuneSel], &F0_var.SpeedSensor[ADC2_VSS_FR_ID]);
     Frame0_ComposeWord(&TxFrame[4], F0_var.Antilag, &F0_var.LunchControl[LaunchControl_High], &F0_var.LunchControl[LaunchControl_Medium], &F0_var.LunchControl[LaunchControl_Low], &F0_var.SpeedSensor[ADC2_VSS_RL_ID]);
     Frame0_ComposeWord(&TxFrame[6], (bool *)false, (bool *)false, F0_var.TractionOFF, &F0_var.LunchControl[LaunchControl_Rolling], &F0_var.SpeedSensor[ADC2_VSS_RR_ID]);
@@ -264,14 +256,7 @@ bool Frame2_Start(void) // initialization of data structure
                 status |= true;
         }
 
-        status |= nECU_VSS_Start();
-        if (!status) // do only if no error
-        {
-            if (nECU_Knock_GetPointer())
-                F2_var.VSS = nECU_VSS_GetPointer();
-            else
-                status |= true;
-        }
+        status |= nECU_FreqInput_Start(FREQ_VSS_ID);
 
         F2_var.loop_time = nECU_Debug_ProgramBlockData_getPointer_Diff(D_Main);
 
@@ -302,8 +287,8 @@ void Frame2_Routine(void) // update variables for frame 2
         return;
     }
 
-    nECU_OX_Update(); // TODO
-    nECU_VSS_Update();
+    nECU_OX_Routine(); // TODO
+    nECU_FreqInput_Routine(FREQ_VSS_ID);
 
     nECU_InputAnalog_ADC1_Routine(ADC1_MAP_ID);
     nECU_InputAnalog_ADC1_Routine(ADC1_BackPressure_ID);
@@ -326,6 +311,7 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     F2_var.MAP_Stock_10bit = nECU_FloatToUint(nECU_InputAnalog_ADC1_getValue(ADC1_MAP_ID), 10);
     F2_var.Backpressure = nECU_FloatToUint(nECU_InputAnalog_ADC1_getValue(ADC1_BackPressure_ID), 8);
     F2_var.OX_Val = nECU_FloatToUint(nECU_InputAnalog_ADC1_getValue(ADC1_OX_ID), 8);
+    F2_var.VSS = nECU_FloatToUint(nECU_FreqInput_getValue(FREQ_VSS_ID), 8);
 
     Converter.UintValue = F2_var.MAP_Stock_10bit + FRAME_MAP_OFFSET;
     if (Converter.UintValue > MAX_VAL_10BIT) // round if out of bound
@@ -337,7 +323,7 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     TxFrame[2] = F2_var.OX_Val;
     TxFrame[3] = F2_var.Backpressure;
     TxFrame[4] = *F2_var.Knock;
-    TxFrame[5] = *F2_var.VSS;
+    TxFrame[5] = F2_var.VSS;
     Converter.UintValue = (uint16_t)*F2_var.loop_time;
     TxFrame[6] = Converter.byteArray[1]; // spare
     TxFrame[7] = Converter.byteArray[0]; // spare

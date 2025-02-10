@@ -111,7 +111,7 @@ void nECU_EGT_Callback(void) // callback from SPI_TX end callback
         if (EGT_data.currentSensor >= EGT_ID_MAX)
             return;
     }
-    nECU_SPI_Rx_IT_Start(&(EGT_data.TC[EGT_data.currentSensor].CS_pin), (EGT_Sensor_ID)EGT_data.currentSensor, (uint8_t *)EGT_data.TC[EGT_data.currentSensor].in_buffer, 4); // start reciving data
+    nECU_SPI_Rx_IT_Start(&(EGT_data.TC[EGT_data.currentSensor].CS_pin), SPI_EGT_ID, (uint8_t *)EGT_data.TC[EGT_data.currentSensor].in_buffer, 4); // start reciving data
 }
 void nECU_EGT_Error_Callback(void) // Callback after SPI communication fail
 {

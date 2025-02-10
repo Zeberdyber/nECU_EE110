@@ -29,8 +29,7 @@ extern "C"
   void nECU_SPI_Rx_IT_Start(GPIO_struct *pCS_pin, nECU_SPI_ID ID, uint8_t *pData, uint16_t Size); // start communication with selected device
   void nECU_SPI_IT_Stop(nECU_SPI_ID ID);                                                          // end IT communication with selected device
 
-  static bool nECU_SPI_getBusy(nECU_SPI_ID ID);  // get state (if busy) of the SPI communication
-  static bool nECU_SPI_getError(nECU_SPI_ID ID); // get error type (if not ready and not busy)
+  static bool nECU_SPI_getBusy(nECU_SPI_ID ID); // get state (if busy) of the SPI communication
 
   static nECU_SPI_ID nECU_SPI_Identify(SPI_HandleTypeDef *hspi); // returns ID of given input
   SPI_HandleTypeDef *nECU_SPI_getPointer(nECU_SPI_ID ID);        // returns pointer to

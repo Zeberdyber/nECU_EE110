@@ -132,7 +132,7 @@ static float ADC2_Alpha_List[ADC2_ID_MAX] = {
     [ADC2_VSS_RR_ID] = 0.04,
 }; // List of alphas for smoothing
 
-static float nECU_correctToVref(float input)
+float nECU_correctToVref(float input)
 {
     if (!nECU_FlowControl_Working_Check(D_ANALOG_VREF))
         return input;
@@ -263,7 +263,7 @@ bool nECU_InputAnalog_ADC2_Start(nECU_ADC2_ID ID)
         nECU_calculateLinearCalibration(&(ADC2_List[ID].calibration));
 
         // Filtering
-        ADC2_List[ID].filter.smoothingAlpha = ADC1_Alpha_List[ID];
+        ADC2_List[ID].filter.smoothingAlpha = ADC2_Alpha_List[ID];
         ADC2_List[ID].filter.buf = ADC2_Buffer_List[ID];
         status |= nECU_Delay_Set(&(ADC2_List[ID].filter.delay), ADC2_delay_List[ID]);
 

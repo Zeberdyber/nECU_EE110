@@ -29,11 +29,12 @@
     [ ] Move data processing functions ex: nECU_ADC_expSmooth to data_processing.c (reuse functions)
     [ ] Move "Started"/"Stopped" printf to debug.c
     [ ] Add checking for NULL pointer
-    [ ] ADC1/ADC2 - Stop (remember abot hard stop on error)
+    [ ] ADC1/ADC2 - Stop (remember about hard stop on error)
     [ ] Speed sensig rewrite to simplify
     [ ] check _ID_MAX usage
     [ ] create printf progress bar
     [ ] move flow control to new file, handle double errors
+    [ ] tim PWM out rewrite + OX
 
 Current issues:
     IGF signal does not fall to complete zero - no signal edge is detected

@@ -29,15 +29,17 @@ uint64_t nECU_FloatToUint(float in, uint8_t bitCount) // returns float capped to
     uint64_t max_val = 0;
     while (bitCount > 0)
     {
-        max_val << 1;
+        max_val = max_val << 1;
         max_val++;
     }
 
-    uint64_t out = in;
-    if (out > max_val)
+    uint64_t out = 0;
+    if (in > max_val)
         out = max_val;
-    else if (out < 0)
+    else if (in < 0)
         out = 0;
+    else
+        out = in;
 
     return out;
 }
@@ -46,16 +48,18 @@ int64_t nECU_FloatToInt(float in, uint8_t bitCount) // returns float capped to g
     int64_t max_val = 0, min_val = 0;
     while (bitCount > 0)
     {
-        max_val << 1;
+        max_val = max_val << 1;
         max_val++;
     }
     min_val = -max_val - 1;
 
-    int64_t out = in;
-    if (out > max_val)
+    int64_t out = 0;
+    if (in > max_val)
         out = max_val;
-    else if (out < min_val)
+    else if (in < min_val)
         out = min_val;
+    else
+        out = in;
 
     return out;
 }

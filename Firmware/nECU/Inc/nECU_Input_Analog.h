@@ -24,7 +24,7 @@ extern "C"
     /* typedef */
 
     /* Function Prototypes */
-    static float nECU_correctToVref(float input);
+    float nECU_correctToVref(float input);
 
     /*ADC 1*/
     bool nECU_InputAnalog_ADC1_Start(nECU_ADC1_ID ID);

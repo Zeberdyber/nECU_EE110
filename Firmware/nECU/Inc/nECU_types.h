@@ -65,6 +65,16 @@ typedef struct
     uint32_t preset; // preset value
 } Counter;
 
+typedef enum
+{
+    DigiInput_CRANKING_ID,
+    DigiInput_FAN_ON_ID,
+    DigiInput_LIGHTS_ON_ID,
+    DigiInput_VSS_ID,
+    DigiInput_IGF_ID,
+    DigiInput_ID_MAX
+} nECU_DigiInput_ID;
+
 /* UART */
 typedef struct
 {
@@ -89,7 +99,7 @@ typedef enum
 } nECU_TIM_Channel_Type;
 typedef struct
 {
-    GPIO_struct buttonPin; // GPIO structure
+    nECU_DigiInput_ID Digi_Input;
     uint32_t CCR_High, CCR_Low, CCR_prev;
     uint16_t frequency; // of callbacks in Hz
     bool newData;       // flag that new data have arrived
@@ -146,9 +156,9 @@ typedef struct
 } nECU_ADC_Status;
 typedef struct
 {
-    uint16_t in_buffer[GENERAL_DMA_LEN];     // input buffer (from DMA)
-    uint16_t out_buffer[ADC1_CHANNEL_COUNT]; // output buffer (after processing, like average)
-    nECU_ADC_Status status;                  // statuses
+    uint16_t in_buffer[GENERAL_DMA_LEN];        // input buffer (from DMA)
+    uint16_t out_buffer[GENERAL_CHANNEL_COUNT]; // output buffer (after processing, like average)
+    nECU_ADC_Status status;                     // statuses
 } nECU_ADC1;
 typedef struct
 {
@@ -319,7 +329,7 @@ typedef struct
     bool LunchControl[LaunchControl_ID_MAX]; // flags from decoding
 
     // outside variables
-    bool *Cranking, *Fan_ON, *Lights_ON, *IgnitionKey;
+    bool Stock_GPIO[DigiInput_ID_MAX], *IgnitionKey;
     bool *TachoShow[TACHO_ID_MAX];
     bool *Antilag, *TractionOFF, *ClearCode;
     uint16_t *LunchLvl;
@@ -344,7 +354,7 @@ typedef struct
     uint8_t Backpressure, OX_Val;
     uint16_t MAP_Stock_10bit;
     uint8_t *Knock;
-    uint8_t *VSS;
+    uint8_t VSS;
     uint32_t *loop_time;
 } Frame2_struct;
 
@@ -442,18 +452,6 @@ typedef struct
     Sensor_Handle sensor;
     nECU_InputCapture *ic; // IC data
 } nECU_InputFreq;
-typedef enum
-{
-    INPUT_CRANKING_ID = 1,
-    INPUT_FAN_ON_ID = 2,
-    INPUT_LIGHTS_ON_ID = 3,
-    INPUT_NONE_ID
-} stock_inputs_ID;
-typedef struct
-{
-    GPIO_struct Cranking, Fan_ON, Lights_ON; // structues for stock GPIO inputs
-    bool Cranking_b, Fan_ON_b, Lights_ON_b;  // boolean states of GPIO inputs
-} stock_GPIO;
 
 /* Timer */
 typedef enum
@@ -663,7 +661,11 @@ typedef enum
     // nECU_PC.c
     D_PC,
     // nECU_stock.c
-    D_GPIO,
+    D_DigiInput_CRANKING,
+    D_DigiInput_FAN_ON,
+    D_DigiInput_LIGHTS_ON,
+    D_DigiInput_VSS,
+    D_DigiInput_IGF,
     D_OX,
     // nECU_tim.c
     D_TIM_PWM_BUTTON,

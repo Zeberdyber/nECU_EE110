@@ -24,7 +24,7 @@ extern "C"
     /* Function Prototypes */
     /* GPIO */
     static bool OnBoard_LED_GPIO_Init(OnBoardLED *inst, uint16_t GPIO_Pin, GPIO_TypeDef *GPIOx); // initializes single LED GPIO structure
-    static bool OnBoard_LED_GPIO_Update(GPIO_struct *inst, GPIO_PinState State);                 // update of GPIO output
+    static void OnBoard_LED_GPIO_Update(GPIO_struct *inst, GPIO_PinState State);                 // update of GPIO output
     /* Animation */
     bool OnBoard_LED_Animation_Init(OnBoardLED_Animate *inst, OnBoardLED_Animate_ID priority);      // initializes animation structure
     static void OnBoard_LED_Animation_BlinkSetDelay(OnBoardLED_Animate *inst, uint32_t delay);      // sets delay for blinking

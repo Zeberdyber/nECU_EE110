@@ -44,8 +44,8 @@ bool nECU_Knock_Start(void) // initialize and start
     }
     if (!nECU_FlowControl_Working_Check(D_Knock) && status == false)
     {
-        status |= nECU_ADC3_START(); // ADC start
-        status |= nECU_IGF_Start();  // RPM reference
+        status |= nECU_ADC3_START();                 // ADC start
+        status |= nECU_FreqInput_Start(FREQ_IGF_ID); // RPM reference
         if (!status)
             status |= !nECU_FlowControl_Working_Do(D_Knock);
     }
@@ -133,7 +133,7 @@ static void nECU_Knock_DetectMagn(void) // function to detect knock based on ADC
 static void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of knock range
 {
     /* get thresholds */
-    float rpm_float = IGF.RPM;
+    float rpm_float = nECU_FreqInput_getValue(FREQ_IGF_ID);
     if (rpm_float < 750) // while idle
     {
         return;
@@ -160,7 +160,7 @@ bool nECU_Knock_Stop(void) // stop
     if (nECU_FlowControl_Working_Check(D_Knock) && status == false)
     {
         status |= nECU_ADC3_STOP();
-        status |= nECU_IGF_Stop();
+        status |= nECU_FreqInput_Stop(FREQ_IGF_ID);
         if (!status)
             status |= !nECU_FlowControl_Stop_Do(D_Knock);
     }
