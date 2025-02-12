@@ -21,7 +21,7 @@ bool Frame0_Start(void) // initialization of data structure
         // Start speed sensors
         for (nECU_ADC2_ID current_ID = 0; current_ID < ADC2_ID_MAX; current_ID++)
         {
-            status |= nECU_InputAnalog_ADC2_Start(D_ANALOG_SS1 + current_ID);
+            status |= nECU_InputAnalog_ADC2_Start(ADC2_VSS_FL_ID + current_ID);
             F0_var.SpeedSensor[current_ID] = 0;
         }
 
@@ -69,7 +69,7 @@ bool Frame0_Start(void) // initialization of data structure
         }
 
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Check(D_F0);
+            status |= !nECU_FlowControl_Initialize_Do(D_F0);
     }
     if (!nECU_FlowControl_Working_Check(D_F0) && status == false)
     {
@@ -267,6 +267,7 @@ bool Frame2_Start(void) // initialization of data structure
     }
     if (!nECU_FlowControl_Working_Check(D_F2) && status == false)
     {
+        status |= nECU_OX_Start();
         if (!status)
         {
             status |= !nECU_FlowControl_Working_Do(D_F2);
@@ -311,6 +312,7 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     F2_var.MAP_Stock_10bit = nECU_FloatToUint(nECU_InputAnalog_ADC1_getValue(ADC1_MAP_ID), 10);
     F2_var.Backpressure = nECU_FloatToUint(nECU_InputAnalog_ADC1_getValue(ADC1_BackPressure_ID), 8);
     F2_var.OX_Val = nECU_FloatToUint(nECU_InputAnalog_ADC1_getValue(ADC1_OX_ID), 8);
+    // F2_var.OX_Val = 0;
     F2_var.VSS = nECU_FloatToUint(nECU_FreqInput_getValue(FREQ_VSS_ID), 8);
 
     Converter.UintValue = F2_var.MAP_Stock_10bit + FRAME_MAP_OFFSET;

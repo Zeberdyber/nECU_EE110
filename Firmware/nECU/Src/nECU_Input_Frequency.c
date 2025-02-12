@@ -39,8 +39,8 @@ static nECU_TIM_ID Timer_List[FREQ_ID_MAX] = {
     [FREQ_IGF_ID] = TIM_IC_FREQ_ID,
 }; // List of timers for IC
 static uint32_t Channel_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = TIM_CHANNEL_2,
-    [FREQ_IGF_ID] = TIM_CHANNEL_1,
+    [FREQ_VSS_ID] = 2, // TIM_CHANNEL_2
+    [FREQ_IGF_ID] = 0, // TIM_CHANNEL_1
 }; // Timer channel list
 static nECU_DigiInput_ID DigiInput_List[FREQ_ID_MAX] = {
     [FREQ_VSS_ID] = DigiInput_VSS_ID,

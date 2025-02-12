@@ -263,7 +263,7 @@ bool nECU_FLASH_Start(void)
         status |= (nECU_FLASH_getAllMemory() != HAL_OK);
         if (!status)
         {
-            status |= !nECU_FlowControl_Initialize_Check(D_Flash);
+            status |= !nECU_FlowControl_Initialize_Do(D_Flash);
         }
     }
     if (!nECU_FlowControl_Working_Check(D_Flash) && status == false)

@@ -31,12 +31,12 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
     status_TX |= nECU_CAN_TX_InitFrame(nECU_Frame_EGT);
     status_TX |= nECU_CAN_TX_InitFrame(nECU_Frame_Stock);
 
-    nECU_Delay_Set(&(F0_var.frame_delay), CAN_TX_FRAME0_TIME);
-    nECU_Delay_Start(&(F0_var.frame_delay));
-    nECU_Delay_Set(&(F1_var.frame_delay), CAN_TX_FRAME1_TIME);
-    nECU_Delay_Start(&(F1_var.frame_delay));
-    nECU_Delay_Set(&(F2_var.frame_delay), CAN_TX_FRAME2_TIME);
-    nECU_Delay_Start(&(F2_var.frame_delay));
+    status_TX |= nECU_Delay_Set(&(F0_var.frame_delay), CAN_TX_FRAME0_TIME);
+    status_TX |= nECU_Delay_Start(&(F0_var.frame_delay));
+    status_TX |= nECU_Delay_Set(&(F1_var.frame_delay), CAN_TX_FRAME1_TIME);
+    status_TX |= nECU_Delay_Start(&(F1_var.frame_delay));
+    status_TX |= nECU_Delay_Set(&(F2_var.frame_delay), CAN_TX_FRAME2_TIME);
+    status_TX |= nECU_Delay_Start(&(F2_var.frame_delay));
 
     F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
     F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
@@ -44,12 +44,14 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
 
     if (!status_TX)
     {
-      status_TX |= nECU_FlowControl_Initialize_Do(D_CAN_TX);
+      status_TX |= !nECU_FlowControl_Initialize_Do(D_CAN_TX);
     }
   }
   if (!nECU_FlowControl_Working_Check(D_CAN_TX) && status_TX == false)
   {
-    status_TX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
+    if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_RESET)
+      status_TX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
+
     if (!status_TX)
     {
       status_TX |= !nECU_FlowControl_Working_Do(D_CAN_TX);
@@ -71,7 +73,9 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   }
   if (!nECU_FlowControl_Working_Check(D_CAN_RX) && status_RX == false)
   {
-    status_RX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
+    if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_RESET)
+      status_RX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
+
     if (!status_RX)
     {
       status_RX |= !nECU_FlowControl_Working_Do(D_CAN_RX);

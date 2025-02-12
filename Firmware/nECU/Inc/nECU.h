@@ -6,6 +6,19 @@
  */
 
 /* includes */
+#include "stdio.h"
+#include "stdbool.h"
+#include "string.h"
+
+#include "main.h"
+#include "stm32f4xx.h"
+#include "stm32f4xx_hal.h"
+#include "adc.h"
+#include "can.h"
+#include "gpio.h"
+#include "spi.h"
+#include "tim.h"
+#include "usart.h"
 
 #include "nECU_types.h"
 
@@ -16,6 +29,7 @@
 #include "nECU_debug.h"
 #include "nECU_EGT.h"
 #include "nECU_flash.h"
+#include "nECU_flowControl.h"
 #include "nECU_frames.h"
 #include "nECU_Input_Analog.h"
 #include "nECU_Input_Frequency.h"

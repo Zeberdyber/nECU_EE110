@@ -31,6 +31,7 @@ uint64_t nECU_FloatToUint(float in, uint8_t bitCount) // returns float capped to
     {
         max_val = max_val << 1;
         max_val++;
+        bitCount--;
     }
 
     uint64_t out = 0;
@@ -39,17 +40,18 @@ uint64_t nECU_FloatToUint(float in, uint8_t bitCount) // returns float capped to
     else if (in < 0)
         out = 0;
     else
-        out = in;
+        out = round(in);
 
     return out;
 }
 int64_t nECU_FloatToInt(float in, uint8_t bitCount) // returns float capped to given bitCount. ex: 8bit - 127<>-128, 10bit - 511<>-512
 {
     int64_t max_val = 0, min_val = 0;
-    while (bitCount > 0)
+    while (bitCount > 1)
     {
         max_val = max_val << 1;
         max_val++;
+        bitCount--;
     }
     min_val = -max_val - 1;
 
@@ -59,7 +61,7 @@ int64_t nECU_FloatToInt(float in, uint8_t bitCount) // returns float capped to g
     else if (in < min_val)
         out = min_val;
     else
-        out = in;
+        out = round(in);
 
     return out;
 }
@@ -145,12 +147,19 @@ void nECU_compressBool(bool *bufferIn, uint8_t *out) // compress bool array to o
 
     // fill output with data
     for (uint8_t i = 0; i < 8; i++)
-        *out |= (bufferIn[i] & 1) << i;
+    {
+        *out = *out << 1;
+        *out |= (bufferIn[i] & 1);
+    }
 }
 void nECU_decompressBool(uint8_t *in, bool *bufferOut) // decompress byte to bool array
 {
-    for (uint8_t i = 0; i < 8; i++)
-        bufferOut[i] = ((*in) >> i) & 1; // copy to outputs
+    uint8_t temp = *in;
+    for (int8_t i = 7; i >= 0; i--)
+    {
+        bufferOut[i] = temp & 1;
+        temp = temp >> 1;
+    }
 }
 
 /* Sensors */
@@ -191,10 +200,9 @@ static bool nECU_DataProcessing_test_Float(void) // test nECU_FloatToUint()
         [1] = {16, 15.5, 8},
         [2] = {UINT8_MAX, 300, 8},
         [3] = {0, -8.0, 8},
-        [4] = {-15, -15.3, 8},
-        [5] = {-16, -15.5, 8},
-        [7] = {0x7FF, 2050.15, 11},
-        [8] = {3, -2050.15, 2},
+        [4] = {0x7FF, 2050.15, 11},
+        [5] = {0, -2050.15, 2},
+        [6] = {0, 0.0, 32},
     };
     for (uint8_t test = 0; test < (sizeof(data_Uint) / sizeof(data_Uint[0])); test++)
     {
@@ -218,6 +226,7 @@ static bool nECU_DataProcessing_test_Float(void) // test nECU_FloatToUint()
         [5] = {-16, -15.5, 8},
         [7] = {0x3FF, 2050.15, 11},
         [8] = {(-0x3FF - 1), -2050.15, 11},
+        [9] = {0, 0.0, 32},
     };
     for (uint8_t test = 0; test < (sizeof(data_Int) / sizeof(data_Int[0])); test++)
     {
@@ -310,17 +319,15 @@ static bool nECU_DataProcessing_test_compdecompBool(void) // test nECU_compressB
 
     bool bufferOut[8];
     nECU_decompressBool(&byte, bufferOut);
-    for (uint8_t i = 0; i < 8; i++) // check decompression result
-    {
-        if (bufferIn[i] != bufferOut[i])
-            return false;
-    }
+    if (memcmp(bufferIn, bufferOut, 8) != 0) // check decompression result
+        return false;
+
     return true;
 }
 bool nECU_DataProcessing_test(bool logging_enable) // Run test
 {
     if (logging_enable)
-        printf("Started test of 'nECU_data_processing.c\n\r");
+        printf("Started test of nECU_data_processing.c\n\r");
 
     if (!nECU_DataProcessing_test_Float())
     {

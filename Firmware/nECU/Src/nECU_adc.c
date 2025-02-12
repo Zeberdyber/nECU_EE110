@@ -154,7 +154,7 @@ bool nECU_ADC3_START(void)
     adc3_data.status.callback_half = false;
     adc3_data.status.callback_full = false;
     adc3_data.status.overflow = false;
-
+    status |= nECU_TIM_Init(TIM_ADC_KNOCK_ID);
     if (!status)
       status |= !nECU_FlowControl_Initialize_Do(D_ADC3);
   }

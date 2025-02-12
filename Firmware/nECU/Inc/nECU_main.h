@@ -13,8 +13,8 @@ extern "C"
 #endif
 
 /* Includes */
-#include "stdbool.h"
 #include "nECU.h"
+#include "nECU_types.h"
 
   /* Definitions */
 

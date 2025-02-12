@@ -361,8 +361,8 @@ typedef struct
 /* Input Analog */
 typedef struct
 {
-    uint16_t ADC_MeasuredMax, ADC_MeasuredMin; // limits of ADC readout
-    float OUT_MeasuredMax, OUT_MeasuredMin;    // limits of resulting output
+    uint16_t ADC_MeasuredMin, ADC_MeasuredMax; // limits of ADC readout
+    float OUT_MeasuredMin, OUT_MeasuredMax;    // limits of resulting output
     float offset, factor;                      // offset that is added to result, factor by which output is multiplied
 } SensorCalibration;
 typedef struct

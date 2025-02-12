@@ -231,7 +231,7 @@ bool OnBoard_LED_Start(void) // initialize structures for on board LEDs
         status |= OnBoard_LED_Que_Init(&(LED_R));
 
         if (!status)
-            status |= nECU_FlowControl_Initialize_Do(D_OnboardLED);
+            status |= !nECU_FlowControl_Initialize_Do(D_OnboardLED);
     }
     if (!nECU_FlowControl_Working_Check(D_OnboardLED) && status == false)
     {

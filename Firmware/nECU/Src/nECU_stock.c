@@ -52,7 +52,7 @@ bool nECU_OX_Start(void) // initialize narrowband lambda structure
     if (!nECU_FlowControl_Working_Check(D_OX) && status == false)
     {
         status |= nECU_InputAnalog_ADC1_Start(ADC1_OX_ID);
-        status |= nECU_TIM_PWM_Start(TIM_PWM_OX_ID, TIM_CHANNEL_1);
+        status |= nECU_TIM_PWM_Start(TIM_PWM_OX_ID, 0);
         if (!status)
             status |= !nECU_FlowControl_Working_Do(D_OX);
     }
@@ -75,8 +75,8 @@ void nECU_OX_Routine(void) // update narrowband lambda structure
     /* Output update */
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
     float coolant = (float)*OX.Coolant;
-    OX.Heater_Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
-    OX.Heater.htim->Instance->CCR1 = (OX.Heater_Infill * (OX.Heater.htim->Init.Period + 1)) / 100;
+    // OX.Heater_Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
+    // OX.Heater.htim->Instance->CCR1 = (OX.Heater_Infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 
     nECU_Debug_ProgramBlockData_Update(D_OX);
 }

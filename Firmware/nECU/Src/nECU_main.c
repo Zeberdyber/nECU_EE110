@@ -8,6 +8,8 @@
 
 #include "nECU_main.h"
 
+nECU_ProgramBlockData *block;
+
 /* General code */
 void nECU_Start(void) // start executing program (mostly in main loop, some in background with interrupts)
 {
@@ -30,7 +32,7 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
         status |= OnBoard_LED_Start();
 
         if (!status)
-            status |= nECU_FlowControl_Initialize_Do(D_Main);
+            status |= !nECU_FlowControl_Initialize_Do(D_Main);
     }
     if (!nECU_FlowControl_Working_Check(D_Main) && status == false)
     {
@@ -43,9 +45,18 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     {
         nECU_FlowControl_Error_Do(D_Main);
     }
+    block = nECU_Debug_ProgramBlockData_getPointer_Block(D_Main);
 }
 void nECU_main(void) // main rutine of the program
 {
+    if (nECU_FlowControl_Error_Check(D_Main))
+    {
+        while (1)
+        {
+            HAL_Delay(1);
+        }
+    }
+
     if (!nECU_FlowControl_Working_Check(D_Main))
     {
         nECU_FlowControl_Error_Do(D_Main);
@@ -66,12 +77,27 @@ void nECU_main(void) // main rutine of the program
     nECU_CAN_CheckTime();
 
     OnBoard_LED_Update();
-    nECU_Debug_Periodic();
+    // nECU_Debug_Periodic();
+    static uint8_t max = 0;
+#define bar_len 100
+    static char bar[bar_len] = {0};
 
-    test_uart();
+    if (max < (uint8_t)block->Update_ticks.difference)
+    {
+        max = (uint8_t)block->Update_ticks.difference;
+        nECU_console_progressBar(bar, bar_len, max);
+        printf("%s\r", bar);
+        fflush(stdout);
+    }
+    else
+        max--;
+
+    HAL_Delay(10);
+
+    // test_uart();
 
     nECU_Debug_ProgramBlockData_Update(D_Main);
-    nECU_Debug_ProgramBlockData_Check();
+    // nECU_Debug_ProgramBlockData_Check();
 }
 void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
 {

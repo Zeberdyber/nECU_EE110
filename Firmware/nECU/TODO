@@ -19,20 +19,21 @@
     [ ] can.c
         [X] clean up 'checktime' function
         [ ] separate RX buffers and filters for coolant/wheelsetup/rpm data
-    [ ] EGT.c rewrite
-    [ ] Block initialized/working if function status is error
-    [ ] Init/Start/Stop functions
-    [ ] Check if function should be called start/init
+    [X] EGT.c rewrite
+    [X] Block initialized/working if function status is error
+    [X] Init/Start/Stop functions
+    [X] Check if function should be called start/init
     [ ] Set status error flag if already initialized & working
     [ ] Set debug status to D_CODE_ERROR on "return" when not working
     [ ] Move test functions to corresponding files
-    [ ] Move data processing functions ex: nECU_ADC_expSmooth to data_processing.c (reuse functions)
-    [ ] Move "Started"/"Stopped" printf to debug.c
-    [ ] Add checking for NULL pointer
-    [ ] ADC1/ADC2 - Stop (remember about hard stop on error)
-    [ ] Speed sensig rewrite to simplify
+    [X] Move data processing functions ex: nECU_ADC_expSmooth to data_processing.c (reuse functions)
+    [X] Move "Started"/"Stopped" printf to debug.c
+    [X] Add checking for NULL pointer
+    [X] ADC1/ADC2 - Stop (remember about hard stop on error)
+    [X] Speed sensig rewrite to simplify - uses AnalogInput functions
     [ ] check _ID_MAX usage
-    [ ] create printf progress bar
+    [X] create printf progress bar
+        [ ] Startup progress
     [ ] move flow control to new file, handle double errors
     [ ] tim PWM out rewrite + OX
 

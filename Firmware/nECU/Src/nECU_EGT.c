@@ -133,7 +133,7 @@ static bool nECU_EGT_Start_Single(EGT_Sensor_ID ID) // Perform start for single 
     {
         status |= MAX31855_Init(&EGT_data.TC[ID], EGT_GPIO_Port_List[ID], EGT_GPIO_Pin_List[ID]);
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Check(D_EGT1 + ID);
+            status |= !nECU_FlowControl_Initialize_Do(D_EGT1 + ID);
     }
     if (!nECU_FlowControl_Working_Check(D_EGT1 + ID) && status == false)
         status |= !nECU_FlowControl_Working_Do(D_EGT1 + ID);

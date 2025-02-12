@@ -133,14 +133,14 @@ void nECU_systest_error(void) // function to call when error detected
 bool nECU_codetest_run(void) // run tests of type codetest
 {
     bool status = false;
-    printf("Code test started: ");
-    if (nECU_DataProcessing_test(true))
+    printf("Code test started: \n\r");
+    if (!nECU_DataProcessing_test(true))
     {
-        printf("\nTest failed on nECU_DataProcessing_test()\n");
+        printf("Test failed on nECU_DataProcessing_test()\n\r");
         nECU_codetest_error();
         status |= true;
     }
-    printf("   DONE!");
+    printf("DONE!\n\r");
     return status;
 }
 void nECU_codetest_error(void) // function to call when error detected
