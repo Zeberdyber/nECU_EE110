@@ -182,7 +182,10 @@ void nECU_Sensor_Routine(Sensor_Handle *sensor)
 
     sensor->filter.previous_Input = SmoothingRresult;                                // save for smoothing
     sensor->output = nECU_getLinearSensor(SmoothingRresult, &(sensor->calibration)); // calculate, calibration
-    sensor->output = nECU_correctToVref(sensor->output);                             // correct to vref
+
+    // detect if this is vref channel:
+    if ((sensor->Input) != nECU_ADC1_getPointer(ADC1_VREF_ID)) // compare pointers
+        sensor->output = nECU_correctToVref(sensor->output);   // correct to vref
 }
 
 /* Tests */

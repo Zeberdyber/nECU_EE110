@@ -42,6 +42,9 @@ extern "C"
     void Frame2_Routine(void);       // update variables for frame 2
     void Frame2_PrepareBuffer(void); // prepare Tx buffer for CAN transmission
 
+    void nECU_Frame_TX_done(nECU_CAN_Frame_ID ID);        // callback after can TX is done
+    uint8_t *nECU_Frame_getPointer(nECU_CAN_Frame_ID ID); // returns pointer to output buffer
+
 #ifdef __cplusplus
 }
 #endif

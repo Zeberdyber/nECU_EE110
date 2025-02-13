@@ -35,9 +35,9 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     // nECU_flash.c
     [D_Flash] = "Flash",
     // nECU_frames.c
-    [D_F0] = "CAN Frame 0",
-    [D_F1] = "CAN Frame 1",
-    [D_F2] = "CAN Frame 2",
+    [D_Frame_Speed_ID] = "CAN Frame 0",
+    [D_Frame_EGT_ID] = "CAN Frame 1",
+    [D_Frame_Stock_ID] = "CAN Frame 2",
     // nECU_Input_Analog.c
     [D_ANALOG_MAP] = "Stock MAP",
     [D_ANALOG_BackPressure] = "BackPressure",

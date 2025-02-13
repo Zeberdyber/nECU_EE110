@@ -295,5 +295,9 @@ void nECU_Debug_Message_Set(nECU_Debug_error_mesage *inst, float value, nECU_Err
     inst->value_at_flag = value;
     inst->ID = ID;
     nECU_Debug_Que_Write(inst);
-    printf("New error written to Debug_Que. Value at flag %d, ID: %d\n\r", (int)inst->value_at_flag, inst->ID);
+    int8_t after_dot = ((int)round(value * 100) % 100);
+    if (after_dot < 0)
+        after_dot = -after_dot;
+
+    printf("New error written to Debug_Que. Value at flag %d.%d, ID: %d\n\r", (int)round(inst->value_at_flag), after_dot, inst->ID);
 }

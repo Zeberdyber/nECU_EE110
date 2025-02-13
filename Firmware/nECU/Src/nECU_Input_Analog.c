@@ -40,9 +40,9 @@ static SensorCalibration ADC1_calib_List[ADC1_ID_MAX] = {
     },
     [ADC1_AI_3_ID] = {
         // Place holder values
-        0, ADC_MAX_VALUE_12BIT,          // limits of ADC readout
-        0.0, (float)ADC_MAX_VALUE_12BIT, // limits of resulting output
-        0.0, 1.0                         // Place holders
+        0, ADC_MAX_VALUE_12BIT,       // limits of ADC readout
+        0.0, (float)VREFINT_CAL_VREF, // limits of resulting output
+        0.0, 1.0                      // Place holders
     },
     [ADC1_MCUTemp_ID] = {
         0, ADC_MAX_VALUE_12BIT,                     // limits of ADC readout
@@ -51,9 +51,9 @@ static SensorCalibration ADC1_calib_List[ADC1_ID_MAX] = {
     },
     [ADC1_VREF_ID] = {
         // Place holder values
-        0, ADC_MAX_VALUE_12BIT,         // limits of ADC readout
-        0.0, (VREFINT_CAL_VREF / 1000), // limits of resulting output
-        0.0, 1.0                        // Place holders
+        0, ADC_MAX_VALUE_12BIT,       // limits of ADC readout
+        0.0, (float)VREFINT_CAL_VREF, // limits of resulting output
+        0.0, 1.0                      // Place holders
     },
 }; // List of default calibration values
 static uint32_t ADC1_delay_List[ADC1_ID_MAX] = {
@@ -66,7 +66,7 @@ static uint32_t ADC1_delay_List[ADC1_ID_MAX] = {
     [ADC1_MCUTemp_ID] = 0,
     [ADC1_VREF_ID] = 0,
 }; // List of delay values between updates in ms
-static Buffer ADC1_Buffer_List[ADC1_ID_MAX] = {
+static Buffer_uint16 ADC1_Buffer_List[ADC1_ID_MAX] = {
     [ADC1_MAP_ID] = {NULL, 0},
     [ADC1_BackPressure_ID] = {NULL, 0},
     [ADC1_OX_ID] = {NULL, 0},
@@ -119,7 +119,7 @@ static uint32_t ADC2_delay_List[ADC2_ID_MAX] = {
     [ADC2_VSS_RL_ID] = 0,
     [ADC2_VSS_RR_ID] = 0,
 }; // List of delay values between updates in ms
-static Buffer ADC2_Buffer_List[ADC2_ID_MAX] = {
+static Buffer_uint16 ADC2_Buffer_List[ADC2_ID_MAX] = {
     [ADC2_VSS_FL_ID] = {ADC2_Smoothing[ADC2_VSS_FL_ID], 0},
     [ADC2_VSS_FR_ID] = {ADC2_Smoothing[ADC2_VSS_FR_ID], 0},
     [ADC2_VSS_RL_ID] = {ADC2_Smoothing[ADC2_VSS_RL_ID], 0},
@@ -137,7 +137,7 @@ float nECU_correctToVref(float input)
     if (!nECU_FlowControl_Working_Check(D_ANALOG_VREF))
         return input;
 
-    return (ADC1_List[ADC1_VREF_ID].output * input) / (VREFINT_CAL_VREF / 1000);
+    return (ADC1_List[ADC1_VREF_ID].output * input) / VREFINT_CAL_VREF;
 }
 
 /*ADC 1*/

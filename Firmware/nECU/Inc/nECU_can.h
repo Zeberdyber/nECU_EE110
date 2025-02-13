@@ -20,24 +20,19 @@ extern "C"
 #include "can.h"
 
 /* Definitions */
-#define CAN_TX_FRAME0_ID 0x500     // CAN message ID for frame 0
-#define CAN_TX_FRAME1_ID 0x501     // CAN message ID for frame 1
-#define CAN_TX_FRAME2_ID 0x502     // CAN message ID for frame 2
 #define CAN_RX_WHEELSPEED_ID 0x400 // CAN message ID for Wheel Speed
-#define CAN_TX_FRAME0_TIME 10      // time in ms between frame send
-#define CAN_TX_FRAME1_TIME 10      // time in ms between frame send
-#define CAN_TX_FRAME2_TIME 10      // time in ms between frame send
 
   /* Function Prototypes */
   // General functions
-  bool nECU_CAN_Start(void);                                                     // start periodic transmission of EGT and Speed sensor data
-  void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame); // copy input data to corresponding frame buffer
-  bool nECU_CAN_Stop(void);                                                      // stop all CAN code, with timing
-  void nECU_CAN_CheckTime(void);                                                 // checks if it is time to send packet
+  bool nECU_CAN_Start(void);                                            // start periodic transmission of EGT and Speed sensor data
+  void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t size); // copy input data to corresponding frame buffer
+  bool nECU_CAN_Stop(void);                                             // stop all CAN code, with timing
+  void nECU_CAN_CheckTime(void);                                        // checks if it is time to send packet
 
   // Communication functions
-  static bool nECU_CAN_TX_InitFrame(nECU_CAN_Frame_ID frameID);     // initialize header for selected frame
   static bool nECU_CAN_TX_TransmitFrame(nECU_CAN_Frame_ID frameID); // send selected frame over CAN
+
+  static uint32_t nECU_CAN_FindMailbox(CAN_HandleTypeDef *hcan); // will find empty mailbox
 
   // Diagnostic functions
   static uint8_t nECU_CAN_IsBusy(void); // Check if any messages are pending

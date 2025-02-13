@@ -82,21 +82,25 @@ void nECU_EGT_Routine(void) // periodic function to be called every main loop ex
         nECU_Delay_Update(&(EGT_data.startup));
         return;
     }
+    // MAX31855_UpdateSimple(&EGT_data.TC[0], &hspi1);
+    // MAX31855_UpdateSimple(&EGT_data.TC[1], &hspi1);
+    // MAX31855_UpdateSimple(&EGT_data.TC[2], &hspi1);
+    // MAX31855_UpdateSimple(&EGT_data.TC[3], &hspi1);
 
-    // do the update for each sensor
-    if (EGT_data.currentSensor == 0) // begin the transmission
-        nECU_EGT_Callback();
-    else if (EGT_data.currentSensor >= 4) // do if all sensors were done
-    {
-        for (EGT_Sensor_ID current_ID = 0; current_ID < EGT_ID_MAX; current_ID++)
-        {
-            if (nECU_FlowControl_Working_Check(D_EGT1 + current_ID)) // Do for working sensors
-            {
-                MAX31855_ConvertData(&EGT_data.TC[current_ID]);
-            }
-        }
-        EGT_data.currentSensor = 0;
-    }
+    // // do the update for each sensor
+    // if (EGT_data.currentSensor == EGT1_ID) // begin the transmission
+    //     nECU_EGT_Callback();
+    // else if (EGT_data.currentSensor >= EGT_ID_MAX) // do if all sensors were done
+    // {
+    //     for (EGT_Sensor_ID current_ID = 0; current_ID < EGT_ID_MAX; current_ID++)
+    //     {
+    //         if (nECU_FlowControl_Working_Check(D_EGT1 + current_ID)) // Do for working sensors
+    //         {
+    //             MAX31855_ConvertData(&EGT_data.TC[current_ID]);
+    //         }
+    //     }
+    //     EGT_data.currentSensor = 0;
+    // }
 }
 void nECU_EGT_RequestUpdate(void) // indicate that update is needed
 {
@@ -105,6 +109,10 @@ void nECU_EGT_RequestUpdate(void) // indicate that update is needed
 
 void nECU_EGT_Callback(void) // callback from SPI_TX end callback
 {
+
+    EGT_data.currentSensor++;
+    if (EGT_data.currentSensor >= EGT_ID_MAX)
+        return;
     while (!nECU_FlowControl_Working_Check(D_EGT1 + (EGT_data.currentSensor))) // find next working sensor
     {
         EGT_data.currentSensor++;
@@ -207,10 +215,14 @@ static void MAX31855_UpdateSimple(MAX31855 *inst, SPI_HandleTypeDef *hspi) // Re
     if (inst == NULL || hspi == NULL) // Break if pointers do not exist
         return;
 
+    HAL_StatusTypeDef status = HAL_OK;
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Receive(hspi, (uint8_t *)inst->in_buffer, sizeof(inst->in_buffer), 100);
+    status = HAL_SPI_Receive(hspi, (uint8_t *)inst->in_buffer, sizeof(inst->in_buffer), 100);
     HAL_GPIO_WritePin(inst->CS_pin.GPIOx, inst->CS_pin.GPIO_Pin, GPIO_PIN_SET);
-    MAX31855_ConvertData(inst);
+    if (status == HAL_OK)
+        MAX31855_ConvertData(inst);
+    else
+        return;
 }
 static void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decoding and data interpretation
 {
@@ -220,11 +232,11 @@ static void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decodin
     inst->OC_Fault = (inst->in_buffer[3] >> 0) & 0x01;
     inst->SCG_Fault = (inst->in_buffer[3] >> 1) & 0x01;
     inst->SCV_Fault = (inst->in_buffer[3] >> 2) & 0x01;
-    inst->Data_Error = (inst->in_buffer[3] >> 3) || (inst->in_buffer[1] >> 7) & 0x01;
-    inst->InternalTemp = 99;
+    inst->Data_Error = (inst->in_buffer[1] >> 7) & 0x01;
+    inst->InternalTemp = 130;
     inst->TcTemp = 1300;
 
-    if (inst->Data_Error == false)
+    if (!(inst->Data_Error) || BENCH_MODE) // ignore errors in bench mode
     {
         inst->TcTemp = ((inst->in_buffer[0] << 6) | (inst->in_buffer[1] >> 2)) * 0.25;
         if (inst->in_buffer[0] & 0x80) // negative sign
@@ -235,6 +247,10 @@ static void MAX31855_ConvertData(MAX31855 *inst) // For internal use bit decodin
             inst->InternalTemp = -inst->InternalTemp;
 
         inst->IC_Temperature = inst->InternalTemp; // float to int16_t
+        if (inst->IC_Temperature < -100)
+        {
+            HAL_Delay(1);
+        }
     }
 
     MAX31855_collectError(inst);

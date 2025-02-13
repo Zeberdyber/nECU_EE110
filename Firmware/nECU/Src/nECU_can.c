@@ -15,9 +15,17 @@ static CAN_FilterTypeDef WheelSetupFilter = {0};
 static uint8_t RxData_Frame0[8] = {0};
 static CAN_RxHeaderTypeDef CanRxFrame0 = {0};
 
-extern Frame0_struct F0_var;
-extern Frame1_struct F1_var;
-extern Frame2_struct F2_var;
+static nECU_CAN_Tx_Data frame_List[nECU_Frame_ID_MAX] = {0};
+static uint32_t const delay_List[nECU_Frame_ID_MAX] = {
+    [nECU_Frame_Speed_ID] = 100,
+    [nECU_Frame_EGT_ID] = 100,
+    [nECU_Frame_Stock_ID] = 10,
+};
+static uint32_t const Msg_ID_List[nECU_Frame_ID_MAX] = {
+    [nECU_Frame_Speed_ID] = 0x500,
+    [nECU_Frame_EGT_ID] = 0x501,
+    [nECU_Frame_Stock_ID] = 0x502,
+};
 
 // General functions
 bool nECU_CAN_Start(void) // start periodic transmission of data accroding to the timers
@@ -27,29 +35,28 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   /* TX */
   if (!nECU_FlowControl_Initialize_Check(D_CAN_TX) && status_TX == false)
   {
-    status_TX |= nECU_CAN_TX_InitFrame(nECU_Frame_Speed);
-    status_TX |= nECU_CAN_TX_InitFrame(nECU_Frame_EGT);
-    status_TX |= nECU_CAN_TX_InitFrame(nECU_Frame_Stock);
-
-    status_TX |= nECU_Delay_Set(&(F0_var.frame_delay), CAN_TX_FRAME0_TIME);
-    status_TX |= nECU_Delay_Start(&(F0_var.frame_delay));
-    status_TX |= nECU_Delay_Set(&(F1_var.frame_delay), CAN_TX_FRAME1_TIME);
-    status_TX |= nECU_Delay_Start(&(F1_var.frame_delay));
-    status_TX |= nECU_Delay_Set(&(F2_var.frame_delay), CAN_TX_FRAME2_TIME);
-    status_TX |= nECU_Delay_Start(&(F2_var.frame_delay));
-
-    F0_var.can_data.Mailbox = CAN_TX_MAILBOX0;
-    F1_var.can_data.Mailbox = CAN_TX_MAILBOX1;
-    F2_var.can_data.Mailbox = CAN_TX_MAILBOX2;
-
-    if (!status_TX)
+    for (nECU_CAN_Frame_ID current_ID = 0; current_ID < nECU_Frame_ID_MAX; current_ID++)
     {
-      status_TX |= !nECU_FlowControl_Initialize_Do(D_CAN_TX);
+      // delay
+      status_TX |= nECU_Delay_Set(&(frame_List[current_ID].frame_delay), delay_List[current_ID]);
+      status_TX |= nECU_Delay_Start(&(frame_List[current_ID].frame_delay));
+      // default values
+      frame_List[current_ID].can_data.Header.StdId = Msg_ID_List[current_ID];
+      frame_List[current_ID].can_data.Header.IDE = CAN_ID_STD;
+      frame_List[current_ID].can_data.Header.RTR = CAN_RTR_DATA;
+      memset(frame_List[current_ID].can_data.Buffer, 0, sizeof(frame_List[current_ID].can_data.Buffer)); // clear buffer
+      // data pointer
+      if (nECU_Frame_getPointer(current_ID))
+        frame_List[current_ID].buf.Buffer = nECU_Frame_getPointer(current_ID);
+      else
+        status_TX |= true;
     }
+    if (!status_TX)
+      status_TX |= !nECU_FlowControl_Initialize_Do(D_CAN_TX);
   }
   if (!nECU_FlowControl_Working_Check(D_CAN_TX) && status_TX == false)
   {
-    if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_RESET)
+    if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_READY)
       status_TX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
 
     if (!status_TX)
@@ -73,7 +80,7 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   }
   if (!nECU_FlowControl_Working_Check(D_CAN_RX) && status_RX == false)
   {
-    if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_RESET)
+    if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_READY)
       status_RX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
 
     if (!status_RX)
@@ -88,41 +95,30 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
 
   return status_TX | status_RX;
 }
-void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t *TxData_Frame) // copy input data to corresponding frame buffer
+void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t size) // copy input data to corresponding frame buffer
 {
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX))
+  if (!nECU_FlowControl_Working_Check(D_CAN_TX) || (frameID > nECU_Frame_ID_MAX) || size == 0)
   {
     nECU_FlowControl_Error_Do(D_CAN_TX);
     return;
   }
 
-  nECU_CAN_TxFrame *pFrame;
-  switch (frameID)
-  {
-  case nECU_Frame_Speed:
-    pFrame = &F0_var.can_data;
-    break;
-  case nECU_Frame_EGT:
-    pFrame = &F1_var.can_data;
-    break;
-  case nECU_Frame_Stock:
-    pFrame = &F2_var.can_data;
-    break;
-  default:
-    nECU_FlowControl_Error_Do(D_CAN_TX);
-    pFrame = NULL;
-    return;
-  }
-  for (uint8_t i = 0; i < pFrame->Header.DLC; i++)
-  {
-    pFrame->Send_Buffer[i] = TxData_Frame[i];
-  }
+  if (size > 8) // cap max length
+    size = 8;
+
+  frame_List[frameID].can_data.Header.DLC = size;
+  memcpy(frame_List[frameID].can_data.Buffer,
+         frame_List[frameID].buf.Buffer,
+         frame_List[frameID].can_data.Header.DLC); // copy data to can buffer
 }
 bool nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   bool status = false;
   if (nECU_FlowControl_Working_Check(D_CAN_TX) && status == false)
   {
+    for (nECU_CAN_Frame_ID currenID = 0; currenID < nECU_Frame_ID_MAX; currenID++)
+      status |= nECU_Delay_Stop(&(frame_List[currenID].frame_delay));
+
     status |= nECU_CAN_RX_Stop();
     status |= (HAL_OK != HAL_CAN_Stop(&hcan1));
     if (!status)
@@ -137,109 +133,57 @@ void nECU_CAN_CheckTime(void) // checks if it is time to send packet
     nECU_FlowControl_Error_Do(D_CAN_TX);
     return;
   }
+  for (nECU_CAN_Frame_ID currentID = 0; currentID < nECU_Frame_ID_MAX; currentID++)
+  {
+    if (nECU_FlowControl_Working_Check(D_Frame_Speed_ID + currentID)) // check if frame working
+    {
+      nECU_Delay_Update(&(frame_List[currentID].frame_delay)); // update time
+      if (frame_List[currentID].frame_delay.done)              // check if time is above threshold
+      {
+        nECU_Delay_Start(&(frame_List[currentID].frame_delay)); // restart delay
 
-  // update times
-  nECU_Delay_Update(&(F0_var.frame_delay));
-  nECU_Delay_Update(&(F1_var.frame_delay));
-  nECU_Delay_Update(&(F2_var.frame_delay));
-
-  // check if time is above threshold
-  if (*(nECU_Delay_DoneFlag(&(F0_var.frame_delay))) && nECU_FlowControl_Working_Check(D_F0))
-  {
-    nECU_CAN_TX_TransmitFrame(nECU_Frame_Speed);
-    nECU_Delay_Start(&(F0_var.frame_delay));
-    *F0_var.ClearCode = false;
-  }
-  if (*(nECU_Delay_DoneFlag(&(F1_var.frame_delay))) && nECU_FlowControl_Working_Check(D_F1))
-  {
-    nECU_CAN_TX_TransmitFrame(nECU_Frame_EGT);
-    nECU_Delay_Start(&(F1_var.frame_delay));
-  }
-  if (*(nECU_Delay_DoneFlag(&(F2_var.frame_delay))) && nECU_FlowControl_Working_Check(D_F2))
-  {
-    nECU_CAN_TX_TransmitFrame(nECU_Frame_Stock);
-    nECU_Delay_Start(&(F2_var.frame_delay));
+        if (nECU_CAN_TX_TransmitFrame(currentID))
+          nECU_FlowControl_Error_Do(D_Frame_Speed_ID) + currentID;
+        else
+          nECU_Frame_TX_done(currentID);
+      }
+    }
   }
 
   nECU_Debug_ProgramBlockData_Update(D_CAN_TX);
 }
 
 // Communication functions
-static bool nECU_CAN_TX_InitFrame(nECU_CAN_Frame_ID frameID) // initialize header for selected frame
-{
-  bool status = false;
-
-  nECU_CAN_TxFrame *pFrame;
-
-  switch (frameID)
-  {
-  case nECU_Frame_Speed:
-    pFrame = &F0_var.can_data;
-    pFrame->Header.StdId = CAN_TX_FRAME0_ID;
-    break;
-  case nECU_Frame_EGT:
-    pFrame = &F1_var.can_data;
-    pFrame->Header.StdId = CAN_TX_FRAME1_ID;
-    break;
-  case nECU_Frame_Stock:
-    pFrame = &F2_var.can_data;
-    pFrame->Header.StdId = CAN_TX_FRAME2_ID;
-    break;
-
-  default:
-    nECU_FlowControl_Error_Do(D_CAN_TX);
-    pFrame = NULL;
-    status |= true;
-    return status;
-  }
-
-  pFrame->Header.IDE = CAN_ID_STD;
-  pFrame->Header.RTR = CAN_RTR_DATA;
-  pFrame->Header.DLC = 8; // 8 bytes in length
-
-  return status;
-}
 static bool nECU_CAN_TX_TransmitFrame(nECU_CAN_Frame_ID frameID) // send selected frame over CAN
 {
   bool status = false;
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX))
+  if (!nECU_FlowControl_Working_Check(D_CAN_TX) || (frameID > nECU_Frame_ID_MAX))
   {
     nECU_FlowControl_Error_Do(D_CAN_TX);
     status |= true;
     return status;
   }
 
-  nECU_CAN_TxFrame *pFrame;
-  switch (frameID)
-  {
-  case nECU_Frame_Speed:
-    pFrame = &F0_var.can_data;
-    break;
-  case nECU_Frame_EGT:
-    pFrame = &F1_var.can_data;
-    break;
-  case nECU_Frame_Stock:
-    pFrame = &F2_var.can_data;
-    break;
-  default:
-    nECU_FlowControl_Error_Do(D_CAN_TX);
-    status |= true;
-    return status;
-  }
-
-  status |= (HAL_CAN_AddTxMessage(&hcan1, &(pFrame->Header), pFrame->Send_Buffer, &(pFrame->Mailbox)) != HAL_OK); // Transmit the data
+  uint32_t mail = nECU_CAN_FindMailbox(&hcan1);
+  status |= (HAL_CAN_AddTxMessage(&hcan1, &(frame_List[frameID].can_data.Header), frame_List[frameID].can_data.Buffer, &(mail)) != HAL_OK); // Transmit the data
 
   return status;
+}
+
+static uint32_t nECU_CAN_FindMailbox(CAN_HandleTypeDef *hcan) // will find empty mailbox
+{
+  if (HAL_CAN_GetTxMailboxesFreeLevel(hcan))                                                     // check if any mailbox is empty
+    for (uint32_t Mailbox = CAN_TX_MAILBOX0; Mailbox <= CAN_TX_MAILBOX2; Mailbox = Mailbox << 1) // go threw all mailboxes
+      if (!HAL_CAN_IsTxMessagePending(&hcan1, Mailbox))                                          // check mailbox if empty
+        return Mailbox;
+
+  return 8; // return non-valid mailbox
 }
 
 // Diagnostic functions
 static uint8_t nECU_CAN_IsBusy(void) // Check if any messages are pending
 {
-  uint8_t result = 0;
-  result += HAL_CAN_IsTxMessagePending(&hcan1, F0_var.can_data.Mailbox);
-  result += HAL_CAN_IsTxMessagePending(&hcan1, F1_var.can_data.Mailbox);
-  result += HAL_CAN_IsTxMessagePending(&hcan1, F2_var.can_data.Mailbox);
-  return result;
+  return 3 - HAL_CAN_GetTxMailboxesFreeLevel(&hcan1);
 }
 bool nECU_CAN_GetError(void) // get error state pf can periperal buisy
 {

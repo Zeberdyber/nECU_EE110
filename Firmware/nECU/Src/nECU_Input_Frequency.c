@@ -26,7 +26,7 @@ static uint32_t Sensor_delay_List[FREQ_ID_MAX] = {
     [FREQ_VSS_ID] = 0,
     [FREQ_IGF_ID] = 0,
 }; // List of delay values between updates in ms
-static Buffer Sensor_Buffer_List[FREQ_ID_MAX] = {
+static Buffer_uint16 Sensor_Buffer_List[FREQ_ID_MAX] = {
     [FREQ_VSS_ID] = {VSS_Buffer, 75},
     [FREQ_IGF_ID] = {NULL, 0},
 }; // List of pointers to smoothing buffers and its lenghts

@@ -58,7 +58,16 @@ typedef struct
     float Table[FFT_THRESH_TABLE_LEN + 2][3];
     uint32_t size;
 } Knock_Interpol_Table;
-
+typedef struct
+{
+    uint16_t *Buffer; // pointer to buffer
+    uint8_t len;      // lenght of the buffer
+} Buffer_uint16;
+typedef struct
+{
+    uint8_t *Buffer; // pointer to buffer
+    uint8_t len;     // lenght of the buffer
+} Buffer_uint8;
 typedef struct
 {
     uint32_t value;  // current value
@@ -310,22 +319,25 @@ typedef struct
 /* Frames */
 typedef struct
 {
-    uint32_t Mailbox;           // mailbox responsible for message
     CAN_TxHeaderTypeDef Header; // header data of CAN frame
-    uint8_t Send_Buffer[8];     // message content
+    uint8_t Buffer[8];          // message content
 } nECU_CAN_TxFrame;
 typedef enum
 {
-    nECU_Frame_Speed = 0,
-    nECU_Frame_EGT = 1,
-    nECU_Frame_Stock = 2,
-    nECU_Frame_NULL
+    nECU_Frame_Speed_ID,
+    nECU_Frame_EGT_ID,
+    nECU_Frame_Stock_ID,
+    nECU_Frame_ID_MAX
 } nECU_CAN_Frame_ID;
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
     nECU_Delay frame_delay;    // timing between frames
-
+    Buffer_uint8 buf;
+} nECU_CAN_Tx_Data;
+typedef struct
+{
+    uint8_t Buffer[8];                       // message content
     bool LunchControl[LaunchControl_ID_MAX]; // flags from decoding
 
     // outside variables
@@ -337,9 +349,7 @@ typedef struct
 } Frame0_struct;
 typedef struct
 {
-    nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_Delay frame_delay;    // timing between frames
-
+    uint8_t Buffer[8]; // message content
     // outside variables
     uint16_t *EGT[EGT_ID_MAX];
     uint8_t *TachoVal[TACHO_ID_MAX];
@@ -347,9 +357,7 @@ typedef struct
 } Frame1_struct;
 typedef struct
 {
-    nECU_CAN_TxFrame can_data; // peripheral data
-    nECU_Delay frame_delay;    // timing between frames
-
+    uint8_t Buffer[8]; // message content
     // outside variables
     uint8_t Backpressure, OX_Val;
     uint16_t MAP_Stock_10bit;
@@ -367,15 +375,10 @@ typedef struct
 } SensorCalibration;
 typedef struct
 {
-    uint16_t *Buffer; // pointer to buffer
-    uint8_t len;      // lenght of the buffer
-} Buffer;
-typedef struct
-{
     nECU_Delay delay;        // update delay structure
     float smoothingAlpha;    // value for smoothing
     uint16_t previous_Input; // value from previous run
-    Buffer buf;              // smoothing buffer
+    Buffer_uint16 buf;       // smoothing buffer
 } SensorFiltering;
 typedef struct
 {
@@ -628,10 +631,10 @@ typedef enum
     D_EGT4,
     // nECU_flash.c
     D_Flash,
-    // nECU_frames.c
-    D_F0,
-    D_F1,
-    D_F2,
+    // nECU_frames.c !Have to be in the same order as 'nECU_CAN_Frame_ID'!
+    D_Frame_Speed_ID,
+    D_Frame_EGT_ID,
+    D_Frame_Stock_ID,
     // nECU_Input_Analog.c !Have to be in the same order as 'nECU_ADC1_ID'!
     D_ANALOG_MAP,
     D_ANALOG_BackPressure,
