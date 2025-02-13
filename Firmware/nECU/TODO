@@ -16,9 +16,9 @@
         [ ] trafic indication
         [ ] debug data send
         [ ] sensor data send (variable tracing)
-    [ ] can.c
+    [X] can.c
         [X] clean up 'checktime' function
-        [ ] separate RX buffers and filters for coolant/wheelsetup/rpm data
+        [X] separate RX buffers and filters for coolant/wheelsetup/rpm data
     [X] EGT.c rewrite
         [ ] fix EGT communication
     [ ] Set status error flag if already initialized & working

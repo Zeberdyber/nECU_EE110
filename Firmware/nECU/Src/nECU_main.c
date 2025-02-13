@@ -80,7 +80,7 @@ void nECU_main(void) // main rutine of the program
     Frame2_PrepareBuffer();
 
     // checks if its time to send packet
-    nECU_CAN_CheckTime();
+    nECU_CAN_TX_CheckTime();
 
     OnBoard_LED_Update();
     nECU_Debug_Periodic();

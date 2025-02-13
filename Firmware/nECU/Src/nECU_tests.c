@@ -170,18 +170,17 @@ void nECU_IGF_Test(void) // checks readout compared to CAN frame data
 #include "nECU_stock.h"
 #define IGF_test_max_difference 100 // in RPM
     static bool IGF_test_Initialized = false;
-    static uint16_t *IGF_test_CAN_RPM;
     static uint8_t IGF_test_out_of_bounds = 0;
     // call this function only on CAN RX as latest data from CAN arrives
     // use only to check code, then delete this function
     if (IGF_test_Initialized == false)
     {
-        IGF_test_CAN_RPM = nECU_CAN_getPointer_RPM();
+        nECU_CAN_Start();
         nECU_FreqInput_Start(FREQ_IGF_ID);
         IGF_test_Initialized = true;
     }
-    float CAN_RPM = *IGF_test_CAN_RPM * 20; // 20 is a divider value from MaxxECU config
-    float RPM_difference = 0;               // difference between RPM data
+    float CAN_RPM = nECU_CAN_RX_getValue(CAN_RX_RPM_ID); // 20 is a divider value from MaxxECU config
+    float RPM_difference = 0;                            // difference between RPM data
 
     nECU_FreqInput_Routine(FREQ_IGF_ID);                // update value
     if (CAN_RPM > nECU_FreqInput_getValue(FREQ_IGF_ID)) // calculate difference

@@ -125,7 +125,7 @@ void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame0_ComposeWord(&F0_var.Buffer[2], F0_var.ClearCode, F0_var.TachoShow[TACHO_ID_MenuLvl], F0_var.TachoShow[TACHO_ID_LunchLvl], F0_var.TachoShow[TACHO_ID_TuneSel], &F0_var.SpeedSensor[ADC2_VSS_FR_ID]);
     Frame0_ComposeWord(&F0_var.Buffer[4], F0_var.Antilag, &F0_var.LunchControl[LaunchControl_High], &F0_var.LunchControl[LaunchControl_Medium], &F0_var.LunchControl[LaunchControl_Low], &F0_var.SpeedSensor[ADC2_VSS_RL_ID]);
     Frame0_ComposeWord(&F0_var.Buffer[6], (bool *)false, (bool *)false, F0_var.TractionOFF, &F0_var.LunchControl[LaunchControl_Rolling], &F0_var.SpeedSensor[ADC2_VSS_RR_ID]);
-    nECU_CAN_WriteToBuffer(nECU_Frame_Speed_ID, sizeof(F0_var.Buffer));
+    nECU_CAN_WriteToBuffer(CAN_TX_Speed_ID, sizeof(F0_var.Buffer));
 }
 static void Frame0_ComposeWord(uint8_t *buffer, bool *B1, bool *B2, bool *B3, bool *B4, uint16_t *Val12Bit) // function to create word for use in frame 0
 {
@@ -219,7 +219,7 @@ void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Frame1_ComposeWord(&F1_var.Buffer[2], F1_var.TachoVal[TACHO_ID_LunchLvl], F1_var.EGT[EGT2_ID]);
     Frame1_ComposeWord(&F1_var.Buffer[4], F1_var.TachoVal[TACHO_ID_MenuLvl], F1_var.EGT[EGT3_ID]);
     Frame1_ComposeWord(&F1_var.Buffer[6], (uint8_t *)F1_var.TuneSel, F1_var.EGT[EGT4_ID]);
-    nECU_CAN_WriteToBuffer(nECU_Frame_EGT_ID, sizeof(F1_var.Buffer));
+    nECU_CAN_WriteToBuffer(CAN_TX_EGT_ID, sizeof(F1_var.Buffer));
     nECU_Tacho_Clear_getPointer(TACHO_ID_TuneSel);
     nECU_Tacho_Clear_getPointer(TACHO_ID_LunchLvl);
     nECU_Tacho_Clear_getPointer(TACHO_ID_MenuLvl);
@@ -326,30 +326,30 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     Converter.UintValue = (uint16_t)*F2_var.loop_time;
     F2_var.Buffer[6] = Converter.byteArray[1]; // spare
     F2_var.Buffer[7] = Converter.byteArray[0]; // spare
-    nECU_CAN_WriteToBuffer(nECU_Frame_Stock_ID, sizeof(F2_var.Buffer));
+    nECU_CAN_WriteToBuffer(CAN_TX_Stock_ID, sizeof(F2_var.Buffer));
 }
 
-void nECU_Frame_TX_done(nECU_CAN_Frame_ID ID) // callback after can TX is done
+void nECU_Frame_TX_done(nECU_CAN_TX_Frame_ID ID) // callback after can TX is done
 {
-    if (ID > nECU_Frame_ID_MAX)
+    if (ID > CAN_TX_ID_MAX)
         return;
-    if (ID == D_Frame_Speed_ID)
+    if (ID == CAN_TX_Speed_ID)
         F0_var.ClearCode = false;
 }
-uint8_t *nECU_Frame_getPointer(nECU_CAN_Frame_ID ID) // returns pointer to output buffer
+uint8_t *nECU_Frame_getPointer(nECU_CAN_TX_Frame_ID ID) // returns pointer to output buffer
 {
-    if (ID > nECU_Frame_ID_MAX)
+    if (ID > CAN_TX_ID_MAX)
         return NULL;
 
     switch (ID)
     {
-    case nECU_Frame_Speed_ID:
+    case CAN_TX_Speed_ID:
         return F0_var.Buffer;
         break;
-    case nECU_Frame_EGT_ID:
+    case CAN_TX_EGT_ID:
         return F1_var.Buffer;
         break;
-    case nECU_Frame_Stock_ID:
+    case CAN_TX_Stock_ID:
         return F2_var.Buffer;
         break;
 

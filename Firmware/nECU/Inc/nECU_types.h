@@ -53,6 +53,11 @@ union Int16ToBytes
     int16_t IntValue;
     uint8_t byteArray[2];
 };
+union Int32ToBytes
+{
+    int32_t IntValue;
+    uint8_t byteArray[4];
+};
 typedef struct
 {
     float Table[FFT_THRESH_TABLE_LEN + 2][3];
@@ -324,11 +329,11 @@ typedef struct
 } nECU_CAN_TxFrame;
 typedef enum
 {
-    nECU_Frame_Speed_ID,
-    nECU_Frame_EGT_ID,
-    nECU_Frame_Stock_ID,
-    nECU_Frame_ID_MAX
-} nECU_CAN_Frame_ID;
+    CAN_TX_Speed_ID,
+    CAN_TX_EGT_ID,
+    CAN_TX_Stock_ID,
+    CAN_TX_ID_MAX
+} nECU_CAN_TX_Frame_ID;
 typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
@@ -365,6 +370,18 @@ typedef struct
     uint8_t VSS;
     uint32_t *loop_time;
 } Frame2_struct;
+typedef enum
+{
+    CAN_RX_Wheel_ID,
+    CAN_RX_Coolant_ID,
+    CAN_RX_RPM_ID,
+    CAN_RX_ID_MAX
+} nECU_CAN_RX_Frame_ID;
+typedef struct
+{
+    CAN_FilterTypeDef filter;
+    int32_t output;
+} nECU_CAN_Rx_Data;
 
 /* Input Analog */
 typedef struct
@@ -440,7 +457,6 @@ typedef struct
     nECU_Timer Heater;              // timer structure
     float Heater_Infill;            // infill of PWM signal
     Sensor_Handle sensor;           // Analog sensor structure
-    uint8_t *Coolant;               // pointer to coolant temperature
     float Infill_max, Infill_min;   // ranges of heater infill
     float Coolant_max, Coolant_min; // ranges of coolant temperature
 } Oxygen_Handle;
@@ -631,7 +647,7 @@ typedef enum
     D_EGT4,
     // nECU_flash.c
     D_Flash,
-    // nECU_frames.c !Have to be in the same order as 'nECU_CAN_Frame_ID'!
+    // nECU_frames.c !Have to be in the same order as 'nECU_CAN_TX_Frame_ID'!
     D_Frame_Speed_ID,
     D_Frame_EGT_ID,
     D_Frame_Stock_ID,

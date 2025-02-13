@@ -40,11 +40,7 @@ bool nECU_OX_Start(void) // initialize narrowband lambda structure
         OX.Infill_min = OXYGEN_HEATER_MIN;
         OX.Coolant_max = OXYGEN_COOLANT_MAX;
         OX.Coolant_min = OXYGEN_COOLANT_MIN;
-
-        if (nECU_CAN_getPointer_Coolant()) // Do if pointer exists
-            OX.Coolant = nECU_CAN_getPointer_Coolant();
-        else
-            status |= true;
+        status |= nECU_CAN_Start();
 
         if (!status)
             status |= !nECU_FlowControl_Initialize_Do(D_OX);
@@ -74,7 +70,7 @@ void nECU_OX_Routine(void) // update narrowband lambda structure
 
     /* Output update */
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
-    float coolant = (float)*OX.Coolant;
+    float coolant = nECU_CAN_RX_getValue(CAN_RX_Coolant_ID);
     // OX.Heater_Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
     // OX.Heater.htim->Instance->CCR1 = (OX.Heater_Infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 

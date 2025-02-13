@@ -24,30 +24,26 @@ extern "C"
 
   /* Function Prototypes */
   // General functions
-  bool nECU_CAN_Start(void);                                            // start periodic transmission of EGT and Speed sensor data
-  void nECU_CAN_WriteToBuffer(nECU_CAN_Frame_ID frameID, uint8_t size); // copy input data to corresponding frame buffer
-  bool nECU_CAN_Stop(void);                                             // stop all CAN code, with timing
-  void nECU_CAN_CheckTime(void);                                        // checks if it is time to send packet
+  bool nECU_CAN_Start(void);                                               // start periodic transmission of EGT and Speed sensor data
+  void nECU_CAN_WriteToBuffer(nECU_CAN_TX_Frame_ID frameID, uint8_t size); // copy input data to corresponding frame buffer
+  bool nECU_CAN_Stop(void);                                                // stop all CAN code, with timing
 
-  // Communication functions
-  static bool nECU_CAN_TX_TransmitFrame(nECU_CAN_Frame_ID frameID); // send selected frame over CAN
+  // TX functions
+  void nECU_CAN_TX_CheckTime(void); // checks if it is time to send packet
+  static bool nECU_CAN_TX_Init(nECU_CAN_TX_Frame_ID currentID);
+  static bool nECU_CAN_TX_TransmitFrame(nECU_CAN_TX_Frame_ID frameID); // send selected frame over CAN
+  static uint32_t nECU_CAN_TX_FindMailbox(CAN_HandleTypeDef *hcan);    // will find empty mailbox
 
-  static uint32_t nECU_CAN_FindMailbox(CAN_HandleTypeDef *hcan); // will find empty mailbox
+  // RX functions
+  static bool nECU_CAN_RX_Init(nECU_CAN_RX_Frame_ID currentID);
+  void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan); // interrupt callback when new Rx frame in FIFO0
+  static nECU_CAN_RX_Frame_ID nECU_CAN_RX_Identify(CAN_RxHeaderTypeDef *pHeader);
+  static void nECU_CAN_RX_Update(nECU_CAN_RX_Frame_ID currentID, uint8_t *buf); // update value
+  int32_t nECU_CAN_RX_getValue(nECU_CAN_RX_Frame_ID currentID);                 // returns value of given frame
 
   // Diagnostic functions
   static uint8_t nECU_CAN_IsBusy(void); // Check if any messages are pending
-  static bool nECU_CAN_GetState(void);  // get data if can periperal buisy
   bool nECU_CAN_GetError(void);         // get error state pf can periperal buisy
-
-  // Recive functions
-  static bool nECU_CAN_RX_InitFrame(void);                         // initialize reciving frames with corresponding filters
-  bool nECU_CAN_RX_Stop(void);                                     // Disables Recive communication
-  void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan); // interrupt callback when new Rx frame in FIFO0
-
-  // Pointers
-  uint8_t *nECU_CAN_getPointer_Coolant(void);    // get pointer to the recived data of coolant variable
-  uint8_t *nECU_CAN_getPointer_WheelSetup(void); // get pointer to the recived data of wheel setup variable
-  uint16_t *nECU_CAN_getPointer_RPM(void);       // get pointer to the recived data of RPM variable
 
 #ifdef __cplusplus
 }
