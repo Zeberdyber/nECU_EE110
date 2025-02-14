@@ -288,13 +288,13 @@ void nECU_ADC3_Routine(void)
 /* pointer get functions */
 uint16_t *nECU_ADC1_getPointer(nECU_ADC1_ID ID)
 {
-  if (ID > ADC1_ID_MAX)
+  if (ID >= ADC1_ID_MAX) // Break if invalid ID
     return NULL;
   return &adc1_data.out_buffer[0 + ID];
 }
 uint16_t *nECU_ADC2_getPointer(nECU_ADC2_ID ID)
 {
-  if (ID > ADC2_ID_MAX)
+  if (ID >= ADC2_ID_MAX) // Break if invalid ID
     return NULL;
 
   return &adc2_data.out_buffer[0 + ID];

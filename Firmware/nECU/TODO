@@ -4,6 +4,45 @@
         Show all running components, lookup all data, prepare for UART diagnostics
         [X] Initialized/Working to be standardized
         [ ] Timeout values for program blocks
+    [X] EGT.c rewrite
+        [ ] fix EGT communication
+    [ ] Move test functions to corresponding files
+    [X] check _ID_MAX usage
+    [X] create printf progress bar
+        [ ] Startup progress
+    [X] move flow control to new file
+        [ ]handle double errors
+    [ ] tim PWM out rewrite + OX
+    [ ] LED animations unification
+    [X] Update *.ioc
+
+[ ] Code overhaul tests:
+    [ ] Analog inputs
+        [ ] MAP
+        [ ] Backpressure
+        [ ] OX
+        [ ] AI1-3
+        [ ] MCU temperature
+        [X] VREF
+    [ ] Frequency inputs
+        [X] VSS
+        [ ] IGF
+    [X] CAN
+        [X] TX
+        [X] RX
+    [ ] SPI
+        [ ] EGT
+    [ ] Buttons
+        [ ] PWM
+        [ ] IC
+        [ ] Animations
+
+[ ] on road:
+    [ ] OX calibration
+    
+[ ] scheduled:
+    [ ] Immobilizer communication
+    [ ] watchdogs
     [ ] fault detection - set flags for repeted fault
         [ ] add flags
             - igf:
@@ -16,35 +55,6 @@
         [ ] trafic indication
         [ ] debug data send
         [ ] sensor data send (variable tracing)
-    [X] can.c
-        [X] clean up 'checktime' function
-        [X] separate RX buffers and filters for coolant/wheelsetup/rpm data
-    [X] EGT.c rewrite
-        [ ] fix EGT communication
-    [ ] Set status error flag if already initialized & working
-    [ ] Set debug status to D_CODE_ERROR on "return" when not working
-    [ ] Move test functions to corresponding files
-    [ ] check _ID_MAX usage
-    [X] create printf progress bar
-        [ ] Startup progress
-    [X] move flow control to new file
-        [ ]handle double errors
-    [ ] tim PWM out rewrite + OX
-
-Current issues:
-    IGF signal does not fall to complete zero - no signal edge is detected
-
-[ ] test:
-    [ ] hardware test:
-        [ ] frequency readout (RPM) fix and test functions - missing level shifter?
-
-[ ] on road:
-    [ ] OX calibration
-    [X] rectify 'IdleUp' missing -> resolution: missing 'initialized = true'
-    
-[ ] scheduled:
-    [ ] Immobilizer communication
-    [ ] watchdogs
 
 [ ] optimization:
     [ ] Knock sensing (will be done after UART added)
@@ -58,7 +68,3 @@ Current issues:
         [ ] loom rewire
     [ ] Immo communication
     [ ] Oil pressure analog input
-
-[ ] Known bugs:
-    [ ] ocassional VSS speed readout incorrect (will last for maximum of 1s)
-        Happened once so far when slowing down slowly at speed around 12km/h readout bumped to 45km/s for a 600ms period

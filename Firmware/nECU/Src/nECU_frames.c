@@ -310,7 +310,8 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     F2_var.Backpressure = nECU_FloatToUint(nECU_InputAnalog_ADC1_getValue(ADC1_BackPressure_ID), 8);
     F2_var.OX_Val = nECU_FloatToUint(nECU_InputAnalog_ADC1_getValue(ADC1_OX_ID), 8);
     // F2_var.OX_Val = 0;
-    F2_var.VSS = nECU_FloatToUint(nECU_FreqInput_getValue(FREQ_VSS_ID), 8);
+    float temp = nECU_FreqInput_getValue(FREQ_VSS_ID);
+    F2_var.VSS = nECU_FloatToUint(temp, 8);
 
     Converter.UintValue = F2_var.MAP_Stock_10bit + FRAME_MAP_OFFSET;
     if (Converter.UintValue > MAX_VAL_10BIT) // round if out of bound
@@ -331,14 +332,14 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 
 void nECU_Frame_TX_done(nECU_CAN_TX_Frame_ID ID) // callback after can TX is done
 {
-    if (ID > CAN_TX_ID_MAX)
+    if (ID >= CAN_TX_ID_MAX) // Break if invalid ID
         return;
     if (ID == CAN_TX_Speed_ID)
         F0_var.ClearCode = false;
 }
 uint8_t *nECU_Frame_getPointer(nECU_CAN_TX_Frame_ID ID) // returns pointer to output buffer
 {
-    if (ID > CAN_TX_ID_MAX)
+    if (ID >= CAN_TX_ID_MAX) // Break if invalid ID
         return NULL;
 
     switch (ID)

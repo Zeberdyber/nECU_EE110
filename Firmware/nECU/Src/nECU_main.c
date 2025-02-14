@@ -56,6 +56,8 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     vrefADC = nECU_ADC1_getPointer(ADC1_VREF_ID);
     nECU_Delay_Set(&max_decay, 1000);
     nECU_Delay_Start(&max_decay);
+    nECU_TIM_PWM_Start(TIM_PWM_LED1_ID, 0);
+    nECU_TIM_PWM_Start(TIM_PWM_LED2_ID, 0);
 }
 void nECU_main(void) // main rutine of the program
 {
@@ -83,7 +85,7 @@ void nECU_main(void) // main rutine of the program
     nECU_CAN_TX_CheckTime();
 
     OnBoard_LED_Update();
-    nECU_Debug_Periodic();
+    // nECU_Debug_Periodic();
 
     // nECU_InputAnalog_ADC1_Routine(ADC1_VREF_ID);
 

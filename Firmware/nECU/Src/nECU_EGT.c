@@ -28,21 +28,21 @@ static const uint16_t EGT_GPIO_Pin_List[EGT_ID_MAX] = {
 /* interface functions */
 uint16_t *nECU_EGT_getPointer_Temperature(EGT_Sensor_ID ID) // get function that returns pointer to output data of sensor, ready for can transmission
 {
-    if (ID >= EGT_ID_MAX)
+    if (ID >= EGT_ID_MAX) // Break if invalid ID
         return NULL;
 
     return &EGT_data.TC[ID].EGT_Temperature;
 }
 int16_t *nECU_EGT_getPointer_TemperatureIC(EGT_Sensor_ID ID) // get function that returns pointer to internal temperature data of sensor
 {
-    if (ID >= EGT_ID_MAX)
+    if (ID >= EGT_ID_MAX) // Break if invalid ID
         return NULL;
 
     return &EGT_data.TC[ID].IC_Temperature;
 }
 EGT_Error_Code *nECU_EGT_getPointer_Error(EGT_Sensor_ID ID) // get function returns pointer to error code
 {
-    if (ID >= EGT_ID_MAX)
+    if (ID >= EGT_ID_MAX) // Break if invalid ID
         return NULL;
 
     return &EGT_data.TC[ID].ErrCode;
@@ -111,12 +111,12 @@ void nECU_EGT_Callback(void) // callback from SPI_TX end callback
 {
 
     EGT_data.currentSensor++;
-    if (EGT_data.currentSensor >= EGT_ID_MAX)
+    if (EGT_data.currentSensor >= EGT_ID_MAX) // Break if invalid ID
         return;
     while (!nECU_FlowControl_Working_Check(D_EGT1 + (EGT_data.currentSensor))) // find next working sensor
     {
         EGT_data.currentSensor++;
-        if (EGT_data.currentSensor >= EGT_ID_MAX)
+        if (EGT_data.currentSensor >= EGT_ID_MAX) // Break if invalid ID
             return;
     }
     nECU_SPI_Rx_IT_Start(&(EGT_data.TC[EGT_data.currentSensor].CS_pin), SPI_EGT_ID, (uint8_t *)EGT_data.TC[EGT_data.currentSensor].in_buffer, 4); // start reciving data
@@ -133,7 +133,7 @@ void nECU_EGT_Error_Callback(void) // Callback after SPI communication fail
 
 static bool nECU_EGT_Start_Single(EGT_Sensor_ID ID) // Perform start for single sensor
 {
-    if (ID >= EGT_ID_MAX)
+    if (ID >= EGT_ID_MAX) // Break if invalid ID
         return true;
 
     bool status = false;
@@ -153,7 +153,7 @@ static bool nECU_EGT_Start_Single(EGT_Sensor_ID ID) // Perform start for single 
 }
 static bool nECU_EGT_Stop_Single(EGT_Sensor_ID ID) // Perform stop for single sensor
 {
-    if (ID >= EGT_ID_MAX)
+    if (ID >= EGT_ID_MAX) // Break if invalid ID
         return true;
 
     bool status = false;

@@ -81,6 +81,8 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     [D_TIM_IC_FREQ] = "Frequency Input Timer",
     [D_TIM_ADC_KNOCK] = "Knock ADC Timer",
     [D_TIM_FRAME] = "Frame Timer",
+    [D_TIM_PWM_LED1] = "OnBoard LED1 Timer",
+    [D_TIM_PWM_LED2] = "OnBoard LED2 Timer",
 }; // List of strings of corresponding IDs
 
 /* Program Block */
@@ -195,13 +197,13 @@ uint32_t *nECU_Debug_ProgramBlockData_getPointer_Diff(nECU_Module_ID ID) // retu
 */
 bool nECU_FlowControl_Stop_Check(nECU_Module_ID ID) // Check if block has "initialized" status
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_STOP);
 }
 bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status if possible
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
 
     switch (ID) /* Stopping of shared resources */
@@ -237,13 +239,13 @@ bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status i
 
 bool nECU_FlowControl_Initialize_Check(nECU_Module_ID ID) // Check if block has "initialized" status
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_INITIALIZED);
 }
 bool nECU_FlowControl_Initialize_Do(nECU_Module_ID ID) // Write "initialized" status if possible
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
 
     if (nECU_FlowControl_Working_Check(D_PC))
@@ -261,13 +263,13 @@ bool nECU_FlowControl_Initialize_Do(nECU_Module_ID ID) // Write "initialized" st
 
 bool nECU_FlowControl_Working_Check(nECU_Module_ID ID) // Check if block has "working" status
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_WORKING);
 }
 bool nECU_FlowControl_Working_Do(nECU_Module_ID ID) // Write "working" status if possible
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
 
     if (nECU_FlowControl_Working_Check(D_PC))
@@ -284,13 +286,13 @@ bool nECU_FlowControl_Working_Do(nECU_Module_ID ID) // Write "working" status if
 
 bool nECU_FlowControl_Error_Check(nECU_Module_ID ID) // Check if block has "error" status
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR);
 }
 bool nECU_FlowControl_Error_Do(nECU_Module_ID ID) // Write "error" status if possible
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     if (nECU_FlowControl_Error_Check(ID) && !nECU_FlowControl_Initialize_Check(ID)) // check if already done
     {
@@ -310,13 +312,13 @@ bool nECU_FlowControl_Error_Do(nECU_Module_ID ID) // Write "error" status if pos
 
 bool nECU_FlowControl_DoubleError_Check(nECU_Module_ID ID) // Check if block has "error_old" status
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR_OLD);
 }
 bool nECU_FlowControl_DoubleError_Do(nECU_Module_ID ID) // Write "error_old" status if possible
 {
-    if (ID >= D_ID_MAX)
+    if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     if (nECU_FlowControl_Error_Check(ID) && nECU_FlowControl_DoubleError_Check(ID)) // check if already done
     {

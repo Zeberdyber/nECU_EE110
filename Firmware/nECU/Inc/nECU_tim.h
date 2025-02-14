@@ -52,6 +52,7 @@ extern "C"
   bool nECU_TIM_Init(nECU_TIM_ID ID);                                                  // initialize structure and precalculate variables
   bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel);                           // function to start PWM on selected timer
   bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel);                            // function to stop PWM on selected timer
+  bool nECU_TIM_PWM_Fill(nECU_TIM_ID ID, uint32_t Channel, float Fill);                // function to change PWM duty
   bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, nECU_DigiInput_ID Digi_ID); // function to start IC on selected timer
   bool nECU_TIM_IC_Stop(nECU_TIM_ID ID, uint32_t Channel);                             // function to stop IC on selected timer
   bool nECU_TIM_Base_Start(nECU_TIM_ID ID);                                            // function to start base of selected timer

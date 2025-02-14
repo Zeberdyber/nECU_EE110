@@ -136,7 +136,7 @@ float nECU_correctToVref(float input)
 {
     if (!nECU_FlowControl_Working_Check(D_ANALOG_VREF))
         return input;
-
+    nECU_InputAnalog_ADC1_Routine(ADC1_VREF_ID);
     return (ADC1_List[ADC1_VREF_ID].output * input) / VREFINT_CAL_VREF;
 }
 

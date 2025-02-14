@@ -84,7 +84,7 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
 }
 void nECU_CAN_WriteToBuffer(nECU_CAN_TX_Frame_ID frameID, uint8_t size) // copy input data to corresponding frame buffer
 {
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX) || (frameID > CAN_TX_ID_MAX) || size == 0)
+  if (!nECU_FlowControl_Working_Check(D_CAN_TX) || (frameID >= CAN_TX_ID_MAX) || size == 0)
   {
     nECU_FlowControl_Error_Do(D_CAN_TX);
     return;
@@ -149,8 +149,8 @@ void nECU_CAN_TX_CheckTime(void) // checks if it is time to send packet
 }
 static bool nECU_CAN_TX_Init(nECU_CAN_TX_Frame_ID currentID)
 {
-  if (currentID > CAN_TX_ID_MAX) // Check if in bounds
-    return true;                 // Break
+  if (currentID >= CAN_TX_ID_MAX) // Check if in bounds
+    return true;                  // Break
 
   bool status = false;
   // delay
@@ -172,7 +172,7 @@ static bool nECU_CAN_TX_Init(nECU_CAN_TX_Frame_ID currentID)
 static bool nECU_CAN_TX_TransmitFrame(nECU_CAN_TX_Frame_ID frameID) // send selected frame over CAN
 {
   bool status = false;
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX) || (frameID > CAN_TX_ID_MAX))
+  if (!nECU_FlowControl_Working_Check(D_CAN_TX) || (frameID >= CAN_TX_ID_MAX)) // Break if invalid ID
   {
     nECU_FlowControl_Error_Do(D_CAN_TX);
     status |= true;
@@ -197,8 +197,8 @@ static uint32_t nECU_CAN_TX_FindMailbox(CAN_HandleTypeDef *hcan) // will find em
 // RX functions
 static bool nECU_CAN_RX_Init(nECU_CAN_RX_Frame_ID currentID)
 {
-  if (currentID >= CAN_RX_ID_MAX)
-    return true; // Break
+  if (currentID >= CAN_RX_ID_MAX) // Break if invalid ID
+    return true;                  // Break
 
   bool status = false;
   Rx_frame_List[currentID].filter.FilterBank = currentID;
@@ -237,8 +237,8 @@ static nECU_CAN_RX_Frame_ID nECU_CAN_RX_Identify(CAN_RxHeaderTypeDef *pHeader)
 }
 static void nECU_CAN_RX_Update(nECU_CAN_RX_Frame_ID currentID, uint8_t *buf) // update value
 {
-  if (currentID > CAN_RX_ID_MAX)
-    return; // Break
+  if (currentID >= CAN_RX_ID_MAX) // Break if invalid ID
+    return;                       // Break
 
   union Int32ToBytes Converter;
   memcpy(Converter.byteArray, buf, 4);
@@ -246,8 +246,8 @@ static void nECU_CAN_RX_Update(nECU_CAN_RX_Frame_ID currentID, uint8_t *buf) // 
 }
 int32_t nECU_CAN_RX_getValue(nECU_CAN_RX_Frame_ID currentID) // returns value of given frame
 {
-  if (currentID > CAN_RX_ID_MAX)
-    return 0; // Break
+  if (currentID >= CAN_RX_ID_MAX) // Break if invalid ID
+    return 0;                     // Break
   return Rx_frame_List[currentID].output;
 }
 

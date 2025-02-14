@@ -481,6 +481,8 @@ typedef enum
     TIM_IC_FREQ_ID,
     TIM_ADC_KNOCK_ID,
     TIM_FRAME_ID,
+    TIM_PWM_LED1_ID,
+    TIM_PWM_LED2_ID,
     TIM_ID_MAX
 } nECU_TIM_ID;
 typedef struct
@@ -693,6 +695,8 @@ typedef enum
     D_TIM_IC_FREQ,
     D_TIM_ADC_KNOCK,
     D_TIM_FRAME,
+    D_TIM_PWM_LED1,
+    D_TIM_PWM_LED2,
     // Last value
     D_ID_MAX
 } nECU_Module_ID;

@@ -71,6 +71,7 @@ void nECU_OX_Routine(void) // update narrowband lambda structure
     /* Output update */
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
     float coolant = nECU_CAN_RX_getValue(CAN_RX_Coolant_ID);
+    UNUSED(coolant);
     // OX.Heater_Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
     // OX.Heater.htim->Instance->CCR1 = (OX.Heater_Infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 
@@ -100,7 +101,7 @@ float nECU_OX_GetValue(void) // returns pointer to resulting data
 /* GPIO inputs */
 bool nECU_DigitalInput_Start(nECU_DigiInput_ID ID)
 {
-    if (ID >= DigiInput_ID_MAX)
+    if (ID >= DigiInput_ID_MAX) // Break if invalid ID
         return true;
 
     bool status = false;
@@ -126,7 +127,7 @@ bool nECU_DigitalInput_Start(nECU_DigiInput_ID ID)
 }
 bool nECU_DigitalInput_Stop(nECU_DigiInput_ID ID)
 {
-    if (ID >= DigiInput_ID_MAX)
+    if (ID >= DigiInput_ID_MAX) // Break if invalid ID
         return true;
 
     bool status = false;
@@ -144,7 +145,7 @@ bool nECU_DigitalInput_Stop(nECU_DigiInput_ID ID)
 }
 void nECU_DigitalInput_Routine(nECU_DigiInput_ID ID)
 {
-    if (ID >= DigiInput_ID_MAX)
+    if (ID >= DigiInput_ID_MAX) // Break if invalid ID
         return;
 
     if (!nECU_FlowControl_Working_Check(D_DigiInput_CRANKING + ID)) // Check if currently working
@@ -160,7 +161,7 @@ void nECU_DigitalInput_Routine(nECU_DigiInput_ID ID)
 
 bool nECU_DigitalInput_getValue(nECU_DigiInput_ID ID)
 {
-    if (ID >= DigiInput_ID_MAX)
+    if (ID >= DigiInput_ID_MAX) // Break if invalid ID
         return false;
 
     if (!nECU_FlowControl_Working_Check(D_DigiInput_CRANKING + ID)) // Check if currently working

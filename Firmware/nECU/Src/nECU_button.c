@@ -12,7 +12,7 @@ static Button Button_List[BUTTON_ID_MAX] = {0};
 /* All button functions */
 bool nECU_Button_Start(Button_ID ID) // Perform start on single button
 {
-  if (ID >= BUTTON_ID_MAX)
+  if (ID >= BUTTON_ID_MAX) // Break if invalid ID
     return true;
 
   bool status = false;
@@ -38,7 +38,7 @@ bool nECU_Button_Start(Button_ID ID) // Perform start on single button
 }
 bool nECU_Button_Stop(Button_ID ID) // Perform stop on single button
 {
-  if (ID >= BUTTON_ID_MAX)
+  if (ID >= BUTTON_ID_MAX) // Break if invalid ID
     return true;
 
   bool status = false;

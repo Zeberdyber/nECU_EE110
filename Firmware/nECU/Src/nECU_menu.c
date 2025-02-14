@@ -255,21 +255,21 @@ void nECU_Tacho_Routine(void)
 
 uint8_t *nECU_Tacho_getPointer(Tacho_ID ID) // get pointer to correct structure value
 {
-  if (ID > TACHO_ID_MAX)
+  if (ID >= TACHO_ID_MAX) // Break if invalid ID
     return NULL;
 
   return &Tacho[ID].output_value;
 }
 bool *nECU_Tacho_Show_getPointer(Tacho_ID ID) // get pointer to correct structure value
 {
-  if (ID > TACHO_ID_MAX)
+  if (ID >= TACHO_ID_MAX) // Break if invalid ID
     return NULL;
 
   return &Tacho[ID].showPending;
 }
 void nECU_Tacho_Clear_getPointer(Tacho_ID ID) // clear pending flag for selected struct
 {
-  if (ID > TACHO_ID_MAX)
+  if (ID >= TACHO_ID_MAX) // Break if invalid ID
     return;
 
   if (!nECU_FlowControl_Working_Check(D_Tacho)) // Check if currently working

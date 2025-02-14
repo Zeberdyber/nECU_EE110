@@ -7,14 +7,14 @@
 
 #include "nECU_Input_Frequency.h"
 
-static uint16_t VSS_Buffer[75] = {0};
+static uint16_t VSS_Buffer[10] = {0};
 
 static nECU_InputFreq Sensor_List[FREQ_ID_MAX] = {0};
 static SensorCalibration Sensor_calib_List[FREQ_ID_MAX] = {
     [FREQ_VSS_ID] = {
-        0, 1,                             // limits of freq readout
-        0, (3600.0f / VSS_PULSES_PER_KM), // limits of resulting output
-        0.0, 1.0                          // Place holders
+        0, 36,   // limits of freq readout
+        0, 5.76, // limits of resulting output
+        0.0, 1.0 // Place holders
     },
     [FREQ_IGF_ID] = {
         0, 1,    // limits of freq readout
@@ -27,11 +27,11 @@ static uint32_t Sensor_delay_List[FREQ_ID_MAX] = {
     [FREQ_IGF_ID] = 0,
 }; // List of delay values between updates in ms
 static Buffer_uint16 Sensor_Buffer_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = {VSS_Buffer, 75},
+    [FREQ_VSS_ID] = {VSS_Buffer, (sizeof(VSS_Buffer) / sizeof(VSS_Buffer[0]))},
     [FREQ_IGF_ID] = {NULL, 0},
 }; // List of pointers to smoothing buffers and its lenghts
 static float Sensor_Alpha_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = 0.15,
+    [FREQ_VSS_ID] = 0.3,
     [FREQ_IGF_ID] = 1.0,
 }; // List of alphas for smoothing
 static nECU_TIM_ID Timer_List[FREQ_ID_MAX] = {
@@ -39,7 +39,7 @@ static nECU_TIM_ID Timer_List[FREQ_ID_MAX] = {
     [FREQ_IGF_ID] = TIM_IC_FREQ_ID,
 }; // List of timers for IC
 static uint32_t Channel_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = 2, // TIM_CHANNEL_2
+    [FREQ_VSS_ID] = 1, // TIM_CHANNEL_2
     [FREQ_IGF_ID] = 0, // TIM_CHANNEL_1
 }; // Timer channel list
 static nECU_DigiInput_ID DigiInput_List[FREQ_ID_MAX] = {
@@ -56,9 +56,6 @@ bool nECU_FreqInput_Start(nECU_Freq_ID ID)
 
     if (!nECU_FlowControl_Initialize_Check(D_VSS + ID))
     {
-        // Connect frequency as input to sensor
-        Sensor_List[ID].sensor.Input = &Sensor_List[ID].ic->frequency;
-
         // Calibration
         Sensor_List[ID].sensor.calibration = Sensor_calib_List[ID];
         nECU_calculateLinearCalibration(&(Sensor_List[ID].sensor.calibration));
@@ -77,12 +74,16 @@ bool nECU_FreqInput_Start(nECU_Freq_ID ID)
     if (!nECU_FlowControl_Working_Check(D_VSS + ID) && status == false)
     {
         status |= nECU_TIM_IC_Start(Timer_List[ID], Channel_List[ID], DigiInput_List[ID]);
+        status |= nECU_Delay_Start(&(Sensor_List[ID].sensor.filter.delay));
 
         // Pointers
         if (nECU_TIM_IC_getPointer(Timer_List[ID], Channel_List[ID]))
             Sensor_List[ID].ic = nECU_TIM_IC_getPointer(Timer_List[ID], Channel_List[ID]);
         else
             status |= true;
+
+        // Connect frequency as input to sensor
+        Sensor_List[ID].sensor.Input = &Sensor_List[ID].ic->frequency;
 
         if (!status)
             status |= !nECU_FlowControl_Working_Do(D_VSS + ID);

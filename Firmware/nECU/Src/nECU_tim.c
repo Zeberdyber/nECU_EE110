@@ -20,7 +20,9 @@ static TIM_HandleTypeDef *TIM_Handle_List[TIM_ID_MAX] = {
     [TIM_IC_BUTTON_ID] = &htim3,
     [TIM_IC_FREQ_ID] = &htim4,
     [TIM_ADC_KNOCK_ID] = &htim8,
-    [TIM_FRAME_ID] = &htim10,
+    [TIM_FRAME_ID] = &htim6,
+    [TIM_PWM_LED1_ID] = &htim10,
+    [TIM_PWM_LED2_ID] = &htim11,
 }; // Lists handles for each ID
 static const uint32_t TIM_ActiveChannel_Lookup[HAL_TIM_ACTIVE_CHANNEL_4 + 1] = {
     [HAL_TIM_ACTIVE_CHANNEL_1] = TIM_CHANNEL_1,
@@ -78,7 +80,7 @@ nECU_InputCapture *nECU_TIM_IC_getPointer(nECU_TIM_ID ID, uint32_t Channel) // p
   if (TIM_List[ID].Channels[Channel] != TIM_Channel_IC) // Check if this is IC channel
     return NULL;
 
-  return &TIM_List[ID].IC[Channel];
+  return &(TIM_List[ID].IC[Channel]);
 }
 
 /* Callback functions */
@@ -189,7 +191,7 @@ bool nECU_Delay_Stop(nECU_Delay *inst) // stop non-blocking delay
 /* general nECU timer functions */
 bool nECU_TIM_Init(nECU_TIM_ID ID) // initialize structure and precalculate variables
 {
-  if (ID >= TIM_ID_MAX)
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
   if (nECU_FlowControl_Initialize_Check(D_TIM_PWM_BUTTON + ID)) // Check if was done
@@ -220,7 +222,7 @@ bool nECU_TIM_Init(nECU_TIM_ID ID) // initialize structure and precalculate vari
 }
 bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel) // function to start PWM on selected timer
 {
-  if (ID >= TIM_ID_MAX)
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
   bool status = false;
@@ -249,7 +251,7 @@ bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel) // function to start P
 }
 bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop PWM on selected timer
 {
-  if (ID >= TIM_ID_MAX)
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
   // Check if this channel is already configured for something else
@@ -276,12 +278,46 @@ bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop PWM
 
   return false;
 }
-bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, nECU_DigiInput_ID Digi_ID) // function to start IC on selected timer
+bool nECU_TIM_PWM_Fill(nECU_TIM_ID ID, uint32_t Channel, float Fill) // function to change PWM duty
 {
-  if (ID >= TIM_ID_MAX)
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
-  if (Digi_ID >= DigiInput_ID_MAX)
+  // Check if this channel is already configured for something else
+  if (TIM_List[ID].Channels[Channel] != TIM_Channel_PWM)
+  {
+    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    return true;
+  }
+
+  uint32_t fill = (TIM_List[ID].htim->Init.Period + 1) * Fill;
+  switch (Channel)
+  {
+  case 0:
+    TIM_List[ID].htim->Instance->CCR1 = fill;
+    break;
+  case 1:
+    TIM_List[ID].htim->Instance->CCR2 = fill;
+    break;
+  case 2:
+    TIM_List[ID].htim->Instance->CCR3 = fill;
+    break;
+  case 3:
+    TIM_List[ID].htim->Instance->CCR4 = fill;
+    break;
+
+  default:
+    return true;
+    break;
+  }
+  return false;
+}
+bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, nECU_DigiInput_ID Digi_ID) // function to start IC on selected timer
+{
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
+    return true;
+
+  if (Digi_ID >= DigiInput_ID_MAX) // Break if invalid ID
     return true;
 
   bool status = false;
@@ -306,18 +342,14 @@ bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, nECU_DigiInput_ID Digi_
     status |= true; // indicate if not successful
   }
   TIM_List[ID].Channels[Channel] = TIM_Channel_IC;
-
   TIM_List[ID].IC[Channel].Digi_Input = Digi_ID;
-  if (TIM_List[ID].IC[Channel].Digi_Input > DigiInput_ID_MAX)
-    TIM_List[ID].IC[Channel].Digi_Input = DigiInput_ID_MAX;
-
   status |= nECU_DigitalInput_Start(TIM_List[ID].IC[Channel].Digi_Input);
 
   return status;
 }
 bool nECU_TIM_IC_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop IC on selected timer
 {
-  if (ID >= TIM_ID_MAX)
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
   // Check if this channel is already configured for something else
@@ -351,7 +383,7 @@ bool nECU_TIM_IC_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop IC o
 
 bool nECU_TIM_Base_Start(nECU_TIM_ID ID) // function to start base of selected timer
 {
-  if (ID >= TIM_ID_MAX)
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
   bool status = false;
@@ -373,7 +405,7 @@ bool nECU_TIM_Base_Start(nECU_TIM_ID ID) // function to start base of selected t
 }
 bool nECU_TIM_Base_Stop(nECU_TIM_ID ID) // function to stop base of selected timer
 {
-  if (ID >= TIM_ID_MAX)
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
   if (nECU_FlowControl_Working_Check(D_TIM_PWM_BUTTON + ID))
@@ -401,7 +433,7 @@ bool nECU_TIM_Base_Stop(nECU_TIM_ID ID) // function to stop base of selected tim
 
 static bool nECU_TIM_IC_Callback(nECU_TIM_ID ID) // callback function to calculate basic parameters
 {
-  if (ID >= TIM_ID_MAX)
+  if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
   uint32_t channel = TIM_ActiveChannel_Lookup[TIM_List[ID].htim->Channel];
