@@ -1,42 +1,70 @@
 [ ] develop:
-    [ ] fault detection - set flags for repeted fault
-        [ ] add flags
-            X can:
-                X timeout
-                X error
-            - igf:
-                > missfire
-                > no signal
-                > other?
-            - buttons:
-                > other?
-            - VSS:
-                > input ripple
-                > over speed
-            - SpeedSens:
-                > abnormal sensor
-                > data error    
+    [ ] Update Bench_mode
+    [ ] System diagnostics
+        Show all running components, lookup all data, prepare for UART diagnostics
+        [X] Initialized/Working to be standardized
+        [ ] Timeout values for program blocks
+    [X] EGT.c rewrite
+        [ ] fix EGT communication
+    [ ] Move test functions to corresponding files
+    [X] check _ID_MAX usage
+    [X] create printf progress bar
+        [ ] Startup progress
+    [X] move flow control to new file
+        [ ]handle double errors
+    [ ] tim PWM out rewrite + OX
+    [ ] LED animations unification
+    [X] Update *.ioc
 
-[ ] test:
-    [ ] interrupt changes:
-        [ ] button animations (TIM1 interrupt removed, tick track)
-    [ ] hardware test:
-        [ ] VSS input ripple
-        [ ] Tacho display bug (occasionnaly value is displayed twice)
-        [ ] filtering of VSS (low speed correction)
-        [ ] frequency readout (RPM) fix and test functions
-        [ ] Buttons sporadic not working, double click faulty
+[ ] Code overhaul tests:
+    [ ] Analog inputs
+        [ ] MAP
+        [ ] Backpressure
+        [ ] OX
+        [ ] AI1-3
+        [ ] MCU temperature
+        [X] VREF
+    [ ] Frequency inputs
+        [X] VSS
+        [ ] IGF
+    [X] CAN
+        [X] TX
+        [X] RX
+    [ ] SPI
+        [ ] EGT
+    [ ] Buttons
+        [ ] PWM
+        [ ] IC
+        [ ] Animations
 
 [ ] on road:
-    [ ] MAP calibration
     [ ] OX calibration
-    [ ] VSS calibration
     
 [ ] scheduled:
     [ ] Immobilizer communication
-    [ ] Onboard UART
-    [ ] External AI (analog input) in code integration with proper scaling settings
     [ ] watchdogs
+    [ ] fault detection - set flags for repeted fault
+        [ ] add flags
+            - igf:
+                > missfire
+                > no signal
+            - SpeedSens:
+                > abnormal sensor
+                > data error
+    [ ] UART
+        [ ] trafic indication
+        [ ] debug data send
+        [ ] sensor data send (variable tracing)
 
 [ ] optimization:
     [ ] Knock sensing (will be done after UART added)
+
+[ ] reverse engeneering:
+    [ ] Immobilizer communication type
+    [ ] Narrowband oxygen sensing
+
+[ ] TODOs over easter break (easter went by and none was done :-/ ):
+    [ ] ABS speed sensors testing
+        [ ] loom rewire
+    [ ] Immo communication
+    [ ] Oil pressure analog input

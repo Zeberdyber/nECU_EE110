@@ -21,49 +21,36 @@ extern "C"
 #include "nECU_debug.h"
 
 /* Definitions */
-#define FLASH_DATA_START_ADDRESS 0x080E0000                                                                  // address of sector 11 of flash memory
-#define FLASH_DATA_END_ADDRESS 0x080FFFFF                                                                    // end address of sector 11 of flash memory
-#define FLASH_DATA_SIZE 16                                                                                   // Size of memory sector in bytes
-#define SPEED_DATA_OFFSET 0                                                                                  // offset where to start the speed calibration data in flash
-#define USER_SETTINGS_OFFSET (sizeof(nECU_SpeedCalibrationData) + SPEED_DATA_OFFSET)                         // offset where to start the user settings data in flash
-#define DEBUG_QUE_OFFSET (sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings) + SPEED_DATA_OFFSET) // offset where to start the debug que data in flash
-#define FLASH_MINIMUM_RUN_TIME 1000                                                                          // to allow debugger to work
+#define FLASH_DATA_START_ADDRESS 0x080E0000                                                          // address of sector 11 of flash memory
+#define FLASH_DATA_END_ADDRESS 0x080FFFFF                                                            // end address of sector 11 of flash memory
+#define FLASH_MINIMUM_RUN_TIME 1000                                                                  // to allow debugger to work
+#define FLASH_DATA_START_ADDR_SPEED (FLASH_DATA_START_ADDRESS)                                       // start address for Speed Calibration data
+#define FLASH_DATA_START_ADDR_USER (FLASH_DATA_START_ADDR_SPEED + sizeof(nECU_SpeedCalibrationData)) // start address for User Settings data
+#define FLASH_DATA_START_ADDR_DEBUGQUE (FLASH_DATA_START_ADDR_USER + sizeof(nECU_UserSettings))      // start address of Debug Que data
 
     /* Function Prototypes */
     /* Speed calibration data functions (flash function interface) */
-    void nECU_saveSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4);
-    void nECU_readSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4);
+    bool nECU_Flash_SpeedCalibration_save(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4);
+    bool nECU_Flash_SpeedCalibration_read(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4);
 
     /* User settings data functions (flash function interface) */
-    void nECU_saveUserSettings(bool *pAntiLag, bool *pTractionOFF);
-    void nECU_readUserSettings(bool *pAntiLag, bool *pTractionOFF);
+    bool nECU_Flash_UserSettings_save(bool *pAntiLag, bool *pTractionOFF);
+    bool nECU_Flash_UserSettings_read(bool *pAntiLag, bool *pTractionOFF);
 
     /* Debug que (flash function interface) */
-    void nECU_saveDebugQue(nECU_Debug_error_que *que);
-    void nECU_readDebugQue(nECU_Debug_error_que *que);
+    bool nECU_Flash_DebugQue_save(nECU_Debug_error_que *que);
+    bool nECU_Flash_DebugQue_read(nECU_Debug_error_que *que);
 
     /* Flash functions */
-    void nECU_FLASH_cleanFlashSector(void);       // clean flash sector
-    void nECU_FLASH_cleanFlashSector_check(void); // check if erase was successful
-    void nECU_FLASH_getAllMemory(void);           // get data from flash
-    void nECU_FLASH_saveFlashSector(void);        // save everything, then read to RAM
+    static HAL_StatusTypeDef nECU_FLASH_cleanFlashSector(void);       // clean flash sector
+    static HAL_StatusTypeDef nECU_FLASH_cleanFlashSector_check(void); // check if erase was successful
+    static HAL_StatusTypeDef nECU_FLASH_getAllMemory(void);           // get data from flash
+    static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void);        // save everything, then read to RAM
 
-    /* Dedicated to data type functions */
-    void nECU_FLASH_writeSpeedCalibrationData(nECU_SpeedCalibrationData *data); // function to write calibration data to flash memory
-    void nECU_FLASH_readSpeedCalibrationData(nECU_SpeedCalibrationData *data);  // function to read calibration data from flash memory
-    void nECU_FLASH_checkSpeedCalibrationData(nECU_SpeedCalibrationData *data); // check if passed data is the same as in memory
-
-    void nECU_FLASH_writeUserSettings(nECU_UserSettings *data); // function to write settings data to flash memory
-    void nECU_FLASH_readUserSettings(nECU_UserSettings *data);  // function to read settings data to flash memory
-    void nECU_FLASH_checkUserSettings(nECU_UserSettings *data); // check if passed data is the same as in memory
-
-    void nECU_FLASH_writeDebugQue(nECU_Debug_error_que *que); // function to write debug que to flash memory
-    void nECU_FLASH_readDebugQue(nECU_Debug_error_que *que);  // function to read debug que to flash memory
-    void nECU_FLASH_checkDebugQue(nECU_Debug_error_que *que); // check if passed que is the same as in memory
-
-    /* Helper functions */
-    void nECU_compressBool(bool *bufferIn, uint8_t *out);   // compress bool array to one byte
-    void nECU_decompressBool(uint8_t *in, bool *bufferOut); // decompress byte to bool array
+    /* Interface functions */
+    bool nECU_FLASH_Start(void);
+    bool nECU_FLASH_Stop(void);
+    bool nECU_FLASH_Erase(void);
 
 #ifdef __cplusplus
 }

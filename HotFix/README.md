@@ -26,9 +26,14 @@ List of known corrections needed:
     
 9 - Missing capacitors of U1
     = 1uF parallel to C9, 1uF on R29 (3V3_nECU line) and C10 (GND line), 4.7uF parallel to C44
+10 - IGF no signal
+    = Pull down on IGF line (1k)
+11 - VSS high noise
+    = Pull down on VSS line (1k)
 
 
 Possible upgrades for future versions:
  - Improve SNR of analog speed signal
  - UART from onboard debbuger
  - MaxxECU direct USB soldering
+ - Filtering on input lines on both IGF and VSS signals

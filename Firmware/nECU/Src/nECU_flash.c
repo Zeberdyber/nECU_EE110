@@ -7,262 +7,307 @@
 
 #include "nECU_flash.h"
 
-nECU_FlashContent Flash;
-bool FlashdataInitialized = false;
+static nECU_FlashContent Flash = {0};
 
 /* Speed calibration data functions (flash function interface) */
-void nECU_saveSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4)
+bool nECU_Flash_SpeedCalibration_save(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4)
 {
+    bool status = false;
+
     // check if data was initialized
-    if (FlashdataInitialized == false)
+    if (!nECU_FlowControl_Working_Check(D_Flash))
     {
-        nECU_FLASH_getAllMemory();
+        nECU_FlowControl_Error_Do(D_Flash);
+        status |= true;
+        return status;
     }
+
+    float tempSensor[] = {*Sensor1, *Sensor2, *Sensor3, *Sensor4};
+
+    if (memcmp(&(Flash.speedData), &tempSensor, sizeof(tempSensor))) // break if they are the same
+    {
+        return status;
+    }
+
     // copy config if needed to buffer
     Flash.speedData.SpeedSensor1 = *Sensor1;
     Flash.speedData.SpeedSensor2 = *Sensor2;
     Flash.speedData.SpeedSensor3 = *Sensor3;
     Flash.speedData.SpeedSensor4 = *Sensor4;
 
-    nECU_FLASH_saveFlashSector(); // save and validate
+    status |= (nECU_FLASH_saveFlashSector() != HAL_OK); // save and validate
+
+    return status;
 }
-void nECU_readSpeedCalibration(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4)
+bool nECU_Flash_SpeedCalibration_read(float *Sensor1, float *Sensor2, float *Sensor3, float *Sensor4)
 {
+    bool status = false;
+
     // check if data was initialized
-    if (FlashdataInitialized == false)
+    if (!nECU_FlowControl_Working_Check(D_Flash))
     {
-        nECU_FLASH_getAllMemory();
+        nECU_FlowControl_Error_Do(D_Flash);
+        status |= true;
+        return status;
     }
+
     // copy data to outputs
     *Sensor1 = Flash.speedData.SpeedSensor1;
     *Sensor2 = Flash.speedData.SpeedSensor2;
     *Sensor3 = Flash.speedData.SpeedSensor3;
     *Sensor4 = Flash.speedData.SpeedSensor4;
+
+    nECU_Debug_ProgramBlockData_Update(D_Flash);
+
+    return status;
 }
 
 /* User settings data functions (flash function interface) */
-void nECU_saveUserSettings(bool *pAntiLag, bool *pTractionOFF)
+bool nECU_Flash_UserSettings_save(bool *pAntiLag, bool *pTractionOFF)
 {
+    bool status = false;
+
     // check if data was initialized
-    if (FlashdataInitialized == false)
+    if (!nECU_FlowControl_Working_Check(D_Flash))
     {
-        nECU_FLASH_getAllMemory();
+        nECU_FlowControl_Error_Do(D_Flash);
+        status |= true;
+        return status;
     }
-    // compress data to byte
+
+    // prepare buffers for comparison
     bool compressed[8] = {*pAntiLag, *pTractionOFF, 0, 0, 0, 0, 0, 0};
-    nECU_compressBool(compressed, &(Flash.userData.boolByte1));
-    nECU_FLASH_saveFlashSector(); // save and validate
-}
-void nECU_readUserSettings(bool *pAntiLag, bool *pTractionOFF)
-{
-    // check if data was initialized
-    if (FlashdataInitialized == false)
+    bool decompressed[8];
+    nECU_decompressBool(&(Flash.userData.boolByte1), decompressed);
+    if (memcmp(compressed, decompressed, sizeof(compressed))) // break if they are the same
     {
-        nECU_FLASH_getAllMemory();
+        return status;
     }
+
+    // compress data to byte
+    nECU_compressBool(compressed, &(Flash.userData.boolByte1));
+
+    status |= (nECU_FLASH_saveFlashSector() != HAL_OK); // save and validate
+
+    return status;
+}
+bool nECU_Flash_UserSettings_read(bool *pAntiLag, bool *pTractionOFF)
+{
+    bool status = false;
+
+    // check if data was initialized
+    if (!nECU_FlowControl_Working_Check(D_Flash))
+    {
+        nECU_FlowControl_Error_Do(D_Flash);
+        status |= true;
+        return status;
+    }
+
     // decompress to output
     bool decompressed[8];
     nECU_decompressBool(&(Flash.userData.boolByte1), decompressed);
+    *pAntiLag = decompressed[0];
+    *pTractionOFF = decompressed[1];
+
+    nECU_Debug_ProgramBlockData_Update(D_Flash);
+
+    return status;
 }
 
 /* Debug que (flash function interface) */
-/* Que not stored in RAM as it is a big structure */
-void nECU_saveDebugQue(nECU_Debug_error_que *que)
+bool nECU_Flash_DebugQue_save(nECU_Debug_error_que *que)
 {
-    nECU_FLASH_writeDebugQue(que);
+    bool status = false;
+
+    // check if data was initialized
+    if (!nECU_FlowControl_Working_Check(D_Flash))
+    {
+        nECU_FlowControl_Error_Do(D_Flash);
+        status |= true;
+        return status;
+    }
+
+    // Set pointer to array -> debug que is so long it is pointless to store it in RAM
+    Flash.DebugQueData = que;
+
+    status |= (nECU_FLASH_saveFlashSector() != HAL_OK); // save and validate
+
+    return status;
 }
-void nECU_readDebugQue(nECU_Debug_error_que *que)
+bool nECU_Flash_DebugQue_read(nECU_Debug_error_que *que)
 {
-    nECU_FLASH_readDebugQue(que);
+    // This block does not require whole flash module to have status "Working"
+    bool status = false;
+    Flash.DebugQueData = que;
+
+    memcpy(Flash.DebugQueData, (const void *)FLASH_DATA_START_ADDR_DEBUGQUE, sizeof(nECU_Debug_error_que)); // user settings to RAM
+
+    if (memcmp(Flash.DebugQueData, (const void *)FLASH_DATA_START_ADDR_DEBUGQUE, sizeof(nECU_Debug_error_que))) // check if reading was successful
+    {
+        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, false);
+        status |= true;
+    }
+
+    return status;
 }
 
 /* Flash functions */
-void nECU_FLASH_cleanFlashSector(void) // clean flash sector
+static HAL_StatusTypeDef nECU_FLASH_cleanFlashSector(void) // clean flash sector
 {
-    HAL_FLASH_Unlock();
+    HAL_StatusTypeDef status = HAL_OK;
+
+    status |= HAL_FLASH_Unlock();
     FLASH_Erase_Sector(FLASH_SECTOR_11, FLASH_VOLTAGE_RANGE_3);
     FLASH_FlushCaches();
-    HAL_FLASH_Lock();
-}
-void nECU_FLASH_cleanFlashSector_check(void) // check if erase was successful
-{
-    /* Check every byte of avaliable space */
-    for (uint16_t i = 0; i < (FLASH_DATA_END_ADDRESS - FLASH_DATA_START_ADDRESS); i++)
-    {
-        if (memcmp((const void *)UINT8_MAX, (const void *)FLASH_DATA_START_ADDRESS + i, sizeof(uint8_t)))
-        {
-            nECU_Debug_FLASH_error(nECU_FLASH_ERROR_ERASE, false);
-        }
-    }
-}
-void nECU_FLASH_getAllMemory(void) // get data from flash
-{
-    nECU_FLASH_readSpeedCalibrationData(&(Flash.speedData)); // get speed calib to RAM
-    nECU_FLASH_readUserSettings(&(Flash.userData));          // get user settings to RAM
-    if (FlashdataInitialized == false)
-    {
-        FlashdataInitialized = true;
-    }
-}
-void nECU_FLASH_saveFlashSector(void) // save everything, then read to RAM
-{
-    nECU_FLASH_writeSpeedCalibrationData(&(Flash.speedData)); // save speed calib
-    nECU_FLASH_writeUserSettings(&(Flash.userData));          // save user settings
-    nECU_FLASH_getAllMemory();                                // update RAM
-}
+    status |= HAL_FLASH_Lock();
+    status |= nECU_FLASH_cleanFlashSector_check();
 
-/* Dedicated to data type functions */
-void nECU_FLASH_writeSpeedCalibrationData(nECU_SpeedCalibrationData *data) // function to write calibration data to flash memory
-{
-    Flash.speedData = *data; // copy new data to buffer
-    HAL_FLASH_Unlock();
-    FLASH_FlushCaches();
+    if (status != HAL_OK)
+    {
+        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_ERASE, true);
+    }
 
-    // Write the data to flash memory
-    for (int i = 0; i < sizeof(nECU_SpeedCalibrationData); i += 4)
-    {
-        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + SPEED_DATA_OFFSET + i, *(uint32_t *)((uint8_t *)data + i));
-    }
-    HAL_FLASH_Lock();
-    nECU_FLASH_checkSpeedCalibrationData(data);
+    return status;
 }
-void nECU_FLASH_readSpeedCalibrationData(nECU_SpeedCalibrationData *data) // function to read calibration data from flash memory
+static HAL_StatusTypeDef nECU_FLASH_cleanFlashSector_check(void) // check if erase was successful
 {
-    memset(data, UINT8_MAX, sizeof(nECU_SpeedCalibrationData)); // fil target with FF
-    // Copy the data from flash memory to the data structure
-    memcpy(data, (const void *)FLASH_DATA_START_ADDRESS + SPEED_DATA_OFFSET, sizeof(nECU_SpeedCalibrationData));
+    HAL_StatusTypeDef status = HAL_OK;
 
-    // check if proper data was read
-    if (data->SpeedSensor1 == UINT32_MAX)
+    uint8_t empty_array[(FLASH_DATA_END_ADDRESS - FLASH_DATA_START_ADDRESS)] = {0};
+    if (memcmp(empty_array, (const void *)FLASH_DATA_START_ADDRESS, (FLASH_DATA_END_ADDRESS - FLASH_DATA_START_ADDRESS)))
     {
-        data->SpeedSensor1 = 0.0;
+        status = HAL_ERROR;
     }
-    if (data->SpeedSensor2 == UINT32_MAX)
-    {
-        data->SpeedSensor2 = 0.0;
-    }
-    if (data->SpeedSensor3 == UINT32_MAX)
-    {
-        data->SpeedSensor3 = 0.0;
-    }
-    if (data->SpeedSensor4 == UINT32_MAX)
-    {
-        data->SpeedSensor4 = 0.0;
-    }
-    nECU_FLASH_checkSpeedCalibrationData(data);
+
+    return status;
 }
-void nECU_FLASH_checkSpeedCalibrationData(nECU_SpeedCalibrationData *data) // check if passed data is the same as in memory
+static HAL_StatusTypeDef nECU_FLASH_getAllMemory(void) // get data from flash
 {
-    int comparison_result = 0;
-    comparison_result = memcmp(data, (const void *)FLASH_DATA_START_ADDRESS + DEBUG_QUE_OFFSET, sizeof(nECU_SpeedCalibrationData));
-    if (comparison_result < 0) // saving
-    {
-        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_SPEED, true);
-    }
-    else if (comparison_result > 0) // reading
+    HAL_StatusTypeDef status = HAL_OK;
+
+    /* copy data to the RAM */
+    memcpy(&(Flash.speedData), (const void *)FLASH_DATA_START_ADDRESS, sizeof(nECU_SpeedCalibrationData)); // speed data to RAM
+    memcpy(&(Flash.userData), (const void *)FLASH_DATA_START_ADDR_USER, sizeof(nECU_UserSettings));        // user settings to RAM
+
+    /* Check if reading was successful */
+    if (memcmp(&(Flash.speedData), (const void *)FLASH_DATA_START_ADDRESS, sizeof(nECU_SpeedCalibrationData)) != 0) // check if reading was successful
     {
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_SPEED, false);
+        status |= HAL_ERROR;
     }
-}
-
-void nECU_FLASH_writeUserSettings(nECU_UserSettings *data) // function to write settings data to flash memory
-{
-    Flash.userData = *data; // copy new data to buffer
-    HAL_FLASH_Unlock();
-    FLASH_FlushCaches();
-
-    // Write the data to flash memory
-    for (int i = 0; i < sizeof(nECU_UserSettings); i += 1)
-    {
-        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + USER_SETTINGS_OFFSET + i, *(uint8_t *)((uint8_t *)data + i));
-    }
-
-    HAL_FLASH_Lock();
-    nECU_FLASH_checkUserSettings(data);
-}
-void nECU_FLASH_readUserSettings(nECU_UserSettings *data) // function to read settings data to flash memory
-{
-    memset(data, UINT8_MAX, sizeof(nECU_UserSettings)); // fil target with FF
-    // Copy the data from flash memory to the data structure
-    memcpy(data, (const void *)FLASH_DATA_START_ADDRESS + USER_SETTINGS_OFFSET, sizeof(nECU_UserSettings));
-
-    // check if proper data was read
-    if (data->boolByte1 == UINT8_MAX)
-    {
-        data->boolByte1 = 0;
-    }
-    nECU_FLASH_checkUserSettings(data);
-}
-void nECU_FLASH_checkUserSettings(nECU_UserSettings *data) // check if passed data is the same as in memory
-{
-    int comparison_result = 0;
-    comparison_result = memcmp(data, (const void *)FLASH_DATA_START_ADDRESS + DEBUG_QUE_OFFSET, sizeof(nECU_UserSettings));
-    if (comparison_result < 0) // saving
-    {
-        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_USER, true);
-    }
-    else if (comparison_result > 0) // reading
+    if (memcmp(&(Flash.userData), (const void *)FLASH_DATA_START_ADDR_USER, sizeof(nECU_UserSettings)) != 0) // check if reading was successful
     {
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_USER, false);
-    }
-}
-
-void nECU_FLASH_writeDebugQue(nECU_Debug_error_que *que) // function to write debug que to flash memory
-{
-    HAL_FLASH_Unlock();
-    FLASH_FlushCaches();
-
-    // Write the data to flash memory
-    for (int i = 0; i < sizeof(nECU_Debug_error_que); i += 1)
-    {
-        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + DEBUG_QUE_OFFSET + i, *(uint8_t *)((uint8_t *)que + i));
+        status |= HAL_ERROR;
     }
 
-    HAL_FLASH_Lock();
-    nECU_FLASH_checkDebugQue(que);
+    return status;
 }
-void nECU_FLASH_readDebugQue(nECU_Debug_error_que *que) // function to read debug que to flash memory
+static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, then read to RAM
 {
-    memset(que, UINT8_MAX, sizeof(nECU_Debug_error_que));                                                 // fil target with FF
-    memcpy(que, (const void *)FLASH_DATA_START_ADDRESS + DEBUG_QUE_OFFSET, sizeof(nECU_Debug_error_que)); // copy the que
+    HAL_StatusTypeDef status = HAL_OK;
 
-    if (que->message_count == UINT16_MAX) // if que is maximum (no memory was written beforehand) set messages to zero
+    status |= nECU_FLASH_cleanFlashSector();                                             // prepare memory for a save
+    uint16_t byte_count = sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings); // define buffer length
+
+    if (nECU_FlowControl_Initialize_Check(D_Debug_Que))
     {
-        memset(que, 0, sizeof(nECU_Debug_error_que)); // zero-out memory region
-        que->message_count = 0;
+        byte_count += sizeof(nECU_Debug_error_que); // add debug error que if it was initialized
     }
-    nECU_FLASH_checkDebugQue(que);
-}
-void nECU_FLASH_checkDebugQue(nECU_Debug_error_que *que) // check if passed que is the same as in memory
-{
-    int comparison_result = 0;
-    comparison_result = memcmp(que, (const void *)FLASH_DATA_START_ADDRESS + DEBUG_QUE_OFFSET, sizeof(nECU_Debug_error_que));
-    if (comparison_result < 0) // saving
+
+    uint8_t data[byte_count]; // create buffer (it has to be devidable by 4 so be carefull)
+
+    /* copy data to the buffer */
+    memcpy(&data[0], &(Flash.speedData), sizeof(nECU_SpeedCalibrationData));                        // copy speed data
+    memcpy(&data[sizeof(nECU_SpeedCalibrationData)], &(Flash.userData), sizeof(nECU_UserSettings)); // copy user settings data
+    if (nECU_FlowControl_Initialize_Check(D_Debug_Que))                                             // copy debug que if it was initialized
     {
+        memcpy(&data[sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings)], Flash.DebugQueData, sizeof(nECU_Debug_error_que));
+    }
+
+    /* Write the data to flash memory */
+    status |= HAL_FLASH_Unlock();
+    for (int i = 0; i < byte_count; i += 4)
+    {
+        status |= HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + i, *(uint32_t *)((uint8_t *)data + i));
+    }
+    status |= HAL_FLASH_Lock();
+
+    if (status != HAL_OK)
+    {
+        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_SPEED, true);
+        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_USER, true);
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, true);
     }
-    else if (comparison_result > 0) // reading
+
+    status |= nECU_FLASH_getAllMemory(); // update RAM
+
+    if (memcmp(&data[0], (const void *)FLASH_DATA_START_ADDRESS, byte_count) != 0) // check if save was successful
     {
-        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, false);
+        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_SPEED, true);
+        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_USER, true);
+        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, true);
     }
+
+    nECU_Debug_ProgramBlockData_Update(D_Flash);
+
+    return status;
 }
 
-/* Helper functions */
-void nECU_compressBool(bool *bufferIn, uint8_t *out) // compress bool array to one byte
+/* Interface functions */
+bool nECU_FLASH_Start(void)
 {
-    // zero-out output
-    *out = 0;
+    bool status = false;
+    if (!nECU_FlowControl_Initialize_Check(D_Flash))
+    {
+        status |= (nECU_FLASH_getAllMemory() != HAL_OK);
+        if (!status)
+        {
+            status |= !nECU_FlowControl_Initialize_Do(D_Flash);
+        }
+    }
+    if (!nECU_FlowControl_Working_Check(D_Flash) && status == false)
+    {
+        if (!status)
+        {
+            status |= !nECU_FlowControl_Working_Do(D_Flash);
+        }
+    }
+    if (status)
+    {
+        nECU_FlowControl_Error_Do(D_Flash);
+    }
 
-    // fill output with data
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        *out |= (bufferIn[i] & 1) >> i;
-    }
+    return status;
 }
-void nECU_decompressBool(uint8_t *in, bool *bufferOut) // decompress byte to bool array
+bool nECU_FLASH_Stop(void)
 {
-    for (uint8_t i = 0; i < 8; i++)
+    bool status = false;
+    if (nECU_FlowControl_Working_Check(D_Flash) && status == false)
     {
-        bufferOut[i] = ((*in) << i) & 1; // copy to outputs
+        if (!status)
+            status |= !nECU_FlowControl_Stop_Do(D_Flash);
     }
+    if (status)
+        nECU_FlowControl_Error_Do(D_Flash);
+
+    return status;
+}
+bool nECU_FLASH_Erase(void)
+{
+    bool status = false;
+    // check if data was initialized
+    if (!nECU_FlowControl_Working_Check(D_Flash))
+    {
+        nECU_FlowControl_Error_Do(D_Flash);
+        status |= true;
+        return status;
+    }
+    status |= (nECU_FLASH_cleanFlashSector() != HAL_OK);
+    if (status)
+    {
+        nECU_FlowControl_Error_Do(D_Flash);
+    }
+
+    return status;
 }

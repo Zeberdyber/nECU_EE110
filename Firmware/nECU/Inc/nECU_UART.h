@@ -22,35 +22,38 @@ extern "C"
 #include "nECU_main.h"
 
 /* Definitions */
-#define END_BYTE 0xFF // what will be reciving software looking for to determine end of frame
-#define TEST_UART 0   // enables uart test mode, trinagluar wave sent over uart
+#define END_BYTE 0xFF         // what will be reciving software looking for to determine end of frame
+#define TEST_KNOCK_UART false // enables uart test mode, trinagluar wave sent over uart
+#define SEND_KNOCK_RAW false  // eneables RAW ADC data send
 
 /* Definitions  Delta*/
-#define ALPHA_LEN 16                                                                                                                   // in bits
-#define DELTA_PREC 16                                                                                                                  // precision of delta (number of bits in delta output)
-#define UART_ADC_COUNT 256                                                                                                             // number of ADC conversions to be in one UART frame
-#define LEN_BOOL_NO_ROUND ((UART_ADC_COUNT - 1) * DELTA_PREC + ALPHA_LEN + 24)                                                         // -1 for Alpha variable, +24 for EOF
-#define DELTA_LEN_BOOL (LEN_BOOL_NO_ROUND + (8 - (LEN_BOOL_NO_ROUND % 8)) * (((LEN_BOOL_NO_ROUND + 7) / 8) - (LEN_BOOL_NO_ROUND / 8))) // !!! rounded bit number of recived frame
-#define UART_KNOCK_LEN_BYTES (DELTA_LEN_BOOL / 8)                                                                                      // total lenght of recived correct frame
-#define DELTA_ADDR_BYTE_EOF (UART_KNOCK_LEN_BYTES - 3)                                                                                 // position where End Of Frame starts
+#define DELTA_PREC 16      // precision of delta (number of bits in delta output)
+#define UART_ADC_COUNT 256 // number of ADC conversions to be in one UART frame
 
-#if TEST_UART == 1
-#define TEST_DATA_LENGTH UART_ADC_COUNT * 2
+#define PC_UART huart3   // peripheral connected to the PC
+#define IMMO_UART huart1 // peripheral connected to the immobilizer
+
+#if TEST_KNOCK_UART == true
     void Send_Triangle_UART(void); // function to send triangle wave over UART
 #endif
 
-        /* Function Prototypes */
-    void nECU_UART_SuperFrame(uint16_t *input_buffer, uint8_t *output_buffer); // compose Super frame (diferential frame)
-    void nECU_UART_SendKnock(uint16_t *input_buffer);                          // send knock data over
-    void nECU_UART_DMA_Tx_Knock(void);                                         // send knock data in DMA mode
-    void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart);                   // Tx completed
-    void nECU_UART_RXStartPC(void);                                            // initialize Rx from UART communication
-    void nECU_UART_RXStopPC(void);                                             // Stop rx from UART communication
-    void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);                   // Rx completed
-    void nECU_UART_Tx_Start_Routine(void);                                     // prepare nECU to be able to transmit
-    void nECU_UART_Tx_Stop_Routine(void);                                      // return back to regular execution
-    bool *nECU_UART_KnockTx(void);                                             // return pointer to knock tx flag
-    void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);                    // Called while UART error
+    /* Function Prototypes */
+    /* Knock ADC data transmission */
+    void nECU_UART_SendKnock(uint16_t *input_buffer, nECU_UART *knock_uart);                                                           // send knock data over
+    uint8_t nECU_UART_KnockSuperFrame(uint16_t *input_buffer, uint8_t *output_buffer, uint16_t input_length, uint8_t delta_bit_count); // compose Super frame (diferential frame), returns resulting frame length
+    /* UART interface */
+    bool nECU_UART_Init(nECU_UART *obj, UART_HandleTypeDef *huart, uint8_t *buffer); // initializes structure
+    HAL_StatusTypeDef nECU_UART_Tx(nECU_UART *obj);                                  // sends the packet if possible
+    HAL_StatusTypeDef nECU_UART_Rx(nECU_UART *obj);                                  // starts the recive on UART
+    HAL_StatusTypeDef nECU_UART_Tx_Abort(nECU_UART *obj);                            // stops Tx transmission
+    HAL_StatusTypeDef nECU_UART_Rx_Abort(nECU_UART *obj);                            // stops Rx transmission
+    bool *nECU_UART_Pending_Flag(nECU_UART *obj);                                    // returns pending flag pointer
+    bool nECU_UART_Tx_Busy(nECU_UART *obj);                                          // returns if Tx is busy
+    bool nECU_UART_Rx_Busy(nECU_UART *obj);                                          // returns if Rx is busy
+    /* Callbacks */
+    void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart); // Rx completed
+    void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart); // Tx completed
+    void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);  // Called while UART error
 
 #ifdef __cplusplus
 }

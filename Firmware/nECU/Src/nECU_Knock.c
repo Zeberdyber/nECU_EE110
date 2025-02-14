@@ -7,19 +7,20 @@
 
 #include "nECU_Knock.h"
 
-nECU_Knock Knock = {0};
-extern IGF_Handle IGF;
-
-static bool Knock_Initialized = false, Knock_Working = false;
+static nECU_Knock Knock = {0};
 
 /* Knock detection */
-void nECU_Knock_Init(void) // initialize and start
+bool nECU_Knock_Start(void) // initialize and start
 {
-    if (Knock_Initialized == false)
+    bool status = false;
+
+    if (!nECU_FlowControl_Initialize_Check(D_Knock))
     {
+        // UART
+        status |= nECU_UART_Init(&Knock.uart, &PC_UART, Knock.UART_data_buffer);
+
         Knock.RetardPerc = 0; // initial value
         Knock.LevelWaiting = false;
-        Knock.CycleDoneFlag = nECU_Knock_Delay_DoneFlag();
 
         // regression timer
         nECU_TickTrack_Init(&(Knock.regres));
@@ -33,88 +34,106 @@ void nECU_Knock_Init(void) // initialize and start
         // initialize FFT module
         Knock.fft.Index = 0;
         Knock.fft.flag = false;
-        float SamplingFreq = TIM_CLOCK / ((KNOCK_ADC_SAMPLING_TIMER.Init.Prescaler + 1) * (KNOCK_ADC_SAMPLING_TIMER.Init.Period + 1));
+        TIM_HandleTypeDef tim = *nECU_TIM_getPointer(TIM_ADC_KNOCK_ID);
+        float SamplingFreq = TIM_CLOCK / ((tim.Init.Prescaler + 1) * (tim.Init.Period + 1));
         Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * FFT_LENGTH) / (SamplingFreq)) * 2) - 1;
-        arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH);
+        status |= (arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH) != ARM_MATH_SUCCESS);
 
-        // set initialized flag
-        Knock_Initialized = true;
+        if (!status)
+            status |= !nECU_FlowControl_Initialize_Do(D_Knock);
     }
-    if (Knock_Working == false && Knock_Initialized == true)
+    if (!nECU_FlowControl_Working_Check(D_Knock) && status == false)
     {
-        // ADC start
-        ADC3_START();
-        // RPM reference
-        nECU_IGF_Init();
-        // set working flag
-        Knock_Working = true;
+        status |= nECU_ADC3_START();                 // ADC start
+        status |= nECU_FreqInput_Start(FREQ_IGF_ID); // RPM reference
+        if (!status)
+            status |= !nECU_FlowControl_Working_Do(D_Knock);
     }
+    if (status)
+        nECU_FlowControl_Error_Do(D_Knock);
+
+    return status;
 }
 void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 {
-    if (Knock_Working == true)
+    if (!nECU_FlowControl_Working_Check(D_Knock)) // Check if currently working
     {
-        for (uint16_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
+        nECU_FlowControl_Error_Do(D_Knock);
+        return; // Break
+    }
+
+    if (Knock.UART_Transmission == true)
+    {
+        nECU_UART_SendKnock(input_buffer, &Knock.uart);
+    }
+
+    for (uint16_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
+    {
+        Knock.fft.BufIn[Knock.fft.Index] = (float)input_buffer[i];
+        Knock.fft.Index++;
+        if (Knock.fft.Index == FFT_LENGTH) // if buffer full perform FFT
         {
-            Knock.fft.BufIn[Knock.fft.Index] = (float)input_buffer[i];
-            Knock.fft.Index++;
-            if (Knock.fft.Index == FFT_LENGTH) // if buffer full perform FFT
-            {
-                arm_rfft_fast_f32(&(Knock.fft.Handler), Knock.fft.BufIn, Knock.fft.BufOut, 0);
-                Knock.fft.flag = true;
-                Knock.fft.Index = 0;
-            }
-        }
-        if (Knock.fft.flag = true)
-        {
-            nECU_Knock_DetectMagn();
-            Knock.fft.flag = false;
+            arm_rfft_fast_f32(&(Knock.fft.Handler), Knock.fft.BufIn, Knock.fft.BufOut, 0);
+            Knock.fft.flag = true;
+            Knock.fft.Index = 0;
         }
     }
+    if (Knock.fft.flag == true)
+    {
+        nECU_Knock_DetectMagn();
+        Knock.fft.flag = false;
+    }
 }
-void nECU_Knock_UpdatePeriodic(void) // function to perform time critical knock routines, call at regression timer interrupt
+void nECU_Knock_UpdatePeriodic(void) // function to calculate current retard value
 {
-    if (Knock_Working == true)
+    if (!nECU_FlowControl_Working_Check(D_Knock)) // Check if currently working
     {
-        nECU_TickTrack_Update(&(Knock.regres));
-        /* should be called every time timer time elapsed */
-        if (Knock.LevelWaiting == true && *(Knock.CycleDoneFlag) == true)
-        {
-            Knock.LevelWaiting = false;     // reset flag
-            *(Knock.CycleDoneFlag) = false; // reset flag
-
-            Knock.RetardPerc += KNOCK_STEP * Knock.Level;
-
-            if (Knock.RetardPerc > 100) // if boundry reached
-            {
-                Knock.RetardPerc = 100;
-            }
-
-            Knock.Level = 0; // reset level
-        }
-        else if (Knock.RetardPerc > 0)
-        {
-            Knock.RetardPerc -= (Knock.regres.difference * Knock.regres.convFactor * KNOCK_BETA) / 1000.0f;
-
-            if (Knock.RetardPerc < 0)
-            {
-                Knock.RetardPerc = 0;
-            }
-
-            Knock.RetardOut = (uint8_t)Knock.RetardPerc;
-        }
+        nECU_FlowControl_Error_Do(D_Knock);
+        return; // Break
     }
+    nECU_ADC3_Routine(); // Pull new data
+    nECU_TickTrack_Update(&(Knock.regres));
+    nECU_Delay_Update(&(Knock.delay));
+
+    /* should be called every time timer time elapsed */
+    if (Knock.LevelWaiting == true && Knock.delay.done == true)
+    {
+        Knock.LevelWaiting = false; // reset flag
+        Knock.delay.done = false;   // reset flag
+
+        Knock.RetardPerc += KNOCK_STEP * Knock.Level;
+
+        if (Knock.RetardPerc > 100) // if boundry reached
+        {
+            Knock.RetardPerc = 100;
+        }
+
+        Knock.Level = 0; // reset level
+    }
+    else if (Knock.RetardPerc > 0)
+    {
+        Knock.RetardPerc -= (Knock.regres.difference * Knock.regres.convFactor * KNOCK_BETA) / 1000.0f;
+
+        if (Knock.RetardPerc < 0) // round to 0
+        {
+            Knock.RetardPerc = 0;
+        }
+
+        Knock.RetardOut = (uint8_t)Knock.RetardPerc;
+    }
+
+    nECU_Debug_ProgramBlockData_Update(D_Knock);
 }
-void nECU_Knock_DetectMagn(void) // function to detect knock based on ADC input
+static void nECU_Knock_DetectMagn(void) // function to detect knock based on ADC input
 {
     float knockMagn = 0;
     knockMagn = sqrtf((Knock.fft.BufOut[Knock.fft.KnockIndex] * Knock.fft.BufOut[Knock.fft.KnockIndex]) + (Knock.fft.BufOut[Knock.fft.KnockIndex + 1] * Knock.fft.BufOut[Knock.fft.KnockIndex + 1]));
     nECU_Knock_Evaluate(&knockMagn);
 }
-void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of knock range
+static void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of knock range
 {
     /* get thresholds */
-    float rpm_float = IGF.RPM;
+    float rpm_float = nECU_FreqInput_getValue(FREQ_IGF_ID);
     if (rpm_float < 750) // while idle
     {
         return;
@@ -130,12 +149,22 @@ void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of knock ran
         float minOut = 1, maxOut = KNOCK_LEVEL;
         Knock.Level = nECU_Table_Interpolate(&threshold_min, &minOut, &threshold_max, &maxOut, magnitude);
         Knock.LevelWaiting = true;
-        nECU_Knock_Delay_Start(&rpm_float);
+        uint32_t delay = (120000 / rpm_float); // 120000 = 120 (Hz to rpm) * 1000 (ms to s)
+        nECU_Delay_Set(&(Knock.delay), delay);
+        nECU_Delay_Start(&(Knock.delay));
     }
 }
-void nECU_Knock_DeInit(void) // stop
+bool nECU_Knock_Stop(void) // stop
 {
-    Knock_Initialized = false;
+    bool status = false;
+    if (nECU_FlowControl_Working_Check(D_Knock) && status == false)
+    {
+        status |= nECU_ADC3_STOP();
+        status |= nECU_FreqInput_Stop(FREQ_IGF_ID);
+        if (!status)
+            status |= !nECU_FlowControl_Stop_Do(D_Knock);
+    }
+    return status;
 }
 uint8_t *nECU_Knock_GetPointer(void) // returns pointer to knock retard percentage
 {
