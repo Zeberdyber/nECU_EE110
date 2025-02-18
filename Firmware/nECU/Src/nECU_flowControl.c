@@ -47,6 +47,11 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     [D_ANALOG_AI_3] = "Additional Analog Input 3",
     [D_ANALOG_MCUTemp] = "nECU temperature",
     [D_ANALOG_VREF] = "Reference voltage sensing",
+    [D_ANALOG_SS1] = "ABS Speed Sensor 1",
+    [D_ANALOG_SS2] = "ABS Speed Sensor 2",
+    [D_ANALOG_SS3] = "ABS Speed Sensor 3",
+    [D_ANALOG_SS4] = "ABS Speed Sensor 4",
+    [D_ANALOG_KNOCK] = "NOT VALID - D_ANALOG_KNOCK",
     // nECU_Input_Frequency.c
     [D_VSS] = "Stock VSS",
     [D_IGF] = "Stock Ignition Fault Detection",
@@ -62,11 +67,6 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
     [D_OnboardLED] = "LED on PCB",
     // nECU_PC.c
     [D_PC] = "PC communication",
-    // nECU_Speed.c
-    [D_ANALOG_SS1] = "ABS Speed Sensor 1",
-    [D_ANALOG_SS2] = "ABS Speed Sensor 2",
-    [D_ANALOG_SS3] = "ABS Speed Sensor 3",
-    [D_ANALOG_SS4] = "ABS Speed Sensor 4",
     // nECU_stock.c
     [D_DigiInput_CRANKING] = "Digital Input Cranking",
     [D_DigiInput_FAN_ON] = "Digital Input Radiator Fan",

@@ -7,295 +7,188 @@
 
 #include "nECU_adc.h"
 
-// local variables
-static nECU_ADC1 adc1_data = {0};
-static nECU_ADC2 adc2_data = {0};
-static nECU_ADC3 adc3_data = {0};
+// #define APB2_CLOCK 42000000 // APB2 clock speed
+#define ADC1_CH_COUNT 8
+#define ADC2_CH_COUNT 4
+#define ADC3_CH_COUNT 1
+
+static uint16_t DMA_buffer_ADC1[150 * ADC1_CH_COUNT] = {0};           // 150 samples per channel
+static uint16_t DMA_buffer_ADC2[75 * ADC2_CH_COUNT] = {0};            // 75 samples per channel
+static uint16_t DMA_buffer_ADC3[KNOCK_DMA_LEN * ADC3_CH_COUNT] = {0}; // single channel
+static uint16_t out_buffer[ADC1_CH_COUNT + ADC2_CH_COUNT] = {0};      // output buffer (ADC3 not connected)
+
+static nECU_ADC data_List[HADC_ID_MAX] = {
+    [HADC1_ID] = {
+        {DMA_buffer_ADC1, (uint8_t)(sizeof(DMA_buffer_ADC1) / sizeof(DMA_buffer_ADC1[0]))}, // in buffer (DMA)
+        {out_buffer, ADC1_CH_COUNT},                                                        // out buffer (average)
+    },
+    [HADC2_ID] = {
+        {DMA_buffer_ADC2, (uint8_t)(sizeof(DMA_buffer_ADC2) / sizeof(DMA_buffer_ADC2[0]))}, // in buffer (DMA)
+        {&out_buffer[ADC2_CH_COUNT - 1], ADC2_CH_COUNT},                                    // out buffer (average)
+    },
+    [HADC3_ID] = {
+        {DMA_buffer_ADC3, (uint8_t)(sizeof(DMA_buffer_ADC3) / sizeof(DMA_buffer_ADC3[0]))}, // in buffer (DMA)
+        {(void *)NULL, ADC3_CH_COUNT},                                                      // out buffer (average)
+    },
+};
+static ADC_HandleTypeDef *hadc_List[HADC_ID_MAX] = {
+    [HADC1_ID] = &hadc1,
+    [HADC2_ID] = &hadc2,
+    [HADC3_ID] = &hadc3,
+};
+static const float DMA_Smoothing[HADC_ID_MAX] = {
+    [HADC1_ID] = 0.5,
+    [HADC2_ID] = 0.8,
+    [HADC3_ID] = 1.0,
+};
 
 /* Interrupt functions */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-  if (hadc == &GENERAL_ADC) // if ADC1 perform its routine
+  nECU_HADC_ID hadc_id = nECU_ADC_Identify_hadc(hadc);
+  if (hadc_id >= HADC_ID_MAX)
+    return;
+  bool *flags = (data_List[hadc_id].flags);
+  if (flags != NULL) // do if adc identified
   {
-    if (adc1_data.status.callback_full == true) // check if routine was not called
-    {
-      adc1_data.status.overflow = true;
-    }
-    adc1_data.status.callback_half = false; // clear flag to prevent memory access while DMA working
-    adc1_data.status.callback_full = true;
-  }
-  else if (hadc == &SPEED_ADC) // if ADC2 perform its routine
-  {
-    if (adc2_data.status.callback_full == true) // check if routine was not called
-    {
-      adc2_data.status.overflow = true;
-    }
-    adc2_data.status.callback_half = false; // clear flag to prevent memory access while DMA working
-    adc2_data.status.callback_full = true;
-  }
-  else if (hadc == &KNOCK_ADC) // if ADC3 perform its routine
-  {
-    if (adc3_data.status.callback_full == true) // check if routine was not called
-    {
-      adc3_data.status.overflow = true;
-    }
-    adc3_data.status.callback_half = false; // clear flag to prevent memory access while DMA working
-    adc3_data.status.callback_full = true;
+    flags[ADC_STATUS_OVERFLOW] = flags[ADC_STATUS_FULL]; // indicate overflow if flag was not processed
+    flags[ADC_STATUS_FULL] = true;
   }
 }
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
-  if (hadc == &GENERAL_ADC) // if ADC1 perform its routine
+  nECU_HADC_ID hadc_id = nECU_ADC_Identify_hadc(hadc);
+  if (hadc_id >= HADC_ID_MAX)
+    return;
+  bool *flags = (data_List[hadc_id].flags);
+  if (flags != NULL) // do if adc identified
   {
-    if (adc1_data.status.callback_half == true) // check if routine was not called
-    {
-      adc1_data.status.overflow = true;
-    }
-    adc1_data.status.callback_half = true;
-    adc1_data.status.callback_full = false; // clear flag to prevent memory access while DMA working
-  }
-  else if (hadc == &SPEED_ADC) // if ADC2 perform its routine
-  {
-    if (adc2_data.status.callback_half == true) // check if routine was not called
-    {
-      adc2_data.status.overflow = true;
-    }
-    adc2_data.status.callback_half = true;
-    adc2_data.status.callback_full = false; // clear flag to prevent memory access while DMA working
-  }
-  else if (hadc == &KNOCK_ADC) // if ADC3 perform its routine
-  {
-    if (adc3_data.status.callback_half == true) // check if routine was not called
-    {
-      adc3_data.status.overflow = true;
-    }
-    adc3_data.status.callback_half = true;
-    adc3_data.status.callback_full = false; // clear flag to prevent memory access while DMA working
+    flags[ADC_STATUS_OVERFLOW] = flags[ADC_STATUS_HALF]; // indicate overflow if flag was not processed
+    flags[ADC_STATUS_HALF] = true;
   }
 }
 
-/* Start functions */
-bool nECU_ADC1_START(void)
+bool nECU_ADC_START(nECU_ADC_Sensor_ID ID)
 {
+  // identify sensor->adc connection
+  nECU_HADC_ID hadc = nECU_ADC_Identify_SensorID(ID);
+  if (hadc >= HADC_ID_MAX)
+    return true;
+
   bool status = false;
+  if (!nECU_FlowControl_Initialize_Check(D_ADC1 + hadc))
+  { /* Clear status flags */
+    for (nECU_ADC_Status current = 0; current < ADC_STATUS_MAX; current++)
+      data_List[hadc].flags[current] = false;
 
-  if (!nECU_FlowControl_Initialize_Check(D_ADC1))
-  {
-
-    /*    List of data in buffer
-    &adc1_data.out_buffer[0]; // Stock MAP sensor data
-    &adc1_data.out_buffer[1]; // Backpressure sensor data [spare]
-    &adc1_data.out_buffer[2]; // OX sensor data [spare]
-    &adc1_data.out_buffer[3]; // ANALOG_IN_1 input data [spare]
-    &adc1_data.out_buffer[4]; // ANALOG_IN_2 input data [spare]
-    &adc1_data.out_buffer[5]; // ANALOG_IN_3 input data [spare]
-    &adc1_data.out_buffer[6]; // Internal_temperature data
-    &adc1_data.out_buffer[7]; // VREF data
-    */
-
-    /* Clear status flags */
-    adc1_data.status.callback_half = false;
-    adc1_data.status.callback_full = false;
-    adc1_data.status.overflow = false;
+    if (hadc == HADC3_ID)
+      status |= nECU_TIM_Init(TIM_ADC_KNOCK_ID);
 
     if (!status)
-      status |= !nECU_FlowControl_Initialize_Do(D_ADC1);
+      status |= !nECU_FlowControl_Initialize_Do(D_ADC1 + hadc);
   }
-  if (!nECU_FlowControl_Working_Check(D_ADC1) && status == false)
+  if (!nECU_FlowControl_Working_Check(D_ADC1 + hadc) && status == false)
   {
-    status |= (HAL_OK != HAL_ADC_Start_DMA(&GENERAL_ADC, (uint32_t *)adc1_data.in_buffer, sizeof(adc1_data.in_buffer) / sizeof(uint16_t)));
+    if (hadc == HADC3_ID)
+      status |= nECU_TIM_Base_Start(TIM_ADC_KNOCK_ID);
+
+    status |= (HAL_OK != HAL_ADC_Start_DMA((hadc_List[hadc]), (uint32_t *)data_List[hadc].in_buffer.Buffer, data_List[hadc].in_buffer.len));
     if (!status)
-      status |= !nECU_FlowControl_Working_Do(D_ADC1);
+      status |= !nECU_FlowControl_Working_Do(D_ADC1 + hadc);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_ADC1);
+    nECU_FlowControl_Error_Do(D_ADC1 + hadc);
 
   return status;
 }
-bool nECU_ADC2_START(void)
+bool nECU_ADC_STOP(nECU_ADC_Sensor_ID ID)
 {
+  // identify sensor->adc connection
+  nECU_HADC_ID hadc = nECU_ADC_Identify_SensorID(ID);
+  if (hadc >= HADC_ID_MAX)
+    return true;
+
   bool status = false;
-
-  if (!nECU_FlowControl_Initialize_Check(D_ADC2))
+  if (nECU_FlowControl_Working_Check(D_ADC1 + hadc) && status == false)
   {
-    /* List of data in buffer
-    &adc2_data.out_buffer[0]; // Speed sensor 1
-    &adc2_data.out_buffer[1]; // Speed sensor 2
-    &adc2_data.out_buffer[2]; // Speed sensor 3
-    &adc2_data.out_buffer[3]; // Speed sensor 4
-    */
+    if (hadc == HADC3_ID)
+      status |= nECU_TIM_Base_Stop(TIM_ADC_KNOCK_ID);
 
-    /* Clear status flags */
-    adc2_data.status.callback_half = false;
-    adc2_data.status.callback_full = false;
-    adc2_data.status.overflow = false;
-
+    status |= (HAL_OK != HAL_ADC_Stop_DMA((hadc_List[hadc])));
+    nECU_ADC_Routine(ID); // finish routine if flags pending
     if (!status)
-      status |= !nECU_FlowControl_Initialize_Do(D_ADC2);
-  }
-  if (!nECU_FlowControl_Working_Check(D_ADC2) && status == false)
-  {
-    status |= (HAL_OK != HAL_ADC_Start_DMA(&SPEED_ADC, (uint32_t *)adc2_data.in_buffer, sizeof(adc2_data.in_buffer) / sizeof(uint16_t)));
-    if (!status)
-      status |= !nECU_FlowControl_Working_Do(D_ADC2);
+      status |= !nECU_FlowControl_Stop_Do(D_ADC1 + hadc);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_ADC2);
+    nECU_FlowControl_Error_Do(D_ADC1 + hadc);
 
   return status;
 }
-bool nECU_ADC3_START(void)
+void nECU_ADC_Routine(nECU_ADC_Sensor_ID ID)
 {
-  bool status = false;
-
-  if (!nECU_FlowControl_Initialize_Check(D_ADC3) && status == false)
+  // identify sensor->adc connection
+  nECU_HADC_ID hadc = nECU_ADC_Identify_SensorID(ID);
+  if (hadc >= HADC_ID_MAX)
+    return;
+  // Check if currently working
+  if (!nECU_FlowControl_Working_Check(D_ADC1 + hadc))
   {
-    /* Clear status flags */
-    adc3_data.status.callback_half = false;
-    adc3_data.status.callback_full = false;
-    adc3_data.status.overflow = false;
-    status |= nECU_TIM_Init(TIM_ADC_KNOCK_ID);
-    if (!status)
-      status |= !nECU_FlowControl_Initialize_Do(D_ADC3);
-  }
-  if (!nECU_FlowControl_Working_Check(D_ADC3))
-  {
-    status |= nECU_TIM_Base_Start(TIM_ADC_KNOCK_ID);
-    status |= (HAL_OK != HAL_ADC_Start_DMA(&KNOCK_ADC, (uint32_t *)adc3_data.in_buffer, sizeof(adc3_data.in_buffer) / sizeof(uint16_t)));
-    if (!status)
-      status |= !nECU_FlowControl_Working_Do(D_ADC3);
-  }
-  if (status)
-    nECU_FlowControl_Error_Do(D_ADC3);
-
-  return status;
-}
-/* Stop functions */
-bool nECU_ADC1_STOP(void)
-{
-  bool status = false;
-  if (nECU_FlowControl_Working_Check(D_ADC1) && status == false)
-  {
-    status |= (HAL_OK != HAL_ADC_Stop_DMA(&GENERAL_ADC));
-    nECU_ADC1_Routine(); // finish routine if flags pending
-    if (!status)
-      status |= !nECU_FlowControl_Stop_Do(D_ADC1);
-  }
-  if (status)
-    nECU_FlowControl_Error_Do(D_ADC1);
-
-  return status;
-}
-bool nECU_ADC2_STOP(void)
-{
-  bool status = false;
-  if (nECU_FlowControl_Working_Check(D_ADC2) && status == false)
-  {
-    status |= (HAL_OK != HAL_ADC_Stop_DMA(&SPEED_ADC));
-    nECU_ADC2_Routine(); // finish routine if flags pending
-    if (!status)
-      status |= !nECU_FlowControl_Stop_Do(D_ADC2);
-  }
-  if (status)
-    nECU_FlowControl_Error_Do(D_ADC1);
-
-  return status;
-}
-bool nECU_ADC3_STOP(void)
-{
-  bool status = false;
-  if (nECU_FlowControl_Working_Check(D_ADC3) && status == false)
-  {
-    status |= nECU_TIM_Base_Stop(TIM_ADC_KNOCK_ID);
-    status |= (HAL_OK != HAL_ADC_Stop_DMA(&KNOCK_ADC));
-    if (!status)
-      status |= !nECU_FlowControl_Stop_Do(D_ADC3);
-  }
-  if (status)
-    nECU_FlowControl_Error_Do(D_ADC1);
-
-  return status;
-}
-/* ADC Rutines */
-void nECU_ADC1_Routine(void)
-{
-  if (!nECU_FlowControl_Working_Check(D_ADC1)) // Check if currently working
-  {
-    nECU_FlowControl_Error_Do(D_ADC1);
+    nECU_FlowControl_Error_Do(D_ADC1 + hadc);
     return; // Break
   }
-
   /* Conversion Completed callbacks */
-  if (adc1_data.status.callback_half == true)
+  uint16_t start_index = 0;
+  if (data_List[hadc].flags[ADC_STATUS_FULL])
   {
-    nECU_ADC_AverageDMA(&GENERAL_ADC, &(adc1_data.in_buffer[0]), GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
-    adc1_data.status.callback_half = false; // clear flag
+    data_List[hadc].flags[ADC_STATUS_FULL] = false; // clear flag
+    start_index = 0;
   }
-  else if (adc1_data.status.callback_full == true)
+  else if (data_List[hadc].flags[ADC_STATUS_HALF])
   {
-    nECU_ADC_AverageDMA(&GENERAL_ADC, &(adc1_data.in_buffer[GENERAL_DMA_LEN / 2]), GENERAL_DMA_LEN / 2, adc1_data.out_buffer, GENERAL_SMOOTH_ALPHA);
-    adc1_data.status.callback_full = false; // clear flag
+    data_List[hadc].flags[ADC_STATUS_HALF] = false; // clear flag
+    start_index = (data_List[hadc].in_buffer.len / 2) - 1;
   }
-  nECU_Debug_ProgramBlockData_Update(D_ADC1);
+  else
+    return; // drop if no new data
+
+  if (hadc != HADC3_ID)
+    nECU_ADC_AverageDMA(hadc_List[hadc], &data_List[hadc].in_buffer.Buffer[start_index], (data_List[hadc].in_buffer.len / 2), (data_List[hadc].out_buffer.Buffer), DMA_Smoothing[hadc]);
+  else
+    nECU_Knock_ADC_Callback(data_List[hadc].in_buffer.Buffer);
+
+  nECU_Debug_ProgramBlockData_Update(D_ADC1 + hadc);
 }
-void nECU_ADC2_Routine(void)
+
+static nECU_HADC_ID nECU_ADC_Identify_SensorID(nECU_ADC_Sensor_ID ID) // returns correcr hadc id based on given sensor
 {
-  if (!nECU_FlowControl_Working_Check(D_ADC2)) // Check if currently working
-  {
-    nECU_FlowControl_Error_Do(D_ADC2);
-    return; // Break
-  }
+  if (ID >= ADC_ID_MAX)
+    return HADC_ID_MAX; // default
 
-  /* Conversion Completed callbacks */
-  if (adc2_data.status.callback_half == true)
-  {
-    nECU_ADC_AverageDMA(&SPEED_ADC, adc2_data.in_buffer, SPEED_DMA_LEN / 2, adc2_data.out_buffer, SPEED_SMOOTH_ALPHA);
-    adc2_data.status.callback_half = false; // clear flag
-  }
-  else if (adc2_data.status.callback_full == true)
-  {
-    nECU_ADC_AverageDMA(&SPEED_ADC, &adc2_data.in_buffer[(SPEED_DMA_LEN / 2) - 1], SPEED_DMA_LEN / 2, adc2_data.out_buffer, SPEED_SMOOTH_ALPHA);
-    adc2_data.status.callback_full = false; // clear flag
-  }
-  nECU_Debug_ProgramBlockData_Update(D_ADC2);
+  if (ID < ADC1_CH_COUNT)
+    return HADC1_ID;
+  else if (ID < (ADC1_CH_COUNT + ADC2_CH_COUNT))
+    return HADC2_ID;
+  else if (ID < (ADC1_CH_COUNT + ADC2_CH_COUNT + ADC3_CH_COUNT))
+    return HADC3_ID;
+
+  return HADC_ID_MAX; // default
 }
-void nECU_ADC3_Routine(void)
+static nECU_HADC_ID nECU_ADC_Identify_hadc(ADC_HandleTypeDef *hadc) // returns ID of given hadc structure pointer
 {
-  if (!nECU_FlowControl_Working_Check(D_ADC3)) // Check if currently working
+  for (nECU_HADC_ID currentID = HADC1_ID; currentID < HADC_ID_MAX; currentID++)
   {
-    nECU_FlowControl_Error_Do(D_ADC3);
-    return; // Break
+    if (hadc == hadc_List[currentID])
+      return currentID;
   }
-
-  /* Conversion Completed callbacks */
-  if (adc3_data.status.callback_half == true)
-  {
-    adc3_data.status.callback_half = false; // clear flag
-    nECU_Knock_ADC_Callback(&adc3_data.in_buffer[0]);
-  }
-  else if (adc3_data.status.callback_full == true)
-  {
-    adc3_data.status.callback_full = false; // clear flag
-    nECU_Knock_ADC_Callback(&adc3_data.in_buffer[(KNOCK_DMA_LEN / 2) - 1]);
-  }
-  nECU_Debug_ProgramBlockData_Update(D_ADC3);
-#if TEST_KNOCK_UART == true
-  Send_Triangle_UART();
-  return;
-#endif
+  return HADC_ID_MAX;
 }
-
 /* pointer get functions */
-uint16_t *nECU_ADC1_getPointer(nECU_ADC1_ID ID)
+uint16_t *nECU_ADC_getPointer(nECU_ADC_Sensor_ID ID)
 {
-  if (ID >= ADC1_ID_MAX) // Break if invalid ID
-    return NULL;
-  return &adc1_data.out_buffer[0 + ID];
-}
-uint16_t *nECU_ADC2_getPointer(nECU_ADC2_ID ID)
-{
-  if (ID >= ADC2_ID_MAX) // Break if invalid ID
+  // identify sensor->adc connection
+  nECU_HADC_ID hadc = nECU_ADC_Identify_SensorID(ID);
+  if (hadc >= HADC_ID_MAX)
     return NULL;
 
-  return &adc2_data.out_buffer[0 + ID];
+  return &out_buffer[ID];
 }

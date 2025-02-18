@@ -7,14 +7,13 @@
     [X] EGT.c rewrite
         [ ] fix EGT communication
     [ ] Move test functions to corresponding files
-    [X] check _ID_MAX usage
     [X] create printf progress bar
         [ ] Startup progress
     [X] move flow control to new file
         [ ]handle double errors
     [ ] tim PWM out rewrite + OX
     [ ] LED animations unification
-    [X] Update *.ioc
+    [X] ADC unified functions
 
 [ ] Code overhaul tests:
     [ ] Analog inputs
@@ -23,7 +22,8 @@
         [ ] OX
         [ ] AI1-3
         [ ] MCU temperature
-        [X] VREF
+        [ ] VREF
+        [ ] Speed Sensors
     [ ] Frequency inputs
         [X] VSS
         [ ] IGF

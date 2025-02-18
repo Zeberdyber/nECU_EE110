@@ -16,28 +16,10 @@
 
 #define FFT_THRESH_TABLE_LEN 5 // length of table
 
-#define APB2_CLOCK 42000000 // APB2 clock speed
-
-#define GENERAL_CHANNEL_COUNT 8                                                                                                                                                                                                          // number of initialized channels of GENERAL_ADC
-#define GENERAL_ADC_CLOCKDIVIDER 8                                                                                                                                                                                                       // values of a clock divider for this peripheral
-#define GENERAL_ADC_SAMPLINGCYCLES 480                                                                                                                                                                                                   // number of cycles that it takes to conver single channel
-#define GENERAL_ADC_RESOLUTIONCYCLES 15                                                                                                                                                                                                  // how many cycles per conversion is added due to precission
-#define GENERAL_TARGET_UPDATE 25                                                                                                                                                                                                         // time in ms how often should values be updated
-#define GENERAL_DMA_LEN (((uint16_t)(((APB2_CLOCK * GENERAL_TARGET_UPDATE) / 1000) / ((GENERAL_ADC_RESOLUTIONCYCLES + GENERAL_ADC_SAMPLINGCYCLES) * GENERAL_ADC_CLOCKDIVIDER * GENERAL_CHANNEL_COUNT))) / 2) * 2 * GENERAL_CHANNEL_COUNT // length of DMA buffer for GENERAL_ADC, '2' for divisibility by two
-
-#define SPEED_CHANNEL_COUNT 4                                                                                                                                                                                              // number of initialized channels of SPEED_ADC
-#define SPEED_ADC_CLOCKDIVIDER 8                                                                                                                                                                                           // values of a clock divider for this peripheral
-#define SPEED_ADC_SAMPLINGCYCLES 480                                                                                                                                                                                       // number of cycles that it takes to conver single channel
-#define SPEED_ADC_RESOLUTIONCYCLES 15                                                                                                                                                                                      // how many cycles per conversion is added due to precission
-#define SPEED_TARGET_UPDATE 25                                                                                                                                                                                             // time in ms how often should values be updated
-#define SPEED_DMA_LEN (((uint16_t)(((APB2_CLOCK * SPEED_TARGET_UPDATE) / 1000) / ((SPEED_ADC_RESOLUTIONCYCLES + SPEED_ADC_SAMPLINGCYCLES) * SPEED_ADC_CLOCKDIVIDER * SPEED_CHANNEL_COUNT))) / 2) * 2 * SPEED_CHANNEL_COUNT // length of DMA buffer for SPEED_ADC, '2' for divisibility by two
-#define SPEED_AVERAGE_BUFFER_SIZE 100                                                                                                                                                                                      // number of conversions to average
-
-#define KNOCK_CHANNEL_COUNT 1 // number of initialized channels of KNOCK_ADC
-#define KNOCK_DMA_LEN 512     // length of DMA buffer for KNOCK_ADC
-#define FFT_LENGTH 2048       // length of data passed to FFT code and result precision
+#define FFT_LENGTH 2048 // length of data passed to FFT code and result precision
 
 #define PC_UART_BUF_LEN 128 // length of buffer for UART transmission to PC
+#define KNOCK_DMA_LEN 512
 
 #define DEBUG_QUE_LEN 50                // number of debug messages that will be stored in memory
 #define ONBOARD_LED_ANIMATION_QUE_LEN 5 // number of animation access points
@@ -66,12 +48,12 @@ typedef struct
 typedef struct
 {
     uint16_t *Buffer; // pointer to buffer
-    uint8_t len;      // lenght of the buffer
+    uint16_t len;     // lenght of the buffer
 } Buffer_uint16;
 typedef struct
 {
     uint8_t *Buffer; // pointer to buffer
-    uint8_t len;     // lenght of the buffer
+    uint16_t len;    // lenght of the buffer
 } Buffer_uint8;
 typedef struct
 {
@@ -145,52 +127,44 @@ typedef struct
 /* ADCs */
 typedef enum
 {
-    ADC1_MAP_ID,
-    ADC1_BackPressure_ID,
-    ADC1_OX_ID,
-    ADC1_AI_1_ID,
-    ADC1_AI_2_ID,
-    ADC1_AI_3_ID,
-    ADC1_MCUTemp_ID,
-    ADC1_VREF_ID,
-    ADC1_ID_MAX
-} nECU_ADC1_ID;
+    // ADC1
+    ADC_MAP_ID,
+    ADC_BackPressure_ID,
+    ADC_OX_ID,
+    ADC_AI_1_ID,
+    ADC_AI_2_ID,
+    ADC_AI_3_ID,
+    ADC_MCUTemp_ID,
+    ADC_VREF_ID,
+    // ADC2
+    ADC_VSS_FL_ID,
+    ADC_VSS_FR_ID,
+    ADC_VSS_RL_ID,
+    ADC_VSS_RR_ID,
+    // ADC3
+    ADC_KNOCK_ID,
+    ADC_ID_MAX
+} nECU_ADC_Sensor_ID;
 typedef enum
 {
-    ADC2_VSS_FL_ID,
-    ADC2_VSS_FR_ID,
-    ADC2_VSS_RL_ID,
-    ADC2_VSS_RR_ID,
-    ADC2_ID_MAX
-} nECU_ADC2_ID;
-
-typedef struct
-{
-    bool callback_half, callback_full, overflow; // callback flags to indicate DMA buffer states
+    ADC_STATUS_HALF,
+    ADC_STATUS_FULL,
+    ADC_STATUS_OVERFLOW,
+    ADC_STATUS_MAX,
 } nECU_ADC_Status;
+typedef enum
+{
+    HADC1_ID,
+    HADC2_ID,
+    HADC3_ID,
+    HADC_ID_MAX,
+} nECU_HADC_ID;
 typedef struct
 {
-    uint16_t in_buffer[GENERAL_DMA_LEN];        // input buffer (from DMA)
-    uint16_t out_buffer[GENERAL_CHANNEL_COUNT]; // output buffer (after processing, like average)
-    nECU_ADC_Status status;                     // statuses
-} nECU_ADC1;
-typedef struct
-{
-    uint16_t in_buffer[SPEED_DMA_LEN];        // input buffer (from DMA)
-    uint16_t out_buffer[SPEED_CHANNEL_COUNT]; // output buffer (after processing, like average)
-    nECU_ADC_Status status;                   // statuses
-} nECU_ADC2;
-typedef struct
-{
-    uint16_t in_buffer[KNOCK_DMA_LEN]; // input buffer (from DMA)
-    nECU_ADC_Status status;            // statuses
-} nECU_ADC3;
-typedef struct
-{
-    uint16_t *ADC_data;  // pointer to ADC data
-    int16_t temperature; // output data (real_tem*100)
-    nECU_Delay update;   // delay after MCU restart
-} nECU_InternalTemp;
+    Buffer_uint16 in_buffer;    // input buffer (from DMA)
+    Buffer_uint16 out_buffer;   // output buffer (after processing, like average)
+    bool flags[ADC_STATUS_MAX]; // statuses
+} nECU_ADC;
 
 /* Buttons */
 typedef enum
@@ -350,7 +324,7 @@ typedef struct
     bool *TachoShow[TACHO_ID_MAX];
     bool *Antilag, *TractionOFF, *ClearCode;
     uint16_t *LunchLvl;
-    uint16_t SpeedSensor[ADC2_ID_MAX];
+    uint16_t SpeedSensor[4];
 } Frame0_struct;
 typedef struct
 {
@@ -653,7 +627,7 @@ typedef enum
     D_Frame_Speed_ID,
     D_Frame_EGT_ID,
     D_Frame_Stock_ID,
-    // nECU_Input_Analog.c !Have to be in the same order as 'nECU_ADC1_ID'!
+    // nECU_Input_Analog.c !Have to be in the same order as 'nECU_ADC_Sensor_ID'!
     D_ANALOG_MAP,
     D_ANALOG_BackPressure,
     D_ANALOG_OX,
@@ -662,10 +636,11 @@ typedef enum
     D_ANALOG_AI_3,
     D_ANALOG_MCUTemp,
     D_ANALOG_VREF,
-    D_ANALOG_SS1, //! Have to be in the same order as 'nECU_ADC2_ID'!
+    D_ANALOG_SS1,
     D_ANALOG_SS2,
     D_ANALOG_SS3,
     D_ANALOG_SS4,
+    D_ANALOG_KNOCK,
     // nECU_Input_Frequency.c
     D_VSS,
     D_IGF,

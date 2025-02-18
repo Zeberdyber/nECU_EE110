@@ -47,7 +47,7 @@ bool nECU_OX_Start(void) // initialize narrowband lambda structure
     }
     if (!nECU_FlowControl_Working_Check(D_OX) && status == false)
     {
-        status |= nECU_InputAnalog_ADC1_Start(ADC1_OX_ID);
+        status |= nECU_InputAnalog_Start(ADC_OX_ID);
         status |= nECU_TIM_PWM_Start(TIM_PWM_OX_ID, 0);
         if (!status)
             status |= !nECU_FlowControl_Working_Do(D_OX);
@@ -66,7 +66,7 @@ void nECU_OX_Routine(void) // update narrowband lambda structure
     }
 
     /* Input sensor */
-    nECU_InputAnalog_ADC1_Routine(ADC1_OX_ID);
+    nECU_InputAnalog_Routine(ADC_OX_ID);
 
     /* Output update */
     /* simple algorithm that linearly scale heater voltage with engine coolant temperature */
@@ -84,7 +84,7 @@ bool nECU_OX_Stop(void) // deinitialize narrowband lambda structure
     if (nECU_FlowControl_Working_Check(D_OX) && status == false)
     {
         status |= nECU_TIM_PWM_Stop(TIM_PWM_OX_ID, TIM_CHANNEL_1);
-        status |= nECU_InputAnalog_ADC1_Stop(ADC1_OX_ID);
+        status |= nECU_InputAnalog_Stop(ADC_OX_ID);
         if (!status)
             status |= !nECU_FlowControl_Stop_Do(D_OX);
     }

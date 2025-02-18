@@ -21,7 +21,7 @@ bool nECU_Debug_Start(void) // starts up debugging functions
     {
         status |= nECU_Debug_Init_Struct();
         status |= nECU_Debug_Init_Que();
-        status |= nECU_InputAnalog_ADC1_Start(ADC1_MCUTemp_ID);
+        status |= nECU_InputAnalog_Start(ADC_MCUTemp_ID);
         if (!status)
         {
             status |= !nECU_FlowControl_Initialize_Do(D_Debug);
@@ -85,8 +85,8 @@ void nECU_Debug_Periodic(void) // checks states of variables
         nECU_FlowControl_Error_Do(D_Debug);
         return;
     }
-    nECU_InputAnalog_ADC1_Routine(ADC1_MCUTemp_ID);
-    dbg_data.device_temperature.MCU = nECU_FloatToInt(nECU_InputAnalog_ADC1_getValue(ADC1_MCUTemp_ID), 16);
+    nECU_InputAnalog_Routine(ADC_MCUTemp_ID);
+    dbg_data.device_temperature.MCU = nECU_FloatToInt(nECU_InputAnalog_getValue(ADC_MCUTemp_ID), 16);
 
     nECU_Debug_IntTemp_Check(&(dbg_data.device_temperature));
     // nECU_Debug_EGTTemp_Check(&(dbg_data.egt_temperature));

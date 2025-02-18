@@ -52,8 +52,8 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
         nECU_FlowControl_Error_Do(D_Main);
     }
     block = nECU_Debug_ProgramBlockData_getPointer_Block(D_Main);
-    nECU_InputAnalog_ADC1_Start(ADC1_VREF_ID);
-    vrefADC = nECU_ADC1_getPointer(ADC1_VREF_ID);
+    nECU_InputAnalog_Start(ADC_VREF_ID);
+    vrefADC = nECU_ADC_getPointer(ADC_VREF_ID);
     nECU_Delay_Set(&max_decay, 1000);
     nECU_Delay_Start(&max_decay);
     nECU_TIM_PWM_Start(TIM_PWM_LED1_ID, 0);
@@ -87,7 +87,7 @@ void nECU_main(void) // main rutine of the program
     OnBoard_LED_Update();
     // nECU_Debug_Periodic();
 
-    // nECU_InputAnalog_ADC1_Routine(ADC1_VREF_ID);
+    // nECU_InputAnalog_Routine(ADC_VREF_ID);
 
     // // nECU_EGT_Routine();
 
@@ -101,7 +101,7 @@ void nECU_main(void) // main rutine of the program
     //     max = (uint8_t)block->Update_ticks.difference;
 
     // nECU_console_progressBar(bar, bar_len, max);
-    // printf("%d\t%s\r", (int)nECU_InputAnalog_ADC1_getValue(ADC1_VREF_ID), bar);
+    // printf("%d\t%s\r", (int)nECU_InputAnalog_getValue(ADC_VREF_ID), bar);
     // fflush(stdout);
 
     nECU_Debug_ProgramBlockData_Update(D_Main);

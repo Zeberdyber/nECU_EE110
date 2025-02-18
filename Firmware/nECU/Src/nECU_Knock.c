@@ -44,7 +44,7 @@ bool nECU_Knock_Start(void) // initialize and start
     }
     if (!nECU_FlowControl_Working_Check(D_Knock) && status == false)
     {
-        status |= nECU_ADC3_START();                 // ADC start
+        status |= nECU_ADC_START(ADC_KNOCK_ID);      // ADC start
         status |= nECU_FreqInput_Start(FREQ_IGF_ID); // RPM reference
         if (!status)
             status |= !nECU_FlowControl_Working_Do(D_Knock);
@@ -91,7 +91,7 @@ void nECU_Knock_UpdatePeriodic(void) // function to calculate current retard val
         nECU_FlowControl_Error_Do(D_Knock);
         return; // Break
     }
-    nECU_ADC3_Routine(); // Pull new data
+    nECU_ADC_Routine(ADC_KNOCK_ID); // Pull new data
     nECU_TickTrack_Update(&(Knock.regres));
     nECU_Delay_Update(&(Knock.delay));
 
@@ -159,7 +159,7 @@ bool nECU_Knock_Stop(void) // stop
     bool status = false;
     if (nECU_FlowControl_Working_Check(D_Knock) && status == false)
     {
-        status |= nECU_ADC3_STOP();
+        status |= nECU_ADC_STOP(ADC_KNOCK_ID);
         status |= nECU_FreqInput_Stop(FREQ_IGF_ID);
         if (!status)
             status |= !nECU_FlowControl_Stop_Do(D_Knock);
