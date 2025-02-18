@@ -41,10 +41,8 @@ extern "C"
     void nECU_tests_error_display(void); // on board LEDs display
 
     /* system tests */
-    bool nECU_systest_Flash_SpeedCalibration(void); // test both read and write to flash memory
-    bool nECU_systest_Flash_UserSettings(void);     // test both read and write to flash memory
-    bool nECU_systest_run(void);                    // run tests of type systest
-    void nECU_systest_error(void);                  // function to call when error detected
+    bool nECU_systest_run(void);   // run tests of type systest
+    void nECU_systest_error(void); // function to call when error detected
 
     /* code tests */
     bool nECU_codetest_run(void);   // run tests of type codetest

@@ -50,7 +50,11 @@ extern "C"
     /* Interface functions */
     bool nECU_FLASH_Start(void);
     bool nECU_FLASH_Stop(void);
-    bool nECU_FLASH_Erase(void);
+    static bool nECU_FLASH_Erase(void);
+
+    static bool nECU_FLASH_test_SpeedCalibration(void); // test both read and write to flash memory
+    static bool nECU_FLASH_test_UserSettings(void);     // test both read and write to flash memory
+    bool nECU_FLASH_test(bool logging_enable);          // run all FLASH tests
 
 #ifdef __cplusplus
 }

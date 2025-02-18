@@ -6,7 +6,8 @@
         [ ] Timeout values for program blocks
     [X] EGT.c rewrite
         [ ] fix EGT communication
-    [ ] Move test functions to corresponding files
+    [X] Move test functions to corresponding files
+        [X] Add progress bars
     [X] create printf progress bar
         [ ] Startup progress
     [X] move flow control to new file

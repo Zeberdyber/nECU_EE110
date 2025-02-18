@@ -329,8 +329,12 @@ static bool nECU_DataProcessing_test_compdecompBool(void) // test nECU_compressB
 }
 bool nECU_DataProcessing_test(bool logging_enable) // Run test
 {
+
+    static char bar[50];
+    static char text[] = "Test of nECU_data_processing.c";
+    nECU_console_progressBar(bar, sizeof(bar), 0);
     if (logging_enable)
-        printf("Started test of nECU_data_processing.c\n\r");
+        printf("\r%s\t%s", text, bar);
 
     if (!nECU_DataProcessing_test_Float())
     {
@@ -338,24 +342,44 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
             printf("\n\rFAIL on nECU_DataProcessing_test_Float()\n\r");
         return false;
     }
+
+    nECU_console_progressBar(bar, sizeof(bar), 20);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
     if (!nECU_DataProcessing_test_ADC_AverageDMA())
     {
         if (logging_enable)
             printf("\n\rFAIL on nECU_DataProcessing_test_ADC_AverageDMA()\n\r");
         return false;
     }
+
+    nECU_console_progressBar(bar, sizeof(bar), 40);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
     if (!nECU_DataProcessing_test_expSmooth())
     {
         if (logging_enable)
             printf("\n\rFAIL on nECU_DataProcessing_test_expSmooth()\n\r");
         return false;
     }
+
+    nECU_console_progressBar(bar, sizeof(bar), 60);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
     if (!nECU_DataProcessing_test_averageSmooth())
     {
         if (logging_enable)
             printf("\n\rFAIL on nECU_DataProcessing_test_averageSmooth()\n\r");
         return false;
     }
+
+    nECU_console_progressBar(bar, sizeof(bar), 80);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
     if (!nECU_DataProcessing_test_compdecompBool())
     {
         if (logging_enable)
@@ -363,7 +387,9 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
         return false;
     }
 
+    nECU_console_progressBar(bar, sizeof(bar), 100);
     if (logging_enable)
-        printf("OK\n\r");
+        printf("\r%s\t%s", text, bar);
+
     return true;
 }

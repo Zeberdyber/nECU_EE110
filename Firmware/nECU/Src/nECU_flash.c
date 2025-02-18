@@ -293,7 +293,7 @@ bool nECU_FLASH_Stop(void)
 
     return status;
 }
-bool nECU_FLASH_Erase(void)
+static bool nECU_FLASH_Erase(void)
 {
     bool status = false;
     // check if data was initialized
@@ -310,4 +310,105 @@ bool nECU_FLASH_Erase(void)
     }
 
     return status;
+}
+
+/* Tests */
+static bool nECU_FLASH_test_SpeedCalibration(void) // test both read and write to flash memory
+{
+    float T1 = 1.0, T2 = 9.99, T3 = -0.0015, T4 = 181516.2;
+    nECU_Flash_SpeedCalibration_save(&T1, &T2, &T3, &T4);
+    float R1 = 0.0, R2 = 0.0, R3 = 0.0, R4 = 0.0;
+    nECU_Flash_SpeedCalibration_read(&R1, &R2, &R3, &R4);
+    if (R1 - T1 + R2 - T2 + R3 - T3 + R4 - T4 != 0)
+    {
+        return true;
+    }
+    T1 = 1.0;
+    nECU_Flash_SpeedCalibration_save(&T1, &T1, &T1, &T1);
+    nECU_Flash_SpeedCalibration_read(&R1, &R2, &R3, &R4);
+    if (R1 + R2 + R3 + R4 != T1 * 4)
+    {
+        return true;
+    }
+
+    return false;
+}
+static bool nECU_FLASH_test_UserSettings(void) // test both read and write to flash memory
+{
+    bool T0, T1, R0, R1;
+    T0 = true;
+    T1 = false;
+
+    nECU_Flash_UserSettings_save(&T0, &T1);
+    nECU_Flash_UserSettings_read(&R0, &R1);
+    if (R0 != true || R1 != false)
+    {
+        return true;
+    }
+
+    T0 = false;
+    T1 = true;
+    nECU_Flash_UserSettings_save(&T0, &T1);
+    nECU_Flash_UserSettings_read(&R0, &R1);
+    if (R0 != false || R1 != true)
+    {
+        return true;
+    }
+
+    return false;
+}
+bool nECU_FLASH_test(bool logging_enable) // run all FLASH tests
+{
+    static char bar[50];
+    static char text[] = "Test of nECU_flash.c";
+    nECU_console_progressBar(bar, sizeof(bar), 0);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
+    HAL_Delay(FLASH_MINIMUM_RUN_TIME);
+
+    nECU_console_progressBar(bar, sizeof(bar), 20);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
+    if (!nECU_FLASH_Erase())
+    {
+        if (logging_enable)
+            printf("\n\rFAIL on nECU_FLASH_Erase()\n\r");
+        return false;
+    }
+
+    nECU_console_progressBar(bar, sizeof(bar), 40);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
+    HAL_Delay(FLASH_MINIMUM_RUN_TIME);
+
+    nECU_console_progressBar(bar, sizeof(bar), 60);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
+    if (!nECU_FLASH_test_SpeedCalibration())
+    {
+        if (logging_enable)
+            printf("\n\rFAIL on nECU_FLASH_test_SpeedCalibration()\n\r");
+        return false;
+    }
+
+    nECU_console_progressBar(bar, sizeof(bar), 80);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
+    if (!nECU_FLASH_test_UserSettings())
+    {
+        if (logging_enable)
+            printf("\n\rFAIL on nECU_FLASH_test_UserSettings()\n\r");
+        return false;
+    }
+
+    nECU_console_progressBar(bar, sizeof(bar), 100);
+    if (logging_enable)
+        printf("\r%s\t%s", text, bar);
+
+    return true;
 }
