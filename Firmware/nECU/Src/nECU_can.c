@@ -35,22 +35,22 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
 {
   bool status_TX = false, status_RX = false;
 
-  if (!nECU_FlowControl_Initialize_Check(D_CAN_TX) && status_TX == false)
+  if (!nECU_FC_Initialize_Check(D_CAN_TX) && status_TX == false)
   {
     for (nECU_CAN_TX_Frame_ID currentID = 0; currentID < CAN_TX_ID_MAX; currentID++)
       status_TX |= nECU_CAN_TX_Init(currentID);
     if (!status_TX)
-      status_TX |= !nECU_FlowControl_Initialize_Do(D_CAN_TX);
+      status_TX |= !nECU_FC_Initialize_Do(D_CAN_TX);
   }
-  if (!nECU_FlowControl_Initialize_Check(D_CAN_RX) && status_RX == false)
+  if (!nECU_FC_Initialize_Check(D_CAN_RX) && status_RX == false)
   {
     for (nECU_CAN_RX_Frame_ID currentID = 0; currentID < CAN_RX_ID_MAX; currentID++)
       status_RX |= nECU_CAN_RX_Init(currentID);
     if (!status_RX)
-      status_RX |= !nECU_FlowControl_Initialize_Do(D_CAN_RX);
+      status_RX |= !nECU_FC_Initialize_Do(D_CAN_RX);
   }
 
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX) && status_TX == false)
+  if (!nECU_FC_Working_Check(D_CAN_TX) && status_TX == false)
   {
     if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_READY)
       status_TX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
@@ -62,10 +62,10 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   }
   if (status_TX)
   {
-    nECU_FlowControl_Error_Do(D_CAN_TX);
+    nECU_FC_Error_Do(D_CAN_TX);
   }
 
-  if (!nECU_FlowControl_Working_Check(D_CAN_RX) && status_RX == false)
+  if (!nECU_FC_Working_Check(D_CAN_RX) && status_RX == false)
   {
     if (HAL_CAN_GetState(&hcan1) == HAL_CAN_STATE_READY)
       status_RX |= (HAL_CAN_Start(&hcan1) != HAL_OK);
@@ -77,16 +77,16 @@ bool nECU_CAN_Start(void) // start periodic transmission of data accroding to th
   }
   if (status_RX)
   {
-    nECU_FlowControl_Error_Do(D_CAN_RX);
+    nECU_FC_Error_Do(D_CAN_RX);
   }
 
   return status_TX | status_RX;
 }
 void nECU_CAN_WriteToBuffer(nECU_CAN_TX_Frame_ID frameID, uint8_t size) // copy input data to corresponding frame buffer
 {
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX) || (frameID >= CAN_TX_ID_MAX) || size == 0)
+  if (!nECU_FC_Working_Check(D_CAN_TX) || (frameID >= CAN_TX_ID_MAX) || size == 0)
   {
-    nECU_FlowControl_Error_Do(D_CAN_TX);
+    nECU_FC_Error_Do(D_CAN_TX);
     return;
   }
 
@@ -101,18 +101,18 @@ void nECU_CAN_WriteToBuffer(nECU_CAN_TX_Frame_ID frameID, uint8_t size) // copy 
 bool nECU_CAN_Stop(void) // stop all CAN code, with timing
 {
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_CAN_TX) && status == false)
+  if (nECU_FC_Working_Check(D_CAN_TX) && status == false)
   {
     for (nECU_CAN_TX_Frame_ID currenID = 0; currenID < CAN_TX_ID_MAX; currenID++)
       status |= nECU_Delay_Stop(&(Tx_frame_List[currenID].frame_delay));
     if (!status)
-      status |= nECU_FlowControl_Stop_Do(D_CAN_TX);
+      status |= nECU_FC_Stop_Do(D_CAN_TX);
   }
-  if (nECU_FlowControl_Working_Check(D_CAN_RX) && status == false)
+  if (nECU_FC_Working_Check(D_CAN_RX) && status == false)
   {
     status |= (HAL_OK != HAL_CAN_DeactivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING)); // Stop waiting for RX
     if (!status)
-      status |= !nECU_FlowControl_Stop_Do(D_CAN_RX);
+      status |= !nECU_FC_Stop_Do(D_CAN_RX);
   }
 
   status |= (HAL_OK != HAL_CAN_Stop(&hcan1));
@@ -123,14 +123,14 @@ bool nECU_CAN_Stop(void) // stop all CAN code, with timing
 // TX functions
 void nECU_CAN_TX_CheckTime(void) // checks if it is time to send packet
 {
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX))
+  if (!nECU_FC_Working_Check(D_CAN_TX))
   {
-    nECU_FlowControl_Error_Do(D_CAN_TX);
+    nECU_FC_Error_Do(D_CAN_TX);
     return;
   }
   for (nECU_CAN_TX_Frame_ID currentID = 0; currentID < CAN_TX_ID_MAX; currentID++)
   {
-    if (nECU_FlowControl_Working_Check(D_Frame_Speed_ID + currentID)) // check if frame working
+    if (nECU_FC_Working_Check(D_Frame_Speed_ID + currentID)) // check if frame working
     {
       nECU_Delay_Update(&(Tx_frame_List[currentID].frame_delay)); // update time
       if (Tx_frame_List[currentID].frame_delay.done)              // check if time is above threshold
@@ -138,14 +138,14 @@ void nECU_CAN_TX_CheckTime(void) // checks if it is time to send packet
         nECU_Delay_Start(&(Tx_frame_List[currentID].frame_delay)); // restart delay
 
         if (nECU_CAN_TX_TransmitFrame(currentID))
-          nECU_FlowControl_Error_Do(D_Frame_Speed_ID + currentID);
+          nECU_FC_Error_Do(D_Frame_Speed_ID + currentID);
         else
           nECU_Frame_TX_done(currentID);
       }
     }
   }
 
-  nECU_Debug_ProgramBlockData_Update(D_CAN_TX);
+  nECU_FC_Timeout_Check(D_CAN_TX);
 }
 static bool nECU_CAN_TX_Init(nECU_CAN_TX_Frame_ID currentID)
 {
@@ -172,9 +172,9 @@ static bool nECU_CAN_TX_Init(nECU_CAN_TX_Frame_ID currentID)
 static bool nECU_CAN_TX_TransmitFrame(nECU_CAN_TX_Frame_ID frameID) // send selected frame over CAN
 {
   bool status = false;
-  if (!nECU_FlowControl_Working_Check(D_CAN_TX) || (frameID >= CAN_TX_ID_MAX)) // Break if invalid ID
+  if (!nECU_FC_Working_Check(D_CAN_TX) || (frameID >= CAN_TX_ID_MAX)) // Break if invalid ID
   {
-    nECU_FlowControl_Error_Do(D_CAN_TX);
+    nECU_FC_Error_Do(D_CAN_TX);
     status |= true;
     return status;
   }
@@ -217,7 +217,7 @@ static bool nECU_CAN_RX_Init(nECU_CAN_RX_Frame_ID currentID)
 }
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) // interrupt callback when new Rx frame in FIFO0
 {
-  if (!nECU_FlowControl_Working_Check(D_CAN_RX))
+  if (!nECU_FC_Working_Check(D_CAN_RX))
     return; // break
   static CAN_RxHeaderTypeDef RX_Header;
   static uint8_t Buffer[8] = {0};
@@ -225,7 +225,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) // interrupt cal
   HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RX_Header, Buffer); // Receive CAN bus message to canRX buffer
   nECU_CAN_RX_Frame_ID ID = nECU_CAN_RX_Identify(&RX_Header);
   nECU_CAN_RX_Update(ID, Buffer);
-  nECU_Debug_ProgramBlockData_Update(D_CAN_RX);
+  nECU_FC_Timeout_Check(D_CAN_RX);
 }
 static nECU_CAN_RX_Frame_ID nECU_CAN_RX_Identify(CAN_RxHeaderTypeDef *pHeader)
 {
@@ -261,8 +261,8 @@ bool nECU_CAN_GetError(void) // get error state pf can periperal buisy
   HAL_CAN_StateTypeDef CurrentState = HAL_CAN_GetState(&hcan1);
   if (CurrentState >= HAL_CAN_STATE_SLEEP_PENDING || CurrentState == HAL_CAN_STATE_RESET)
   {
-    nECU_FlowControl_Error_Do(D_CAN_TX);
-    nECU_FlowControl_Error_Do(D_CAN_RX);
+    nECU_FC_Error_Do(D_CAN_TX);
+    nECU_FC_Error_Do(D_CAN_RX);
     return true;
   }
   return false;

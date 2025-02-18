@@ -22,7 +22,7 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     bool status = false;
     status |= nECU_Debug_Start(); // MUST BE THE FIRST EXECUTED LINE!!
 
-    if (!nECU_FlowControl_Initialize_Check(D_Main))
+    if (!nECU_FC_Initialize_Check(D_Main))
     {
         status |= nECU_PC_Start();
 
@@ -38,9 +38,9 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
         status |= OnBoard_LED_Start();
 
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_Main);
+            status |= !nECU_FC_Initialize_Do(D_Main);
     }
-    if (!nECU_FlowControl_Working_Check(D_Main) && status == false)
+    if (!nECU_FC_Working_Check(D_Main) && status == false)
     {
         if (!status)
         {
@@ -49,9 +49,8 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     }
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_Main);
+        nECU_FC_Error_Do(D_Main);
     }
-    block = nECU_Debug_ProgramBlockData_getPointer_Block(D_Main);
     nECU_InputAnalog_Start(ADC_VREF_ID);
     vrefADC = nECU_ADC_getPointer(ADC_VREF_ID);
     nECU_Delay_Set(&max_decay, 1000);
@@ -61,13 +60,13 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
 }
 void nECU_main(void) // main rutine of the program
 {
-    if (nECU_FlowControl_Error_Check(D_Main))
+    if (nECU_FC_Error_Check(D_Main))
         while (1)
             HAL_Delay(1);
 
-    if (!nECU_FlowControl_Working_Check(D_Main))
+    if (!nECU_FC_Working_Check(D_Main))
     {
-        nECU_FlowControl_Error_Do(D_Main);
+        nECU_FC_Error_Do(D_Main);
         return;
     }
 
@@ -104,7 +103,7 @@ void nECU_main(void) // main rutine of the program
     // printf("%d\t%s\r", (int)nECU_InputAnalog_getValue(ADC_VREF_ID), bar);
     // fflush(stdout);
 
-    nECU_Debug_ProgramBlockData_Update(D_Main);
+    nECU_FC_Timeout_Check(D_Main);
 
     // HAL_Delay(10);
 
@@ -118,8 +117,8 @@ void nECU_Stop(void) // stop all peripherals (no interrupts will generate)
     status |= nECU_CAN_Stop();
     status |= nECU_Knock_Stop();
     if (!status)
-        status |= nECU_FlowControl_Stop_Do(D_Main);
+        status |= nECU_FC_Stop_Do(D_Main);
 
     if (status)
-        nECU_FlowControl_Error_Do(D_Main);
+        nECU_FC_Error_Do(D_Main);
 }

@@ -16,7 +16,7 @@ bool Frame0_Start(void) // initialization of data structure
 {
     bool status = false;
 
-    if (!nECU_FlowControl_Initialize_Check(D_Frame_Speed_ID))
+    if (!nECU_FC_Initialize_Check(D_Frame_Speed_ID))
     {
         // Start speed sensors
         for (nECU_ADC_Sensor_ID current_ID = ADC_VSS_FL_ID; current_ID <= ADC_VSS_RR_ID; current_ID++)
@@ -69,22 +69,22 @@ bool Frame0_Start(void) // initialization of data structure
         }
 
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_Frame_Speed_ID);
+            status |= !nECU_FC_Initialize_Do(D_Frame_Speed_ID);
     }
-    if (!nECU_FlowControl_Working_Check(D_Frame_Speed_ID) && status == false)
+    if (!nECU_FC_Working_Check(D_Frame_Speed_ID) && status == false)
     {
         if (!status)
             status |= !nECU_FlowControl_Working_Do(D_Frame_Speed_ID);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_Frame_Speed_ID);
+        nECU_FC_Error_Do(D_Frame_Speed_ID);
     return status;
 }
 void Frame0_Routine(void) // update variables for frame 0
 {
-    if (!nECU_FlowControl_Working_Check(D_Frame_Speed_ID))
+    if (!nECU_FC_Working_Check(D_Frame_Speed_ID))
     {
-        nECU_FlowControl_Error_Do(D_Frame_Speed_ID);
+        nECU_FC_Error_Do(D_Frame_Speed_ID);
         return;
     }
 
@@ -106,13 +106,13 @@ void Frame0_Routine(void) // update variables for frame 0
         F0_var.LunchControl[*F0_var.LunchLvl] = true;
     }
 
-    nECU_Debug_ProgramBlockData_Update(D_Frame_Speed_ID);
+    nECU_FC_Timeout_Check(D_Frame_Speed_ID);
 }
 void Frame0_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
-    if (!nECU_FlowControl_Working_Check(D_Frame_Speed_ID))
+    if (!nECU_FC_Working_Check(D_Frame_Speed_ID))
     {
-        nECU_FlowControl_Error_Do(D_Frame_Speed_ID);
+        nECU_FC_Error_Do(D_Frame_Speed_ID);
         return;
     }
     Frame0_Routine();
@@ -145,7 +145,7 @@ bool Frame1_Start(void) // initialization of data structure
 {
     bool status = false;
 
-    if (!nECU_FlowControl_Initialize_Check(D_Frame_EGT_ID))
+    if (!nECU_FC_Initialize_Check(D_Frame_EGT_ID))
     {
         for (EGT_Sensor_ID current_ID = 0; current_ID < EGT_ID_MAX; current_ID++)
         {
@@ -178,10 +178,10 @@ bool Frame1_Start(void) // initialization of data structure
 
         if (!status)
         {
-            status |= !nECU_FlowControl_Initialize_Do(D_Frame_EGT_ID);
+            status |= !nECU_FC_Initialize_Do(D_Frame_EGT_ID);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_Frame_EGT_ID) && status == false)
+    if (!nECU_FC_Working_Check(D_Frame_EGT_ID) && status == false)
     {
         status |= nECU_EGT_Start();
         if (!status)
@@ -191,27 +191,27 @@ bool Frame1_Start(void) // initialization of data structure
     }
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_Frame_EGT_ID);
+        nECU_FC_Error_Do(D_Frame_EGT_ID);
     }
     return status;
 }
 void Frame1_Routine(void) // update variables for frame 1
 {
-    if (!nECU_FlowControl_Working_Check(D_Frame_EGT_ID))
+    if (!nECU_FC_Working_Check(D_Frame_EGT_ID))
     {
-        nECU_FlowControl_Error_Do(D_Frame_EGT_ID);
+        nECU_FC_Error_Do(D_Frame_EGT_ID);
         return;
     }
     // nECU_EGT_RequestUpdate();
     nECU_Tacho_Routine();
 
-    nECU_Debug_ProgramBlockData_Update(D_Frame_EGT_ID);
+    nECU_FC_Timeout_Check(D_Frame_EGT_ID);
 }
 void Frame1_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
-    if (!nECU_FlowControl_Working_Check(D_Frame_EGT_ID))
+    if (!nECU_FC_Working_Check(D_Frame_EGT_ID))
     {
-        nECU_FlowControl_Error_Do(D_Frame_EGT_ID);
+        nECU_FC_Error_Do(D_Frame_EGT_ID);
         return;
     }
     Frame1_Routine();
@@ -239,7 +239,7 @@ bool Frame2_Start(void) // initialization of data structure
 {
     bool status = false;
 
-    if (!nECU_FlowControl_Initialize_Check(D_Frame_Stock_ID))
+    if (!nECU_FC_Initialize_Check(D_Frame_Stock_ID))
     {
         status |= nECU_InputAnalog_Start(ADC_BackPressure_ID);
         status |= nECU_InputAnalog_Start(ADC_OX_ID);
@@ -256,14 +256,12 @@ bool Frame2_Start(void) // initialization of data structure
 
         status |= nECU_FreqInput_Start(FREQ_VSS_ID);
 
-        F2_var.loop_time = nECU_Debug_ProgramBlockData_getPointer_Diff(D_Main);
-
         if (!status)
         {
-            status |= !nECU_FlowControl_Initialize_Do(D_Frame_Stock_ID);
+            status |= !nECU_FC_Initialize_Do(D_Frame_Stock_ID);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_Frame_Stock_ID) && status == false)
+    if (!nECU_FC_Working_Check(D_Frame_Stock_ID) && status == false)
     {
         status |= nECU_OX_Start();
         if (!status)
@@ -273,16 +271,16 @@ bool Frame2_Start(void) // initialization of data structure
     }
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_Frame_Stock_ID);
+        nECU_FC_Error_Do(D_Frame_Stock_ID);
     }
 
     return status;
 }
 void Frame2_Routine(void) // update variables for frame 2
 {
-    if (!nECU_FlowControl_Working_Check(D_Frame_Stock_ID))
+    if (!nECU_FC_Working_Check(D_Frame_Stock_ID))
     {
-        nECU_FlowControl_Error_Do(D_Frame_Stock_ID);
+        nECU_FC_Error_Do(D_Frame_Stock_ID);
         return;
     }
 
@@ -292,14 +290,15 @@ void Frame2_Routine(void) // update variables for frame 2
     nECU_InputAnalog_Routine(ADC_MAP_ID);
     nECU_InputAnalog_Routine(ADC_BackPressure_ID);
     nECU_InputAnalog_Routine(ADC_OX_ID);
+    F2_var.loop_time = nECU_FC_Timeout_getValue(D_Main);
 
-    nECU_Debug_ProgramBlockData_Update(D_Frame_Stock_ID);
+    nECU_FC_Timeout_Check(D_Frame_Stock_ID);
 }
 void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
 {
-    if (!nECU_FlowControl_Working_Check(D_Frame_Stock_ID))
+    if (!nECU_FC_Working_Check(D_Frame_Stock_ID))
     {
-        nECU_FlowControl_Error_Do(D_Frame_Stock_ID);
+        nECU_FC_Error_Do(D_Frame_Stock_ID);
         return;
     }
 
@@ -324,7 +323,7 @@ void Frame2_PrepareBuffer(void) // prepare Tx buffer for CAN transmission
     F2_var.Buffer[3] = F2_var.Backpressure;
     F2_var.Buffer[4] = *F2_var.Knock;
     F2_var.Buffer[5] = F2_var.VSS;
-    Converter.UintValue = (uint16_t)*F2_var.loop_time;
+    Converter.UintValue = (uint16_t)F2_var.loop_time;
     F2_var.Buffer[6] = Converter.byteArray[1]; // spare
     F2_var.Buffer[7] = Converter.byteArray[0]; // spare
     nECU_CAN_WriteToBuffer(CAN_TX_Stock_ID, sizeof(F2_var.Buffer));

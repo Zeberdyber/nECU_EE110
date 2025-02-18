@@ -14,7 +14,7 @@ bool nECU_Knock_Start(void) // initialize and start
 {
     bool status = false;
 
-    if (!nECU_FlowControl_Initialize_Check(D_Knock))
+    if (!nECU_FC_Initialize_Check(D_Knock))
     {
         // UART
         status |= nECU_UART_Init(&Knock.uart, &PC_UART, Knock.UART_data_buffer);
@@ -40,9 +40,9 @@ bool nECU_Knock_Start(void) // initialize and start
         status |= (arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH) != ARM_MATH_SUCCESS);
 
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_Knock);
+            status |= !nECU_FC_Initialize_Do(D_Knock);
     }
-    if (!nECU_FlowControl_Working_Check(D_Knock) && status == false)
+    if (!nECU_FC_Working_Check(D_Knock) && status == false)
     {
         status |= nECU_ADC_START(ADC_KNOCK_ID);      // ADC start
         status |= nECU_FreqInput_Start(FREQ_IGF_ID); // RPM reference
@@ -50,15 +50,15 @@ bool nECU_Knock_Start(void) // initialize and start
             status |= !nECU_FlowControl_Working_Do(D_Knock);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_Knock);
+        nECU_FC_Error_Do(D_Knock);
 
     return status;
 }
 void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 {
-    if (!nECU_FlowControl_Working_Check(D_Knock)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_Knock)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_Knock);
+        nECU_FC_Error_Do(D_Knock);
         return; // Break
     }
 
@@ -86,9 +86,9 @@ void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 }
 void nECU_Knock_UpdatePeriodic(void) // function to calculate current retard value
 {
-    if (!nECU_FlowControl_Working_Check(D_Knock)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_Knock)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_Knock);
+        nECU_FC_Error_Do(D_Knock);
         return; // Break
     }
     nECU_ADC_Routine(ADC_KNOCK_ID); // Pull new data
@@ -122,7 +122,7 @@ void nECU_Knock_UpdatePeriodic(void) // function to calculate current retard val
         Knock.RetardOut = (uint8_t)Knock.RetardPerc;
     }
 
-    nECU_Debug_ProgramBlockData_Update(D_Knock);
+    nECU_FC_Timeout_Check(D_Knock);
 }
 static void nECU_Knock_DetectMagn(void) // function to detect knock based on ADC input
 {
@@ -157,12 +157,12 @@ static void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of kn
 bool nECU_Knock_Stop(void) // stop
 {
     bool status = false;
-    if (nECU_FlowControl_Working_Check(D_Knock) && status == false)
+    if (nECU_FC_Working_Check(D_Knock) && status == false)
     {
         status |= nECU_ADC_STOP(ADC_KNOCK_ID);
         status |= nECU_FreqInput_Stop(FREQ_IGF_ID);
         if (!status)
-            status |= !nECU_FlowControl_Stop_Do(D_Knock);
+            status |= !nECU_FC_Stop_Do(D_Knock);
     }
     return status;
 }

@@ -15,19 +15,19 @@ bool nECU_Debug_Start(void) // starts up debugging functions
 {
     bool status = false;
 
-    nECU_Debug_ProgramBlock_Init();
+    nECU_FC_Start();
 
-    if (!nECU_FlowControl_Initialize_Check(D_Debug))
+    if (!nECU_FC_Initialize_Check(D_Debug))
     {
         status |= nECU_Debug_Init_Struct();
         status |= nECU_Debug_Init_Que();
         status |= nECU_InputAnalog_Start(ADC_MCUTemp_ID);
         if (!status)
         {
-            status |= !nECU_FlowControl_Initialize_Do(D_Debug);
+            status |= !nECU_FC_Initialize_Do(D_Debug);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_Debug) && status == false)
+    if (!nECU_FC_Working_Check(D_Debug) && status == false)
     {
         if (!status)
         {
@@ -36,7 +36,7 @@ bool nECU_Debug_Start(void) // starts up debugging functions
     }
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_Debug);
+        nECU_FC_Error_Do(D_Debug);
     }
 
     return status;
@@ -54,7 +54,7 @@ static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
         }
         else
         {
-            status |= nECU_FlowControl_Error_Do(D_Debug);
+            status |= nECU_FC_Error_Do(D_Debug);
         }
         /* EGT temperature (thermocuple temperature) */
         if (nECU_EGT_getPointer_Temperature(current_ID)) // Check if pointer exists
@@ -63,7 +63,7 @@ static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
         }
         else
         {
-            status |= nECU_FlowControl_Error_Do(D_Debug);
+            status |= nECU_FC_Error_Do(D_Debug);
         }
         /* EGT communication */
         if (nECU_EGT_getPointer_Error(current_ID)) // Check if pointer exists
@@ -72,7 +72,7 @@ static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
         }
         else
         {
-            status |= nECU_FlowControl_Error_Do(D_Debug);
+            status |= nECU_FC_Error_Do(D_Debug);
         }
     }
 
@@ -80,9 +80,9 @@ static bool nECU_Debug_Init_Struct(void) // set values to variables in structure
 }
 void nECU_Debug_Periodic(void) // checks states of variables
 {
-    if (!nECU_FlowControl_Working_Check(D_Debug))
+    if (!nECU_FC_Working_Check(D_Debug))
     {
-        nECU_FlowControl_Error_Do(D_Debug);
+        nECU_FC_Error_Do(D_Debug);
         return;
     }
     nECU_InputAnalog_Routine(ADC_MCUTemp_ID);
@@ -93,13 +93,13 @@ void nECU_Debug_Periodic(void) // checks states of variables
     // nECU_Debug_EGTsensor_error(&(dbg_data.egt_communication));
     // nECU_Debug_CAN_Check();
     // nECU_Debug_SPI_Check();
-    nECU_Debug_ProgramBlockData_Update(D_Debug);
+    nECU_FC_Timeout_Check(D_Debug);
 }
 
 /* Check states routines */
 static void nECU_Debug_IntTemp_Check(nECU_Debug_IC_temp *inst) // check for errors of device temperature
 {
-    if (nECU_FlowControl_Working_Check(D_ANALOG_MCUTemp)) // do after startup delay is done
+    if (nECU_FC_Working_Check(D_ANALOG_MCUTemp)) // do after startup delay is done
     {
         if (nECU_Debug_IntTemp_CheckSingle(&(inst->MCU))) // check main IC
         {
@@ -159,7 +159,7 @@ static void nECU_Debug_EGTsensor_error(nECU_Debug_EGT_Comm *inst) // check EGT I
 }
 static void nECU_Debug_CAN_Check(void) // checks if CAN have any error pending
 {
-    if (!nECU_FlowControl_Working_Check(D_CAN_TX) || !nECU_FlowControl_Working_Check(D_CAN_RX)) // Check if RX or TX is working
+    if (!nECU_FC_Working_Check(D_CAN_TX) || !nECU_FC_Working_Check(D_CAN_RX)) // Check if RX or TX is working
         if (nECU_CAN_GetError())
         {
             uint32_t error = HAL_CAN_GetError(&hcan1);
@@ -219,7 +219,7 @@ static bool nECU_Debug_Init_Que(void) // initializes que
 {
     bool status = false;
 
-    if (!nECU_FlowControl_Initialize_Check(D_Debug_Que))
+    if (!nECU_FC_Initialize_Check(D_Debug_Que))
     {
         dbg_data.error_que.counter.preset = sizeof(dbg_data.error_que.messages) / sizeof(nECU_Debug_error_mesage); // calculate length of que
         dbg_data.error_que.counter.value = 0;
@@ -231,25 +231,25 @@ static bool nECU_Debug_Init_Que(void) // initializes que
         status |= nECU_Flash_DebugQue_read(&(dbg_data.error_que));
         if (!status)
         {
-            status |= !nECU_FlowControl_Initialize_Do(D_Debug_Que);
+            status |= !nECU_FC_Initialize_Do(D_Debug_Que);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_Debug_Que) && status == false)
+    if (!nECU_FC_Working_Check(D_Debug_Que) && status == false)
     {
         status |= !nECU_FlowControl_Working_Do(D_Debug_Que);
     }
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_Debug_Que);
+        nECU_FC_Error_Do(D_Debug_Que);
     }
 
     return status;
 }
 static void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add message to debug que
 {
-    if (!nECU_FlowControl_Working_Check(D_Debug_Que))
+    if (!nECU_FC_Working_Check(D_Debug_Que))
     {
-        nECU_FlowControl_Error_Do(D_Debug_Que);
+        nECU_FC_Error_Do(D_Debug_Que);
         return;
     }
     if (dbg_data.error_que.counter.value == dbg_data.error_que.counter.preset) // check if reached maximum value
@@ -266,9 +266,9 @@ static void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add messag
 }
 void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message) // read newest message from debug que
 {
-    if (!nECU_FlowControl_Working_Check(D_Debug_Que))
+    if (!nECU_FC_Working_Check(D_Debug_Que))
     {
-        nECU_FlowControl_Error_Do(D_Debug_Que);
+        nECU_FC_Error_Do(D_Debug_Que);
         return;
     }
     if (dbg_data.error_que.message_count == 0) // break if no messages in que

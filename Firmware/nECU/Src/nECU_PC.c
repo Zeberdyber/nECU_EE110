@@ -43,15 +43,15 @@ void test_uart(void) // test function only
 bool nECU_PC_Start(void) // initializes structures for PC communication over UART
 {
     bool status = false;
-    if (!nECU_FlowControl_Initialize_Check(D_PC))
+    if (!nECU_FC_Initialize_Check(D_PC))
     {
         status |= nECU_UART_Init(&(PC.input), &PC_UART, (PC.in_buf));
         status |= nECU_UART_Init(&(PC.output), &PC_UART, (PC.out_buf));
         status |= OnBoard_LED_Start();
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_PC);
+            status |= !nECU_FC_Initialize_Do(D_PC);
     }
-    if (!nECU_FlowControl_Working_Check(D_PC) && status == false)
+    if (!nECU_FC_Working_Check(D_PC) && status == false)
     {
         OnBoard_LED_L_Add_Animation(&(PC.Tx_LED));
         OnBoard_LED_R_Add_Animation(&(PC.Rx_LED));
@@ -60,40 +60,40 @@ bool nECU_PC_Start(void) // initializes structures for PC communication over UAR
             status |= !nECU_FlowControl_Working_Do(D_PC);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_PC);
+        nECU_FC_Error_Do(D_PC);
     return status;
 }
 bool nECU_PC_Stop(void) // call to stop transmission
 {
     bool status = false;
 
-    if (nECU_FlowControl_Working_Check(D_PC) && status == false)
+    if (nECU_FC_Working_Check(D_PC) && status == false)
     {
         OnBoard_LED_L_Remove_Animation(&(PC.Tx_LED));
         OnBoard_LED_L_Remove_Animation(&(PC.Rx_LED));
         if (!status)
-            status |= !nECU_FlowControl_Stop_Do(D_PC);
+            status |= !nECU_FC_Stop_Do(D_PC);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_PC);
+        nECU_FC_Error_Do(D_PC);
 
     return status;
 }
 void nECU_PC_Routine(void)
 {
-    if (!nECU_FlowControl_Working_Check(D_PC)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_PC)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_PC);
+        nECU_FC_Error_Do(D_PC);
         return; // Break
     }
 
-    nECU_Debug_ProgramBlockData_Update(D_PC);
+    nECU_FC_Timeout_Check(D_PC);
 }
 
 /* Send */
 int _write(int fd, char *ptr, int len) // For printf implementation
 {
-    fd = fd; // to "use" fd -> make compiler happy
+    UNUSED(fd); // copiler happy :DDD
 
     static uint8_t i = 0;
     while (PC_UART.gState != HAL_UART_STATE_READY)
@@ -133,9 +133,10 @@ void nECU_console_progressBar(char *bar, uint8_t len, uint8_t percent)
 /* Flow control */
 static void nECU_PC_Transmit(void) // call to send a frame
 {
-    if (!nECU_FlowControl_Working_Check(D_PC)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_PC)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_PC);
+        if (!nECU_FC_Init_Check(D_PC)) // check if even was initialized
+            nECU_FC_Error_Do(D_PC);
         return; // Break
     }
 
@@ -143,20 +144,20 @@ static void nECU_PC_Transmit(void) // call to send a frame
     nECU_PC_Tx_Start_Callback();
     nECU_UART_Tx(&(PC.output));
 
-    nECU_Debug_ProgramBlockData_Update(D_PC);
+    nECU_FC_Timeout_Check(D_PC);
 }
 static void nECU_PC_Recieve(void) // call to start listening for frames
 {
-    if (!nECU_FlowControl_Working_Check(D_PC)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_PC)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_PC);
+        nECU_FC_Error_Do(D_PC);
         return; // Break
     }
 
     nECU_PC_Rx_Start_Callback();
     nECU_UART_Rx(&(PC.input));
 
-    nECU_Debug_ProgramBlockData_Update(D_PC);
+    nECU_FC_Timeout_Check(D_PC);
 }
 /* Callbacks */
 void nECU_PC_Tx_Start_Callback(void) // to be called when Tx from PC has started

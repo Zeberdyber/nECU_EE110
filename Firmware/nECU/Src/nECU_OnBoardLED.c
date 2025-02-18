@@ -115,9 +115,9 @@ static bool OnBoard_LED_Que_Init(OnBoardLED *inst) // initialize que data struct
 }
 static void OnBoard_LED_Que_Add(OnBoardLED *inst, OnBoardLED_Animate *animation) // adds to the que
 {
-    if (!nECU_FlowControl_Working_Check(D_OnboardLED))
+    if (!nECU_FC_Working_Check(D_OnboardLED))
     {
-        nECU_FlowControl_Error_Do(D_OnboardLED);
+        nECU_FC_Error_Do(D_OnboardLED);
         return;
     }
 
@@ -149,9 +149,9 @@ static void OnBoard_LED_Que_Add(OnBoardLED *inst, OnBoardLED_Animate *animation)
 }
 static void OnBoard_LED_Que_Remove(OnBoardLED *inst, OnBoardLED_Animate *animation) // removes from the que
 {
-    if (!nECU_FlowControl_Working_Check(D_OnboardLED))
+    if (!nECU_FC_Working_Check(D_OnboardLED))
     {
-        nECU_FlowControl_Error_Do(D_OnboardLED);
+        nECU_FC_Error_Do(D_OnboardLED);
         return;
     }
 
@@ -216,7 +216,7 @@ static void OnBoard_LED_Que_Check(OnBoardLED *inst) // check if current animatio
 bool OnBoard_LED_Start(void) // initialize structures for on board LEDs
 {
     bool status = false;
-    if (!nECU_FlowControl_Initialize_Check(D_OnboardLED))
+    if (!nECU_FC_Initialize_Check(D_OnboardLED))
     {
         /* Left LED */
         status |= OnBoard_LED_GPIO_Init(&(LED_L), LED1_Pin, LED1_GPIO_Port);
@@ -231,9 +231,9 @@ bool OnBoard_LED_Start(void) // initialize structures for on board LEDs
         status |= OnBoard_LED_Que_Init(&(LED_R));
 
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_OnboardLED);
+            status |= !nECU_FC_Initialize_Do(D_OnboardLED);
     }
-    if (!nECU_FlowControl_Working_Check(D_OnboardLED) && status == false)
+    if (!nECU_FC_Working_Check(D_OnboardLED) && status == false)
     {
         if (!status)
         {
@@ -242,22 +242,22 @@ bool OnBoard_LED_Start(void) // initialize structures for on board LEDs
     }
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_OnboardLED);
+        nECU_FC_Error_Do(D_OnboardLED);
     }
     return status;
 }
 void OnBoard_LED_Update(void) // update on board LEDs states
 {
-    if (!nECU_FlowControl_Working_Check(D_OnboardLED))
+    if (!nECU_FC_Working_Check(D_OnboardLED))
     {
-        nECU_FlowControl_Error_Do(D_OnboardLED);
+        nECU_FC_Error_Do(D_OnboardLED);
         return;
     }
 
     OnBoard_LED_Update_Single(&LED_L);
     OnBoard_LED_Update_Single(&LED_R);
 
-    nECU_Debug_ProgramBlockData_Update(D_OnboardLED);
+    nECU_FC_Timeout_Check(D_OnboardLED);
 }
 void OnBoard_LED_Update_Single(OnBoardLED *inst) // update of all internal variables
 {

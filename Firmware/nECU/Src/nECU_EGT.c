@@ -94,7 +94,7 @@ void nECU_EGT_Routine(void) // periodic function to be called every main loop ex
     // {
     //     for (EGT_Sensor_ID current_ID = 0; current_ID < EGT_ID_MAX; current_ID++)
     //     {
-    //         if (nECU_FlowControl_Working_Check(D_EGT1 + current_ID)) // Do for working sensors
+    //         if (nECU_FC_Working_Check(D_EGT1 + current_ID)) // Do for working sensors
     //         {
     //             MAX31855_ConvertData(&EGT_data.TC[current_ID]);
     //         }
@@ -113,7 +113,7 @@ void nECU_EGT_Callback(void) // callback from SPI_TX end callback
     EGT_data.currentSensor++;
     if (EGT_data.currentSensor >= EGT_ID_MAX) // Break if invalid ID
         return;
-    while (!nECU_FlowControl_Working_Check(D_EGT1 + (EGT_data.currentSensor))) // find next working sensor
+    while (!nECU_FC_Working_Check(D_EGT1 + (EGT_data.currentSensor))) // find next working sensor
     {
         EGT_data.currentSensor++;
         if (EGT_data.currentSensor >= EGT_ID_MAX) // Break if invalid ID
@@ -137,17 +137,17 @@ static bool nECU_EGT_Start_Single(EGT_Sensor_ID ID) // Perform start for single 
         return true;
 
     bool status = false;
-    if (!nECU_FlowControl_Initialize_Check(D_EGT1 + ID))
+    if (!nECU_FC_Initialize_Check(D_EGT1 + ID))
     {
         status |= MAX31855_Init(&EGT_data.TC[ID], EGT_GPIO_Port_List[ID], EGT_GPIO_Pin_List[ID]);
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_EGT1 + ID);
+            status |= !nECU_FC_Initialize_Do(D_EGT1 + ID);
     }
-    if (!nECU_FlowControl_Working_Check(D_EGT1 + ID) && status == false)
+    if (!nECU_FC_Working_Check(D_EGT1 + ID) && status == false)
         status |= !nECU_FlowControl_Working_Do(D_EGT1 + ID);
 
     if (status)
-        nECU_FlowControl_Error_Do(D_EGT1 + ID);
+        nECU_FC_Error_Do(D_EGT1 + ID);
 
     return status;
 }
@@ -157,14 +157,14 @@ static bool nECU_EGT_Stop_Single(EGT_Sensor_ID ID) // Perform stop for single se
         return true;
 
     bool status = false;
-    if (nECU_FlowControl_Working_Check(D_EGT1 + ID) && status == false)
+    if (nECU_FC_Working_Check(D_EGT1 + ID) && status == false)
     {
-        status |= !nECU_FlowControl_Stop_Do(D_EGT1 + ID);
+        status |= !nECU_FC_Stop_Do(D_EGT1 + ID);
     }
 
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_EGT1 + ID);
+        nECU_FC_Error_Do(D_EGT1 + ID);
     }
     return status;
 }

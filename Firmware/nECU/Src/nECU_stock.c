@@ -32,7 +32,7 @@ bool nECU_OX_Start(void) // initialize narrowband lambda structure
 {
     bool status = false;
 
-    if (!nECU_FlowControl_Initialize_Check(D_OX))
+    if (!nECU_FC_Initialize_Check(D_OX))
     {
         // variables configuration
         OX.Heater_Infill = 0;
@@ -43,9 +43,9 @@ bool nECU_OX_Start(void) // initialize narrowband lambda structure
         status |= nECU_CAN_Start();
 
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_OX);
+            status |= !nECU_FC_Initialize_Do(D_OX);
     }
-    if (!nECU_FlowControl_Working_Check(D_OX) && status == false)
+    if (!nECU_FC_Working_Check(D_OX) && status == false)
     {
         status |= nECU_InputAnalog_Start(ADC_OX_ID);
         status |= nECU_TIM_PWM_Start(TIM_PWM_OX_ID, 0);
@@ -53,15 +53,15 @@ bool nECU_OX_Start(void) // initialize narrowband lambda structure
             status |= !nECU_FlowControl_Working_Do(D_OX);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_OX);
+        nECU_FC_Error_Do(D_OX);
 
     return status;
 }
 void nECU_OX_Routine(void) // update narrowband lambda structure
 {
-    if (!nECU_FlowControl_Working_Check(D_OX)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_OX)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_OX);
+        nECU_FC_Error_Do(D_OX);
         return; // Break
     }
 
@@ -75,21 +75,21 @@ void nECU_OX_Routine(void) // update narrowband lambda structure
     // OX.Heater_Infill = nECU_Table_Interpolate(&OX.Coolant_min, &OX.Infill_max, &OX.Coolant_max, &OX.Infill_min, &coolant);
     // OX.Heater.htim->Instance->CCR1 = (OX.Heater_Infill * (OX.Heater.htim->Init.Period + 1)) / 100;
 
-    nECU_Debug_ProgramBlockData_Update(D_OX);
+    nECU_FC_Timeout_Check(D_OX);
 }
 bool nECU_OX_Stop(void) // deinitialize narrowband lambda structure
 {
     bool status = false;
 
-    if (nECU_FlowControl_Working_Check(D_OX) && status == false)
+    if (nECU_FC_Working_Check(D_OX) && status == false)
     {
         status |= nECU_TIM_PWM_Stop(TIM_PWM_OX_ID, TIM_CHANNEL_1);
         status |= nECU_InputAnalog_Stop(ADC_OX_ID);
         if (!status)
-            status |= !nECU_FlowControl_Stop_Do(D_OX);
+            status |= !nECU_FC_Stop_Do(D_OX);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_OX);
+        nECU_FC_Error_Do(D_OX);
 
     return status;
 }
@@ -106,22 +106,22 @@ bool nECU_DigitalInput_Start(nECU_DigiInput_ID ID)
 
     bool status = false;
 
-    if (!nECU_FlowControl_Initialize_Check(D_DigiInput_CRANKING + ID))
+    if (!nECU_FC_Initialize_Check(D_DigiInput_CRANKING + ID))
     {
         Input_List[ID].GPIO_Pin = Input_Pin_List[ID];
         Input_List[ID].GPIOx = Input_Port_List[ID];
         Input_List[ID].State = GPIO_PIN_RESET;
 
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_DigiInput_CRANKING + ID);
+            status |= !nECU_FC_Initialize_Do(D_DigiInput_CRANKING + ID);
     }
-    if (!nECU_FlowControl_Working_Check(D_DigiInput_CRANKING + ID) && status == false)
+    if (!nECU_FC_Working_Check(D_DigiInput_CRANKING + ID) && status == false)
     {
         if (!status)
             status |= !nECU_FlowControl_Working_Do(D_DigiInput_CRANKING + ID);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_DigiInput_CRANKING + ID);
+        nECU_FC_Error_Do(D_DigiInput_CRANKING + ID);
 
     return status;
 }
@@ -132,14 +132,14 @@ bool nECU_DigitalInput_Stop(nECU_DigiInput_ID ID)
 
     bool status = false;
 
-    if (nECU_FlowControl_Working_Check(D_DigiInput_CRANKING + ID) && status == false)
+    if (nECU_FC_Working_Check(D_DigiInput_CRANKING + ID) && status == false)
     {
         Input_List[ID].GPIOx = NULL;
         if (!status)
-            status |= !nECU_FlowControl_Stop_Do(D_DigiInput_CRANKING + ID);
+            status |= !nECU_FC_Stop_Do(D_DigiInput_CRANKING + ID);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_DigiInput_CRANKING + ID);
+        nECU_FC_Error_Do(D_DigiInput_CRANKING + ID);
 
     return status;
 }
@@ -148,15 +148,15 @@ void nECU_DigitalInput_Routine(nECU_DigiInput_ID ID)
     if (ID >= DigiInput_ID_MAX) // Break if invalid ID
         return;
 
-    if (!nECU_FlowControl_Working_Check(D_DigiInput_CRANKING + ID)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_DigiInput_CRANKING + ID)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_DigiInput_CRANKING + ID);
+        nECU_FC_Error_Do(D_DigiInput_CRANKING + ID);
         return; // Break
     }
 
     Input_List[ID].State = HAL_GPIO_ReadPin(Input_List[ID].GPIOx, Input_List[ID].GPIO_Pin);
 
-    nECU_Debug_ProgramBlockData_Update(D_DigiInput_CRANKING + ID);
+    nECU_FC_Timeout_Check(D_DigiInput_CRANKING + ID);
 }
 
 bool nECU_DigitalInput_getValue(nECU_DigiInput_ID ID)
@@ -164,9 +164,9 @@ bool nECU_DigitalInput_getValue(nECU_DigiInput_ID ID)
     if (ID >= DigiInput_ID_MAX) // Break if invalid ID
         return false;
 
-    if (!nECU_FlowControl_Working_Check(D_DigiInput_CRANKING + ID)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_DigiInput_CRANKING + ID)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_DigiInput_CRANKING + ID);
+        nECU_FC_Error_Do(D_DigiInput_CRANKING + ID);
         return false; // Break
     }
 

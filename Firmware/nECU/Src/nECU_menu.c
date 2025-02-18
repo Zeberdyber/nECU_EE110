@@ -16,7 +16,7 @@ bool nECU_Menu_Start(void)
 {
   bool status = false;
 
-  if (!nECU_FlowControl_Initialize_Check(D_Menu))
+  if (!nECU_FC_Initialize_Check(D_Menu))
   {
     Menu.Antilag = false;
     Menu.ClearCode = false;
@@ -28,9 +28,9 @@ bool nECU_Menu_Start(void)
     status |= nECU_Delay_Set(&(Menu.save_delay), FLASH_SAVE_DELAY_TIME);
 
     if (!status)
-      status |= !nECU_FlowControl_Initialize_Do(D_Menu);
+      status |= !nECU_FC_Initialize_Do(D_Menu);
   }
-  if (!nECU_FlowControl_Working_Check(D_Menu) && status == false)
+  if (!nECU_FC_Working_Check(D_Menu) && status == false)
   {
     status |= nECU_FLASH_Start();
     status |= nECU_Button_Start(BUTTON_ID_RED);
@@ -49,14 +49,14 @@ bool nECU_Menu_Start(void)
       status |= !nECU_FlowControl_Working_Do(D_Menu);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_Menu);
+    nECU_FC_Error_Do(D_Menu);
 
   return status;
 }
 bool nECU_Menu_Stop(void)
 {
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_Menu) && status == false)
+  if (nECU_FC_Working_Check(D_Menu) && status == false)
   {
     status |= nECU_Delay_Stop(&(Menu.save_delay));
     status |= nECU_Flash_UserSettings_save(&(Menu.Antilag), &(Menu.TractionOFF));
@@ -66,20 +66,20 @@ bool nECU_Menu_Stop(void)
     status |= nECU_Button_Stop(BUTTON_ID_GREEN);
 
     if (!status)
-      status |= !nECU_FlowControl_Stop_Do(D_Menu);
+      status |= !nECU_FC_Stop_Do(D_Menu);
 
     status |= nECU_FLASH_Stop();
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_Menu);
+    nECU_FC_Error_Do(D_Menu);
 
   return status;
 }
 void nECU_Menu_Routine(void)
 {
-  if (!nECU_FlowControl_Working_Check(D_Menu)) // Check if currently working
+  if (!nECU_FC_Working_Check(D_Menu)) // Check if currently working
   {
-    nECU_FlowControl_Error_Do(D_Menu);
+    nECU_FC_Error_Do(D_Menu);
     return; // Break
   }
 
@@ -168,7 +168,7 @@ void nECU_Menu_Routine(void)
     break;
   default:
     Menu.MenuLvl = 0;
-    nECU_FlowControl_Error_Do(D_Menu);
+    nECU_FC_Error_Do(D_Menu);
     break;
   }
   if (*nECU_Delay_DoneFlag(&(Menu.save_delay)) == true) // Perform save
@@ -178,7 +178,7 @@ void nECU_Menu_Routine(void)
     // nECU_Button_Light_Breath(BUTTON_ID_ORANGE, 100, 1);
   }
 
-  nECU_Debug_ProgramBlockData_Update(D_Menu);
+  nECU_FC_Timeout_Check(D_Menu);
 }
 
 bool *nECU_Menu_Antilag_getPointer(void)
@@ -207,12 +207,12 @@ bool nECU_Tacho_Start(void)
 {
   bool status = false;
 
-  if (!nECU_FlowControl_Initialize_Check(D_Tacho))
+  if (!nECU_FC_Initialize_Check(D_Tacho))
   {
     if (!status)
-      status |= !nECU_FlowControl_Initialize_Do(D_Tacho);
+      status |= !nECU_FC_Initialize_Do(D_Tacho);
   }
-  if (!nECU_FlowControl_Working_Check(D_Tacho) && status == false)
+  if (!nECU_FC_Working_Check(D_Tacho) && status == false)
   {
     status |= nECU_Tacho_Start_Single(&Tacho[TACHO_ID_TuneSel], nECU_Menu_TuneSel_getPointer(), 10);
     status |= nECU_Tacho_Start_Single(&Tacho[TACHO_ID_LunchLvl], nECU_Menu_LunchLvl_getPointer(), 10);
@@ -222,35 +222,35 @@ bool nECU_Tacho_Start(void)
       status |= !nECU_FlowControl_Working_Do(D_Tacho);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_Tacho);
+    nECU_FC_Error_Do(D_Tacho);
 
   return status;
 }
 bool nECU_Tacho_Stop(void)
 {
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_Tacho) && status == false)
+  if (nECU_FC_Working_Check(D_Tacho) && status == false)
   {
     if (!status)
-      status |= !nECU_FlowControl_Stop_Do(D_Tacho);
+      status |= !nECU_FC_Stop_Do(D_Tacho);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_Tacho);
+    nECU_FC_Error_Do(D_Tacho);
 
   return status;
 }
 void nECU_Tacho_Routine(void)
 {
-  if (!nECU_FlowControl_Working_Check(D_Tacho)) // Check if currently working
+  if (!nECU_FC_Working_Check(D_Tacho)) // Check if currently working
   {
-    nECU_FlowControl_Error_Do(D_Tacho);
+    nECU_FC_Error_Do(D_Tacho);
     return; // Break
   }
   nECU_Tacho_Routine_Single(&Tacho[TACHO_ID_TuneSel]);
   nECU_Tacho_Routine_Single(&Tacho[TACHO_ID_LunchLvl]);
   nECU_Tacho_Routine_Single(&Tacho[TACHO_ID_MenuLvl]);
 
-  nECU_Debug_ProgramBlockData_Update(D_Tacho);
+  nECU_FC_Timeout_Check(D_Tacho);
 }
 
 uint8_t *nECU_Tacho_getPointer(Tacho_ID ID) // get pointer to correct structure value
@@ -272,9 +272,9 @@ void nECU_Tacho_Clear_getPointer(Tacho_ID ID) // clear pending flag for selected
   if (ID >= TACHO_ID_MAX) // Break if invalid ID
     return;
 
-  if (!nECU_FlowControl_Working_Check(D_Tacho)) // Check if currently working
+  if (!nECU_FC_Working_Check(D_Tacho)) // Check if currently working
   {
-    nECU_FlowControl_Error_Do(D_Tacho);
+    nECU_FC_Error_Do(D_Tacho);
     return; // Break
   }
   Tacho[ID].showPending = false;

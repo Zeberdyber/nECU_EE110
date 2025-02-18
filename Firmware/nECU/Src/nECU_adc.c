@@ -76,7 +76,7 @@ bool nECU_ADC_START(nECU_ADC_Sensor_ID ID)
     return true;
 
   bool status = false;
-  if (!nECU_FlowControl_Initialize_Check(D_ADC1 + hadc))
+  if (!nECU_FC_Initialize_Check(D_ADC1 + hadc))
   { /* Clear status flags */
     for (nECU_ADC_Status current = 0; current < ADC_STATUS_MAX; current++)
       data_List[hadc].flags[current] = false;
@@ -85,9 +85,9 @@ bool nECU_ADC_START(nECU_ADC_Sensor_ID ID)
       status |= nECU_TIM_Init(TIM_ADC_KNOCK_ID);
 
     if (!status)
-      status |= !nECU_FlowControl_Initialize_Do(D_ADC1 + hadc);
+      status |= !nECU_FC_Initialize_Do(D_ADC1 + hadc);
   }
-  if (!nECU_FlowControl_Working_Check(D_ADC1 + hadc) && status == false)
+  if (!nECU_FC_Working_Check(D_ADC1 + hadc) && status == false)
   {
     if (hadc == HADC3_ID)
       status |= nECU_TIM_Base_Start(TIM_ADC_KNOCK_ID);
@@ -97,7 +97,7 @@ bool nECU_ADC_START(nECU_ADC_Sensor_ID ID)
       status |= !nECU_FlowControl_Working_Do(D_ADC1 + hadc);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_ADC1 + hadc);
+    nECU_FC_Error_Do(D_ADC1 + hadc);
 
   return status;
 }
@@ -109,7 +109,7 @@ bool nECU_ADC_STOP(nECU_ADC_Sensor_ID ID)
     return true;
 
   bool status = false;
-  if (nECU_FlowControl_Working_Check(D_ADC1 + hadc) && status == false)
+  if (nECU_FC_Working_Check(D_ADC1 + hadc) && status == false)
   {
     if (hadc == HADC3_ID)
       status |= nECU_TIM_Base_Stop(TIM_ADC_KNOCK_ID);
@@ -117,10 +117,10 @@ bool nECU_ADC_STOP(nECU_ADC_Sensor_ID ID)
     status |= (HAL_OK != HAL_ADC_Stop_DMA((hadc_List[hadc])));
     nECU_ADC_Routine(ID); // finish routine if flags pending
     if (!status)
-      status |= !nECU_FlowControl_Stop_Do(D_ADC1 + hadc);
+      status |= !nECU_FC_Stop_Do(D_ADC1 + hadc);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_ADC1 + hadc);
+    nECU_FC_Error_Do(D_ADC1 + hadc);
 
   return status;
 }
@@ -131,9 +131,9 @@ void nECU_ADC_Routine(nECU_ADC_Sensor_ID ID)
   if (hadc >= HADC_ID_MAX)
     return;
   // Check if currently working
-  if (!nECU_FlowControl_Working_Check(D_ADC1 + hadc))
+  if (!nECU_FC_Working_Check(D_ADC1 + hadc))
   {
-    nECU_FlowControl_Error_Do(D_ADC1 + hadc);
+    nECU_FC_Error_Do(D_ADC1 + hadc);
     return; // Break
   }
   /* Conversion Completed callbacks */
@@ -156,7 +156,7 @@ void nECU_ADC_Routine(nECU_ADC_Sensor_ID ID)
   else
     nECU_Knock_ADC_Callback(data_List[hadc].in_buffer.Buffer);
 
-  nECU_Debug_ProgramBlockData_Update(D_ADC1 + hadc);
+  nECU_FC_Timeout_Check(D_ADC1 + hadc);
 }
 
 static nECU_HADC_ID nECU_ADC_Identify_SensorID(nECU_ADC_Sensor_ID ID) // returns correcr hadc id based on given sensor

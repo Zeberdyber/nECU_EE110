@@ -86,82 +86,13 @@ static char const *const D_ID_Strings[D_ID_MAX] = {
 }; // List of strings of corresponding IDs
 
 /* Program Block */
-void nECU_Debug_ProgramBlock_Init(void) // Initialize 'ProgramBlock' tracking
+void nECU_FC_Start(void) // Initialize 'ProgramBlock' tracking
 {
     // Initialize structures
-    for (uint8_t index = 0; index < D_ID_MAX; index++)
+    for (uint8_t currentID = 0; currentID < D_ID_MAX; currentID++)
     {
-        nECU_Debug_ProgramBlockData_Clear(&Debug_Status_List[index]);
+        nECU_FC_Init_Do(currentID, 0);
     }
-    // Configure timeout values
-}
-static void nECU_Debug_ProgramBlockData_Clear(nECU_ProgramBlockData *inst) // Clear structure 'ProgramBlockData'
-{
-    memset(inst, 0, sizeof(nECU_ProgramBlockData));
-    inst->Status = D_BLOCK_STOP;
-    nECU_TickTrack_Init(&(inst->Update_ticks));
-    inst->timeout_value = PROGRAMBLOCK_TIMEOUT_DEFAULT * (1000 / (inst->Update_ticks.convFactor));
-}
-void nECU_Debug_ProgramBlockData_Update(nECU_Module_ID ID) // Update tick tracking and check for timeout
-{
-    nECU_ProgramBlockData *inst = &Debug_Status_List[ID];
-    nECU_TickTrack_Update(&(inst->Update_ticks));
-    if (inst->Update_ticks.difference > inst->timeout_value)
-    {
-        inst->Status |= D_BLOCK_ERROR;
-    }
-}
-void nECU_Debug_ProgramBlockData_Check(void) // Perform error check for all blocks
-{
-    uint8_t single_result;
-    // Perform for each one
-    for (uint8_t index = 0; index < D_ID_MAX; index++)
-    {
-        single_result = nECU_Debug_ProgramBlockData_Check_Single(&Debug_Status_List[index]);
-        if (single_result == 2) // save error if major
-        {
-            nECU_Debug_error_mesage temp;
-            float error_message = index;    // copy index to new float
-            error_message /= 100;           // move index after 'dot'
-            error_message += HAL_GetTick(); // add current tick to the value
-
-            /* Example of how message will work:
-                Error detected at index 31, current tick 123456
-                error_message == 123456.31;
-            */
-            nECU_Debug_Message_Set(&temp, error_message, nECU_ERROR_PROGRAMBLOCK);
-        }
-    }
-}
-static uint8_t nECU_Debug_ProgramBlockData_Check_Single(nECU_ProgramBlockData *inst) // returns true if issue in given instance
-{
-    /* Return value scheme:
-        0 - OK
-        1 - NOK -> low priority
-        2 - NOK -> persistent error
-    */
-    uint8_t result = 0;
-
-    if (inst->Status & D_BLOCK_ERROR)
-    {
-        result = 1;
-        if (inst->Status & D_BLOCK_ERROR_OLD) // if error was already in memor (major error)
-        {
-            result = 2;
-        }
-        inst->Status |= D_BLOCK_ERROR_OLD; // store error to memory
-        inst->Status -= D_BLOCK_ERROR;
-    }
-
-    return result;
-}
-nECU_ProgramBlockData *nECU_Debug_ProgramBlockData_getPointer_Block(nECU_Module_ID ID) // returns pointer to given ID program block
-{
-    return &(Debug_Status_List[ID]);
-}
-uint32_t *nECU_Debug_ProgramBlockData_getPointer_Diff(nECU_Module_ID ID) // returns pointer to time difference
-{
-    return &(Debug_Status_List[ID].Update_ticks.difference);
 }
 
 /* Flow control
@@ -195,13 +126,34 @@ uint32_t *nECU_Debug_ProgramBlockData_getPointer_Diff(nECU_Module_ID ID) // retu
 
     ProgramBlock cannot be started if it has active ERROR status.
 */
-bool nECU_FlowControl_Stop_Check(nECU_Module_ID ID) // Check if block has "initialized" status
+static bool nECU_FC_Init_Check(nECU_Module_ID ID) // check if was structure initialized
+{
+    if (ID >= D_ID_MAX) // Break if invalid ID
+        return false;
+    return (bool)(Debug_Status_List[ID].Status == D_BLOCK_NULL);
+}
+static bool nECU_FC_Init_Do(nECU_Module_ID ID, uint8_t timeout) // Initialize structure
+{
+    // timeout set to '0' will disable timeout tracking
+
+    if (ID >= D_ID_MAX) // Break if invalid ID
+        return false;
+
+    bool status = false;
+    memset(&(Debug_Status_List[ID]), 0, sizeof(nECU_ProgramBlockData));
+    Debug_Status_List[ID].Status = D_BLOCK_STOP;
+    status |= nECU_TickTrack_Init(&(Debug_Status_List[ID].Update_ticks));
+    Debug_Status_List[ID].timeout_value = timeout * (1000 / (Debug_Status_List[ID].Update_ticks.convFactor));
+    return !status;
+}
+
+bool nECU_FC_Stop_Check(nECU_Module_ID ID) // Check if block is in stop status
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_STOP);
 }
-bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status if possible
+bool nECU_FC_Stop_Do(nECU_Module_ID ID) // Write stop status if possible
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
@@ -209,15 +161,15 @@ bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status i
     switch (ID) /* Stopping of shared resources */
     {
     case D_ADC1:
-        if (nECU_FlowControl_Working_Check(D_ANALOG_MAP) || nECU_FlowControl_Working_Check(D_ANALOG_BackPressure) || nECU_FlowControl_Working_Check(D_ANALOG_OX) || nECU_FlowControl_Working_Check(D_ANALOG_AI_1) || nECU_FlowControl_Working_Check(D_ANALOG_AI_2) || nECU_FlowControl_Working_Check(D_ANALOG_AI_3) || nECU_FlowControl_Working_Check(D_ANALOG_MCUTemp) || nECU_FlowControl_Working_Check(D_ANALOG_VREF))
+        if (nECU_FC_Working_Check(D_ANALOG_MAP) || nECU_FC_Working_Check(D_ANALOG_BackPressure) || nECU_FC_Working_Check(D_ANALOG_OX) || nECU_FC_Working_Check(D_ANALOG_AI_1) || nECU_FC_Working_Check(D_ANALOG_AI_2) || nECU_FC_Working_Check(D_ANALOG_AI_3) || nECU_FC_Working_Check(D_ANALOG_MCUTemp) || nECU_FC_Working_Check(D_ANALOG_VREF))
             return false;
         break;
     case D_ADC2:
-        if (nECU_FlowControl_Working_Check(D_ANALOG_SS1) || nECU_FlowControl_Working_Check(D_ANALOG_SS2) || nECU_FlowControl_Working_Check(D_ANALOG_SS3) || nECU_FlowControl_Working_Check(D_ANALOG_SS4))
+        if (nECU_FC_Working_Check(D_ANALOG_SS1) || nECU_FC_Working_Check(D_ANALOG_SS2) || nECU_FC_Working_Check(D_ANALOG_SS3) || nECU_FC_Working_Check(D_ANALOG_SS4))
             return false;
         break;
     case D_Flash:
-        if (nECU_FlowControl_Working_Check(D_ANALOG_SS1) || nECU_FlowControl_Working_Check(D_ANALOG_SS2) || nECU_FlowControl_Working_Check(D_ANALOG_SS3) || nECU_FlowControl_Working_Check(D_ANALOG_SS4) || nECU_FlowControl_Working_Check(D_Debug_Que) || nECU_FlowControl_Working_Check(D_Menu))
+        if (nECU_FC_Working_Check(D_ANALOG_SS1) || nECU_FC_Working_Check(D_ANALOG_SS2) || nECU_FC_Working_Check(D_ANALOG_SS3) || nECU_FC_Working_Check(D_ANALOG_SS4) || nECU_FC_Working_Check(D_Debug_Que) || nECU_FC_Working_Check(D_Menu))
             return false;
         break;
 
@@ -225,43 +177,43 @@ bool nECU_FlowControl_Stop_Do(nECU_Module_ID ID) // Write "initialized" status i
         break;
     }
 
-    if (nECU_FlowControl_Working_Check(D_PC))
+    if (nECU_FC_Working_Check(D_PC))
         printf("Stopping %s.\n\r", D_ID_Strings[ID]);
-    if (nECU_FlowControl_Stop_Check(ID) || nECU_FlowControl_Working_Check(ID)) // check if already done
+    if (nECU_FC_Stop_Check(ID) || nECU_FC_Working_Check(ID)) // check if already done
     {
-        nECU_FlowControl_Error_Do(ID); // indicate error in code
+        nECU_FC_Error_Do(ID); // indicate error in code
         return false;
     }
     Debug_Status_List[ID].Status &= ~D_BLOCK_WORKING; // Clear "STOP" flag
     Debug_Status_List[ID].Status |= D_BLOCK_STOP;
-    return nECU_FlowControl_Initialize_Check(ID);
+    return nECU_FC_Initialize_Check(ID);
 }
 
-bool nECU_FlowControl_Initialize_Check(nECU_Module_ID ID) // Check if block has "initialized" status
+bool nECU_FC_Initialize_Check(nECU_Module_ID ID) // Check if block has "initialized" status
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_INITIALIZED);
 }
-bool nECU_FlowControl_Initialize_Do(nECU_Module_ID ID) // Write "initialized" status if possible
+bool nECU_FC_Initialize_Do(nECU_Module_ID ID) // Write "initialized" status if possible
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
 
-    if (nECU_FlowControl_Working_Check(D_PC))
+    if (nECU_FC_Working_Check(D_PC))
         printf("\rInitializing %s.\n\r", D_ID_Strings[ID]);
-    if (nECU_FlowControl_Initialize_Check(ID) || !nECU_FlowControl_Stop_Check(ID)) // check if already done
+    if (nECU_FC_Initialize_Check(ID) || !nECU_FC_Stop_Check(ID)) // check if already done
     {
-        nECU_FlowControl_Error_Do(ID); // indicate error in code
+        nECU_FC_Error_Do(ID); // indicate error in code
         return false;
     }
 
     Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;       // Clear "STOP" flag
     Debug_Status_List[ID].Status |= D_BLOCK_INITIALIZED; // Add "INITIALIZED" flag
-    return nECU_FlowControl_Initialize_Check(ID);
+    return nECU_FC_Initialize_Check(ID);
 }
 
-bool nECU_FlowControl_Working_Check(nECU_Module_ID ID) // Check if block has "working" status
+bool nECU_FC_Working_Check(nECU_Module_ID ID) // Check if block has "working" status
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
@@ -272,60 +224,80 @@ bool nECU_FlowControl_Working_Do(nECU_Module_ID ID) // Write "working" status if
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
 
-    if (nECU_FlowControl_Working_Check(D_PC))
+    if (nECU_FC_Working_Check(D_PC))
         printf("Starting %s.\n\r", D_ID_Strings[ID]);
-    if (nECU_FlowControl_Working_Check(ID) || !nECU_FlowControl_Initialize_Check(ID) || nECU_FlowControl_Error_Check(ID)) // check if already done or it is in error
+    if (nECU_FC_Working_Check(ID) || !nECU_FC_Initialize_Check(ID) || nECU_FC_Error_Check(ID)) // check if already done or it is in error
     {
-        nECU_FlowControl_Error_Do(ID); // indicate error in code
+        nECU_FC_Error_Do(ID); // indicate error in code
         return false;
     }
     Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;   // Clear "STOP" flag
     Debug_Status_List[ID].Status |= D_BLOCK_WORKING; // Add "WORKING" flag
-    return nECU_FlowControl_Working_Check(ID);
+    return nECU_FC_Working_Check(ID);
 }
 
-bool nECU_FlowControl_Error_Check(nECU_Module_ID ID) // Check if block has "error" status
+bool nECU_FC_Error_Check(nECU_Module_ID ID) // Check if block has "error" status
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR);
 }
-bool nECU_FlowControl_Error_Do(nECU_Module_ID ID) // Write "error" status if possible
+bool nECU_FC_Error_Do(nECU_Module_ID ID) // Write "error" status if possible
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
-    if (nECU_FlowControl_Error_Check(ID) && !nECU_FlowControl_Initialize_Check(ID)) // check if already done
-    {
-        if (nECU_FlowControl_Working_Check(D_PC))
-            printf("Error detected at %s - was not initialized.\n\r", D_ID_Strings[ID]);
 
-        // Perform action for error on non-initialized block
-        return false; // indicate error in code
+    if (nECU_FC_Error_Check(ID))
+    {
+        /* First time error in this block happened */
+        if (!nECU_FC_Stop_Check(ID))
+        {
+            /* Block was not initialized */
+            printf("Error detected at %s - strucutre was NULL.\n\r", D_ID_Strings[ID]);
+            Debug_Status_List[ID].Status |= D_BLOCK_ERROR_OLD; // Add "ERROR" flag
+            nECU_FC_WriteMessage(ID);
+            return nECU_FC_Error_Check(ID);
+        }
+
+        if (!nECU_FC_Initialize_Check(ID))
+        {
+            /* Block was not initialized */
+            printf("Error detected at %s - was not initialized.\n\r", D_ID_Strings[ID]);
+            Debug_Status_List[ID].Status |= D_BLOCK_ERROR_OLD; // Add "ERROR" flag
+            nECU_FC_WriteMessage(ID);
+            return nECU_FC_Error_Check(ID);
+        }
     }
-    if (nECU_FlowControl_Working_Check(D_PC))
+    else
+    {
+        /* Two errors in the same block */
+        if (!nECU_FC_Initialize_Check(ID))
+            nECU_FC_DoubleError_Do(ID);
+    }
+
+    if (nECU_FC_Working_Check(D_PC))
         printf("Error detected at %s - general error.\n\r", D_ID_Strings[ID]);
 
     // Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;   // Clear "STOP" flag
-    Debug_Status_List[ID].Status |= D_BLOCK_ERROR; // Add "ERROR" flag
-    return nECU_FlowControl_Error_Check(ID);
+    return nECU_FC_Error_Check(ID);
 }
 
-bool nECU_FlowControl_DoubleError_Check(nECU_Module_ID ID) // Check if block has "error_old" status
+static bool nECU_FC_DoubleError_Check(nECU_Module_ID ID) // Check if block has "error_old" status
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
     return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR_OLD);
 }
-bool nECU_FlowControl_DoubleError_Do(nECU_Module_ID ID) // Write "error_old" status if possible
+static bool nECU_FC_DoubleError_Do(nECU_Module_ID ID) // Write "error_old" status if possible
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
-    if (nECU_FlowControl_Error_Check(ID) && nECU_FlowControl_DoubleError_Check(ID)) // check if already done
+    if (nECU_FC_Error_Check(ID) && nECU_FC_DoubleError_Check(ID)) // check if already done
     {
         // Perform action for recouring error!!!
         return false; // indicate error in code
     }
-    else if (!nECU_FlowControl_Error_Check(ID))
+    else if (!nECU_FC_Error_Check(ID))
     {
         // Perform action for inproper function call
         return false; // indicate error in code
@@ -333,5 +305,48 @@ bool nECU_FlowControl_DoubleError_Do(nECU_Module_ID ID) // Write "error_old" sta
 
     Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;     // Clear "STOP" flag
     Debug_Status_List[ID].Status |= D_BLOCK_ERROR_OLD; // Add "WORKING" flag
-    return nECU_FlowControl_DoubleError_Check(ID);
+    return nECU_FC_DoubleError_Check(ID);
+}
+
+bool nECU_FC_Timeout_Check(nECU_Module_ID ID) // check if timeout occured
+{
+    if (ID >= D_ID_MAX) // Break if invalid ID
+        return false;
+    if (Debug_Status_List[ID].timeout_value == 0) // Break if no timeout configured
+        return false;
+
+    nECU_TickTrack_Update(&(Debug_Status_List[ID].Update_ticks)); // update tick tracker
+    if (Debug_Status_List[ID].Update_ticks.difference > Debug_Status_List[ID].timeout_value)
+        nECU_FC_Timeout_Do(ID);
+    return true;
+}
+static bool nECU_FC_Timeout_Do(nECU_Module_ID ID) // Perform action for timeout
+{
+    if (ID >= D_ID_MAX) // Break if invalid ID
+        return false;
+    nECU_FC_Error_Do(ID);
+    nECU_TickTrack_Init(&(Debug_Status_List[ID].Update_ticks));
+    return true;
+}
+uint32_t nECU_FC_Timeout_getValue(nECU_Module_ID ID) // Returns value of difference
+{
+    if (ID >= D_ID_MAX) // Break if invalid ID
+        return false;
+
+    return Debug_Status_List[ID].Update_ticks.difference;
+}
+
+static bool nECU_FC_WriteMessage(nECU_Module_ID ID) // Write message to debug que
+{
+    nECU_Debug_error_mesage temp;
+    float error_message = ID;       // copy currentID to new float
+    error_message /= 100;           // move currentID after 'dot'
+    error_message += HAL_GetTick(); // add current tick to the value
+
+    /* Example of how message will work:
+        Error detected at currentID 31, current tick 123456
+        error_message == 123456.31;
+    */
+    nECU_Debug_Message_Set(&temp, error_message, nECU_ERROR_PROGRAMBLOCK);
+    return true;
 }

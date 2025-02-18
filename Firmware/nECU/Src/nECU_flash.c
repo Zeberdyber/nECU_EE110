@@ -15,9 +15,9 @@ bool nECU_Flash_SpeedCalibration_save(float *Sensor1, float *Sensor2, float *Sen
     bool status = false;
 
     // check if data was initialized
-    if (!nECU_FlowControl_Working_Check(D_Flash))
+    if (!nECU_FC_Working_Check(D_Flash))
     {
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
         status |= true;
         return status;
     }
@@ -44,9 +44,9 @@ bool nECU_Flash_SpeedCalibration_read(float *Sensor1, float *Sensor2, float *Sen
     bool status = false;
 
     // check if data was initialized
-    if (!nECU_FlowControl_Working_Check(D_Flash))
+    if (!nECU_FC_Working_Check(D_Flash))
     {
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
         status |= true;
         return status;
     }
@@ -57,7 +57,7 @@ bool nECU_Flash_SpeedCalibration_read(float *Sensor1, float *Sensor2, float *Sen
     *Sensor3 = Flash.speedData.SpeedSensor3;
     *Sensor4 = Flash.speedData.SpeedSensor4;
 
-    nECU_Debug_ProgramBlockData_Update(D_Flash);
+    nECU_FC_Timeout_Check(D_Flash);
 
     return status;
 }
@@ -68,9 +68,9 @@ bool nECU_Flash_UserSettings_save(bool *pAntiLag, bool *pTractionOFF)
     bool status = false;
 
     // check if data was initialized
-    if (!nECU_FlowControl_Working_Check(D_Flash))
+    if (!nECU_FC_Working_Check(D_Flash))
     {
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
         status |= true;
         return status;
     }
@@ -96,9 +96,9 @@ bool nECU_Flash_UserSettings_read(bool *pAntiLag, bool *pTractionOFF)
     bool status = false;
 
     // check if data was initialized
-    if (!nECU_FlowControl_Working_Check(D_Flash))
+    if (!nECU_FC_Working_Check(D_Flash))
     {
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
         status |= true;
         return status;
     }
@@ -109,7 +109,7 @@ bool nECU_Flash_UserSettings_read(bool *pAntiLag, bool *pTractionOFF)
     *pAntiLag = decompressed[0];
     *pTractionOFF = decompressed[1];
 
-    nECU_Debug_ProgramBlockData_Update(D_Flash);
+    nECU_FC_Timeout_Check(D_Flash);
 
     return status;
 }
@@ -120,9 +120,9 @@ bool nECU_Flash_DebugQue_save(nECU_Debug_error_que *que)
     bool status = false;
 
     // check if data was initialized
-    if (!nECU_FlowControl_Working_Check(D_Flash))
+    if (!nECU_FC_Working_Check(D_Flash))
     {
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
         status |= true;
         return status;
     }
@@ -210,7 +210,7 @@ static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, th
     status |= nECU_FLASH_cleanFlashSector();                                             // prepare memory for a save
     uint16_t byte_count = sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings); // define buffer length
 
-    if (nECU_FlowControl_Initialize_Check(D_Debug_Que))
+    if (nECU_FC_Initialize_Check(D_Debug_Que))
     {
         byte_count += sizeof(nECU_Debug_error_que); // add debug error que if it was initialized
     }
@@ -220,7 +220,7 @@ static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, th
     /* copy data to the buffer */
     memcpy(&data[0], &(Flash.speedData), sizeof(nECU_SpeedCalibrationData));                        // copy speed data
     memcpy(&data[sizeof(nECU_SpeedCalibrationData)], &(Flash.userData), sizeof(nECU_UserSettings)); // copy user settings data
-    if (nECU_FlowControl_Initialize_Check(D_Debug_Que))                                             // copy debug que if it was initialized
+    if (nECU_FC_Initialize_Check(D_Debug_Que))                                                      // copy debug que if it was initialized
     {
         memcpy(&data[sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings)], Flash.DebugQueData, sizeof(nECU_Debug_error_que));
     }
@@ -249,7 +249,7 @@ static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, th
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, true);
     }
 
-    nECU_Debug_ProgramBlockData_Update(D_Flash);
+    nECU_FC_Timeout_Check(D_Flash);
 
     return status;
 }
@@ -258,15 +258,15 @@ static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, th
 bool nECU_FLASH_Start(void)
 {
     bool status = false;
-    if (!nECU_FlowControl_Initialize_Check(D_Flash))
+    if (!nECU_FC_Initialize_Check(D_Flash))
     {
         status |= (nECU_FLASH_getAllMemory() != HAL_OK);
         if (!status)
         {
-            status |= !nECU_FlowControl_Initialize_Do(D_Flash);
+            status |= !nECU_FC_Initialize_Do(D_Flash);
         }
     }
-    if (!nECU_FlowControl_Working_Check(D_Flash) && status == false)
+    if (!nECU_FC_Working_Check(D_Flash) && status == false)
     {
         if (!status)
         {
@@ -275,7 +275,7 @@ bool nECU_FLASH_Start(void)
     }
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
     }
 
     return status;
@@ -283,13 +283,13 @@ bool nECU_FLASH_Start(void)
 bool nECU_FLASH_Stop(void)
 {
     bool status = false;
-    if (nECU_FlowControl_Working_Check(D_Flash) && status == false)
+    if (nECU_FC_Working_Check(D_Flash) && status == false)
     {
         if (!status)
-            status |= !nECU_FlowControl_Stop_Do(D_Flash);
+            status |= !nECU_FC_Stop_Do(D_Flash);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
 
     return status;
 }
@@ -297,16 +297,16 @@ static bool nECU_FLASH_Erase(void)
 {
     bool status = false;
     // check if data was initialized
-    if (!nECU_FlowControl_Working_Check(D_Flash))
+    if (!nECU_FC_Working_Check(D_Flash))
     {
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
         status |= true;
         return status;
     }
     status |= (nECU_FLASH_cleanFlashSector() != HAL_OK);
     if (status)
     {
-        nECU_FlowControl_Error_Do(D_Flash);
+        nECU_FC_Error_Do(D_Flash);
     }
 
     return status;

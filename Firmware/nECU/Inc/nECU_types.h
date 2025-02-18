@@ -342,7 +342,7 @@ typedef struct
     uint16_t MAP_Stock_10bit;
     uint8_t *Knock;
     uint8_t VSS;
-    uint32_t *loop_time;
+    uint32_t loop_time;
 } Frame2_struct;
 typedef enum
 {
@@ -595,7 +595,7 @@ typedef enum
     D_BLOCK_SPARE_2 = 16,
     D_BLOCK_SPARE_3 = 32,
     D_BLOCK_ERROR_OLD = 64, // error in memory
-    D_BLOCK_ERROR = 128,    // error active
+    D_BLOCK_ERROR = 128,    // error active (fatal)
     D_BLOCK_NONE
 } nECU_ProgramBlock_Status;
 typedef enum

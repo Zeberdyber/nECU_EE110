@@ -4,17 +4,14 @@
         Show all running components, lookup all data, prepare for UART diagnostics
         [X] Initialized/Working to be standardized
         [ ] Timeout values for program blocks
+        [ ] handle double errors
+        [ ] Startup progress
+        [ ] Dependecy tree
     [X] EGT.c rewrite
         [ ] fix EGT communication
-    [X] Move test functions to corresponding files
-        [X] Add progress bars
-    [X] create printf progress bar
-        [ ] Startup progress
-    [X] move flow control to new file
-        [ ]handle double errors
     [ ] tim PWM out rewrite + OX
     [ ] LED animations unification
-    [X] ADC unified functions
+    [ ] dynamic buffers (malloc)
 
 [ ] Code overhaul tests:
     [ ] Analog inputs

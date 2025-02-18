@@ -120,7 +120,7 @@ static float ADC_Alpha_List[ADC_ID_MAX] = {
 
 float nECU_correctToVref(float input)
 {
-    if (!nECU_FlowControl_Working_Check(D_ANALOG_VREF))
+    if (!nECU_FC_Working_Check(D_ANALOG_VREF))
         return input;
     nECU_InputAnalog_Routine(ADC_VREF_ID);
     return (ADC_List[ADC_VREF_ID].output * input) / VREFINT_CAL_VREF;
@@ -132,7 +132,7 @@ bool nECU_InputAnalog_Start(nECU_ADC_Sensor_ID ID)
         return true;
 
     bool status = false;
-    if (!nECU_FlowControl_Initialize_Check(D_ANALOG_MAP + ID) && status == false)
+    if (!nECU_FC_Initialize_Check(D_ANALOG_MAP + ID) && status == false)
     {
         if (ID == ADC_MCUTemp_ID)
         {
@@ -161,9 +161,9 @@ bool nECU_InputAnalog_Start(nECU_ADC_Sensor_ID ID)
         ADC_List[ID].output = 0.0;
 
         if (!status)
-            status |= !nECU_FlowControl_Initialize_Do(D_ANALOG_MAP + ID);
+            status |= !nECU_FC_Initialize_Do(D_ANALOG_MAP + ID);
     }
-    if (!nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID) && status == false)
+    if (!nECU_FC_Working_Check(D_ANALOG_MAP + ID) && status == false)
     {
         status |= nECU_Delay_Start(&(ADC_List[ID].filter.delay));
         status |= nECU_ADC_START(ID);
@@ -171,7 +171,7 @@ bool nECU_InputAnalog_Start(nECU_ADC_Sensor_ID ID)
             status |= !nECU_FlowControl_Working_Do(D_ANALOG_MAP + ID);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_ANALOG_MAP + ID);
+        nECU_FC_Error_Do(D_ANALOG_MAP + ID);
 
     return status;
 }
@@ -181,16 +181,16 @@ bool nECU_InputAnalog_Stop(nECU_ADC_Sensor_ID ID)
         return true;
 
     bool status = false;
-    if (nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID) && status == false)
+    if (nECU_FC_Working_Check(D_ANALOG_MAP + ID) && status == false)
     {
         status |= nECU_Delay_Stop(&(ADC_List[ID].filter.delay));
         if (!status)
-            status |= !nECU_FlowControl_Stop_Do(D_ANALOG_MAP + ID);
+            status |= !nECU_FC_Stop_Do(D_ANALOG_MAP + ID);
 
         status |= nECU_ADC_STOP(ID);
     }
     if (status)
-        nECU_FlowControl_Error_Do(D_ANALOG_MAP + ID);
+        nECU_FC_Error_Do(D_ANALOG_MAP + ID);
 
     return status;
 }
@@ -199,9 +199,9 @@ void nECU_InputAnalog_Routine(nECU_ADC_Sensor_ID ID)
     if (ID >= ADC_ID_MAX) // check if ID valid
         return;
 
-    if (!nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_ANALOG_MAP + ID)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_ANALOG_MAP + ID);
+        nECU_FC_Error_Do(D_ANALOG_MAP + ID);
         return; // Break
     }
 
@@ -209,7 +209,7 @@ void nECU_InputAnalog_Routine(nECU_ADC_Sensor_ID ID)
 
     nECU_Sensor_Routine(&(ADC_List[ID]));
 
-    nECU_Debug_ProgramBlockData_Update(D_ANALOG_MAP + ID);
+    nECU_FC_Timeout_Check(D_ANALOG_MAP + ID);
 }
 
 float nECU_InputAnalog_getValue(nECU_ADC_Sensor_ID ID) // returns output value
@@ -217,9 +217,9 @@ float nECU_InputAnalog_getValue(nECU_ADC_Sensor_ID ID) // returns output value
     if (ID >= ADC_ID_MAX) // check if ID valid
         return 0.0;
 
-    if (!nECU_FlowControl_Working_Check(D_ANALOG_MAP + ID)) // Check if currently working
+    if (!nECU_FC_Working_Check(D_ANALOG_MAP + ID)) // Check if currently working
     {
-        nECU_FlowControl_Error_Do(D_ANALOG_MAP + ID);
+        nECU_FC_Error_Do(D_ANALOG_MAP + ID);
         return 0.0; // Break
     }
 

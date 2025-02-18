@@ -16,23 +16,23 @@ bool nECU_Button_Start(Button_ID ID) // Perform start on single button
     return true;
 
   bool status = false;
-  if (!nECU_FlowControl_Initialize_Check(D_Button_Red + ID) && status == false)
+  if (!nECU_FC_Initialize_Check(D_Button_Red + ID) && status == false)
   {
     // status |= nECU_Button_Light_Start(&Button_List[ID].light, 1 + ID, &BUTTON_OUTPUT_TIMER);
     // status |= nECU_Button_Input_Start(&Button_List[ID].input, 1 + ID, &BUTTON_INPUT_TIMER);
 
     if (status == false)
     {
-      status |= !nECU_FlowControl_Initialize_Do(D_Button_Red + ID);
+      status |= !nECU_FC_Initialize_Do(D_Button_Red + ID);
     }
   }
-  if (!nECU_FlowControl_Working_Check(D_Button_Red + ID) && (status == false))
+  if (!nECU_FC_Working_Check(D_Button_Red + ID) && (status == false))
   {
     status |= !nECU_FlowControl_Working_Do(D_Button_Red + ID);
   }
   if (status)
   {
-    nECU_FlowControl_Error_Do(D_Button_Red + ID);
+    nECU_FC_Error_Do(D_Button_Red + ID);
   }
   return status;
 }
@@ -43,14 +43,14 @@ bool nECU_Button_Stop(Button_ID ID) // Perform stop on single button
 
   bool status = false;
 
-  if (!nECU_FlowControl_Stop_Check(D_Button_Red + ID))
+  if (!nECU_FC_Stop_Check(D_Button_Red + ID))
   {
     // nECU_Button_Light_Stop(&Button_List[ID].light);
     // nECU_Button_Input_Stop(&Button_List[ID].input);
-    status |= !nECU_FlowControl_Stop_Do(D_Button_Red + ID);
+    status |= !nECU_FC_Stop_Do(D_Button_Red + ID);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_Button_Red + ID);
+    nECU_FC_Error_Do(D_Button_Red + ID);
 
   return status;
 }
@@ -210,7 +210,7 @@ bool nECU_Button_Stop(Button_ID ID) // Perform stop on single button
 // {
 //   for (uint8_t Current_ID = 0; Current_ID < BUTTON_ID_MAX; Current_ID++)
 //   {
-//     if (!nECU_FlowControl_Working_Check(D_Button_Red + Current_ID))
+//     if (!nECU_FC_Working_Check(D_Button_Red + Current_ID))
 //     {
 //       nECU_Button_Light_Routine(&Button_List[Current_ID].light);
 //       nECU_Debug_ProgramBlockData_Update(D_Button_Red + Current_ID);
@@ -267,9 +267,9 @@ bool nECU_Button_Stop(Button_ID ID) // Perform stop on single button
 //   if (current_ID >= BUTTON_ID_MAX) // Break if this button ID is not valid
 //     return;
 
-//   if (!nECU_FlowControl_Working_Check(D_Button_Red + current_ID)) // Break if not working
+//   if (!nECU_FC_Working_Check(D_Button_Red + current_ID)) // Break if not working
 //   {
-//     nECU_FlowControl_Error_Do(D_Button_Red + current_ID); // Report error
+//     nECU_FC_Error_Do(D_Button_Red + current_ID); // Report error
 //     return;
 //   }
 
@@ -332,9 +332,9 @@ bool nECU_Button_Stop(Button_ID ID) // Perform stop on single button
 //   if (ID >= BUTTON_ID_MAX)
 //     return CLICK_TYPE_NONE;
 
-//   if (!nECU_FlowControl_Working_Check(D_Button_Red + ID)) // Break if not working
+//   if (!nECU_FC_Working_Check(D_Button_Red + ID)) // Break if not working
 //   {
-//     nECU_FlowControl_Error_Do(D_Button_Red + ID); // Report error
+//     nECU_FC_Error_Do(D_Button_Red + ID); // Report error
 //     return CLICK_TYPE_NONE;
 //   }
 
@@ -354,9 +354,9 @@ bool nECU_Button_Stop(Button_ID ID) // Perform stop on single button
 //   if (ID >= BUTTON_ID_MAX)
 //     return false;
 
-//   if (!nECU_FlowControl_Working_Check(D_Button_Red + ID)) // Break if not working
+//   if (!nECU_FC_Working_Check(D_Button_Red + ID)) // Break if not working
 //   {
-//     nECU_FlowControl_Error_Do(D_Button_Red + ID); // Report error
+//     nECU_FC_Error_Do(D_Button_Red + ID); // Report error
 //     *light = NULL;
 //     return false;
 //   }

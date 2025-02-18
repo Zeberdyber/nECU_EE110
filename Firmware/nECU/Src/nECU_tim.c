@@ -41,9 +41,9 @@ uint8_t nECU_Get_FrameTimer(void) // get current value of frame timer -> Used fo
 {
   /* timer 11 is set to work with 0,1ms count up time, and have 8bit period*/
   bool status = false;
-  if (!nECU_FlowControl_Initialize_Check(D_TIM_FRAME))
+  if (!nECU_FC_Initialize_Check(D_TIM_FRAME))
     status |= nECU_TIM_Init(TIM_FRAME_ID);
-  if (!nECU_FlowControl_Working_Check(D_TIM_FRAME) && status == false)
+  if (!nECU_FC_Working_Check(D_TIM_FRAME) && status == false)
     status |= nECU_TIM_Base_Start(TIM_FRAME_ID);
   if (status) // Break on error
     return 0;
@@ -194,9 +194,9 @@ bool nECU_TIM_Init(nECU_TIM_ID ID) // initialize structure and precalculate vari
   if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
-  if (nECU_FlowControl_Initialize_Check(D_TIM_PWM_BUTTON + ID)) // Check if was done
+  if (nECU_FC_Initialize_Check(D_TIM_PWM_BUTTON + ID)) // Check if was done
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true;
   }
   TIM_List[ID].htim = TIM_Handle_List[ID];
@@ -215,9 +215,9 @@ bool nECU_TIM_Init(nECU_TIM_ID ID) // initialize structure and precalculate vari
   }
 
   bool status = false;
-  status |= !nECU_FlowControl_Initialize_Do(D_TIM_PWM_BUTTON + ID);
+  status |= !nECU_FC_Initialize_Do(D_TIM_PWM_BUTTON + ID);
   if (status)
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
   return status;
 }
 bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel) // function to start PWM on selected timer
@@ -226,9 +226,9 @@ bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel) // function to start P
     return true;
 
   bool status = false;
-  if (!nECU_FlowControl_Initialize_Check(D_TIM_PWM_BUTTON + ID))
+  if (!nECU_FC_Initialize_Check(D_TIM_PWM_BUTTON + ID))
     status |= nECU_TIM_Init(ID);
-  if (!nECU_FlowControl_Working_Check(D_TIM_PWM_BUTTON + ID) && status == false)
+  if (!nECU_FC_Working_Check(D_TIM_PWM_BUTTON + ID) && status == false)
     status |= nECU_TIM_Base_Start(ID);
   if (status) // Break on error
     return status;
@@ -236,13 +236,13 @@ bool nECU_TIM_PWM_Start(nECU_TIM_ID ID, uint32_t Channel) // function to start P
   // Check if this channel is already configured for something else
   if (TIM_List[ID].Channels[Channel] != TIM_Channel_PWM && TIM_List[ID].Channels[Channel] != TIM_Channel_NONE)
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true;
   }
 
   if (HAL_TIM_PWM_Start_IT(TIM_List[ID].htim, TIM_Channel_Lookup[Channel]) != HAL_OK) // start pwm, check result
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true; // indicate if not successful
   }
   TIM_List[ID].Channels[Channel] = TIM_Channel_PWM;
@@ -257,18 +257,18 @@ bool nECU_TIM_PWM_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop PWM
   // Check if this channel is already configured for something else
   if (TIM_List[ID].Channels[Channel] != TIM_Channel_PWM)
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true;
   }
 
   if (HAL_TIM_PWM_Stop_IT(TIM_List[ID].htim, TIM_Channel_Lookup[Channel]) != HAL_OK) // stop pwm, check result
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true; // indicate if not successful
   }
   if (HAL_TIM_GetChannelState(TIM_List[ID].htim, TIM_Channel_Lookup[Channel]) != HAL_TIM_CHANNEL_STATE_RESET) // confirm status of channel
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true; // indicate if not successful
   }
 
@@ -286,7 +286,7 @@ bool nECU_TIM_PWM_Fill(nECU_TIM_ID ID, uint32_t Channel, float Fill) // function
   // Check if this channel is already configured for something else
   if (TIM_List[ID].Channels[Channel] != TIM_Channel_PWM)
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true;
   }
 
@@ -321,9 +321,9 @@ bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, nECU_DigiInput_ID Digi_
     return true;
 
   bool status = false;
-  if (!nECU_FlowControl_Initialize_Check(D_TIM_PWM_BUTTON + ID))
+  if (!nECU_FC_Initialize_Check(D_TIM_PWM_BUTTON + ID))
     status |= nECU_TIM_Init(ID);
-  if (!nECU_FlowControl_Working_Check(D_TIM_PWM_BUTTON + ID) && status == false)
+  if (!nECU_FC_Working_Check(D_TIM_PWM_BUTTON + ID) && status == false)
     status |= nECU_TIM_Base_Start(ID);
   if (status) // Break on error
     return status;
@@ -331,14 +331,14 @@ bool nECU_TIM_IC_Start(nECU_TIM_ID ID, uint32_t Channel, nECU_DigiInput_ID Digi_
   // Check if this channel is already configured for something else
   if (TIM_List[ID].Channels[Channel] != TIM_Channel_IC && TIM_List[ID].Channels[Channel] != TIM_Channel_NONE)
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     status |= true;
     return status;
   }
 
   if (HAL_TIM_IC_Start_IT(TIM_List[ID].htim, TIM_Channel_Lookup[Channel]) != HAL_OK) // start IC, check result
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     status |= true; // indicate if not successful
   }
   TIM_List[ID].Channels[Channel] = TIM_Channel_IC;
@@ -355,18 +355,18 @@ bool nECU_TIM_IC_Stop(nECU_TIM_ID ID, uint32_t Channel) // function to stop IC o
   // Check if this channel is already configured for something else
   if (TIM_List[ID].Channels[Channel] != TIM_Channel_PWM)
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true;
   }
 
   if (HAL_TIM_IC_Stop_IT(TIM_List[ID].htim, TIM_Channel_Lookup[Channel]) != HAL_OK) // stop ic, check result
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true; // indicate if not successful
   }
   if (HAL_TIM_GetChannelState(TIM_List[ID].htim, TIM_Channel_Lookup[Channel]) != HAL_TIM_CHANNEL_STATE_RESET) // confirm status of channel
   {
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
     return true; // indicate if not successful
   }
 
@@ -388,7 +388,7 @@ bool nECU_TIM_Base_Start(nECU_TIM_ID ID) // function to start base of selected t
 
   bool status = false;
 
-  if (!nECU_FlowControl_Working_Check(D_TIM_PWM_BUTTON + ID) && status == false)
+  if (!nECU_FC_Working_Check(D_TIM_PWM_BUTTON + ID) && status == false)
   {
     if (ID == TIM_ADC_KNOCK_ID)
       status |= (HAL_TIM_Base_Start(TIM_List[ID].htim) != HAL_OK);
@@ -399,7 +399,7 @@ bool nECU_TIM_Base_Start(nECU_TIM_ID ID) // function to start base of selected t
       status |= !nECU_FlowControl_Working_Do(D_TIM_PWM_BUTTON + ID);
   }
   if (status)
-    nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+    nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
 
   return status;
 }
@@ -408,7 +408,7 @@ bool nECU_TIM_Base_Stop(nECU_TIM_ID ID) // function to stop base of selected tim
   if (ID >= TIM_ID_MAX) // Break if invalid ID
     return true;
 
-  if (nECU_FlowControl_Working_Check(D_TIM_PWM_BUTTON + ID))
+  if (nECU_FC_Working_Check(D_TIM_PWM_BUTTON + ID))
   {
     bool working = false;
     for (uint8_t current_Channel = 0; current_Channel < 4; current_Channel++) // Check if all channels are disabled
@@ -419,11 +419,11 @@ bool nECU_TIM_Base_Stop(nECU_TIM_ID ID) // function to stop base of selected tim
     {
       if (HAL_TIM_Base_Stop_IT(TIM_List[ID].htim) == HAL_OK)
       {
-        nECU_FlowControl_Stop_Do(D_TIM_PWM_BUTTON + ID);
+        nECU_FC_Stop_Do(D_TIM_PWM_BUTTON + ID);
       }
       else
       {
-        nECU_FlowControl_Error_Do(D_TIM_PWM_BUTTON + ID);
+        nECU_FC_Error_Do(D_TIM_PWM_BUTTON + ID);
         return true;
       }
     }
