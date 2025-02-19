@@ -77,16 +77,28 @@ uint16_t VoltsToADC(float Voltage)
 }
 
 /* ADC buffer operations */
-void nECU_ADC_AverageDMA(ADC_HandleTypeDef *hadc, uint16_t *inData, uint16_t inLength, uint16_t *outData, float smoothAlpha) // average out dma buffer
+void nECU_ADC_AverageDMA(nECU_ADC *pADC, uint16_t offset) // average out dma buffer
 {
-    if (hadc == NULL || inData == NULL || outData == NULL) // break if pointer does not exist
+    if (pADC == NULL) // break if pointer does not exist
         return;
 
-    uint32_t numChannels = hadc->Init.NbrOfConversion;
-    uint32_t avgSum[numChannels];  // create buffer for sum values
-    uint16_t avgData[numChannels]; // create temporary buffer for smoothing
+    if (pADC->handle == NULL || pADC->in_buffer.Buffer == NULL || pADC->out_buffer.Buffer == NULL) // check if properly initialized
+        return;
 
-    memset(avgSum, 0, sizeof(avgSum)); // Clear buffer
+    // assign data (for code simplification)
+    uint16_t *inData = &(pADC->in_buffer.Buffer[offset]);
+    uint16_t *outData = &(pADC->out_buffer.Buffer[0]);
+    uint16_t inLength = (pADC->in_buffer.len / 2); // only a half will be processed at the time
+    float smoothAlpha = (pADC->smoothing_alpha);
+
+    uint8_t numChannels = (pADC->out_buffer.len);
+    uint32_t *avgSum = malloc(numChannels * sizeof(uint32_t));
+    uint16_t *avgData = malloc(numChannels * sizeof(uint16_t));
+
+    if (avgSum == NULL || avgData == NULL)
+        return; // failed to allocate memory
+    else
+        memset(avgSum, 0, (numChannels * sizeof(uint32_t))); // Clear buffer
 
     // Sum up all values for each channel
     for (uint16_t convCount = 0; convCount < inLength; convCount += numChannels) // increment per full conversions
@@ -103,6 +115,10 @@ void nECU_ADC_AverageDMA(ADC_HandleTypeDef *hadc, uint16_t *inData, uint16_t inL
         avgData[Channel] = avgSum[Channel] / (inLength / numChannels);                        // average out
         outData[Channel] = nECU_expSmooth(&avgData[Channel], &outData[Channel], smoothAlpha); // smooth
     }
+
+    // release memory
+    free(avgSum);
+    free(avgData);
 }
 
 /* Smoothing functions */
@@ -247,14 +263,22 @@ static bool nECU_DataProcessing_test_ADC_AverageDMA(void) // test nECU_ADC_Avera
     uint16_t inputBuf[] = {10, 0, 20, 1, 30, 3, 40, 32768, 10, 0, 20, 1, 30, 3, 40, 32768};
     uint16_t outputBuf[testADC.Init.NbrOfConversion + 2]; // too large buffer to test data spilage
     outputBuf[0] = 0;
-    outputBuf[(sizeof(outputBuf) / sizeof(outputBuf[0])) - 1] = 0;
+    outputBuf[sizeof(outputBuf) / sizeof(outputBuf[0]) - 1] = 0;
 
-    nECU_ADC_AverageDMA(&testADC, inputBuf, (sizeof(inputBuf) / sizeof(inputBuf[0])), &outputBuf[1], 1); // no smoothing
+    nECU_ADC test_data = {
+        &testADC, //
+        8,
+        1,
+        {inputBuf, (sizeof(inputBuf) / sizeof(inputBuf[0]))},
+        {&outputBuf[1], (testADC.Init.NbrOfConversion)},
+        {false, false, false}};
+
+    nECU_ADC_AverageDMA(&test_data, 0); // no smoothing
 
     // check limits for spilage
     if (outputBuf[0] != 0)
         return false;
-    if (outputBuf[3] != 0)
+    if (outputBuf[sizeof(outputBuf) / sizeof(outputBuf[0]) - 1] != 0)
         return false;
 
     // check for correct answers
@@ -334,7 +358,10 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
     static char text[] = "Test of nECU_data_processing.c";
     nECU_console_progressBar(bar, sizeof(bar), 0);
     if (logging_enable)
+    {
         printf("\r%s\t%s", text, bar);
+        fflush(stdout);
+    }
 
     if (!nECU_DataProcessing_test_Float())
     {
@@ -345,7 +372,10 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
 
     nECU_console_progressBar(bar, sizeof(bar), 20);
     if (logging_enable)
+    {
         printf("\r%s\t%s", text, bar);
+        fflush(stdout);
+    }
 
     if (!nECU_DataProcessing_test_ADC_AverageDMA())
     {
@@ -356,7 +386,10 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
 
     nECU_console_progressBar(bar, sizeof(bar), 40);
     if (logging_enable)
+    {
         printf("\r%s\t%s", text, bar);
+        fflush(stdout);
+    }
 
     if (!nECU_DataProcessing_test_expSmooth())
     {
@@ -367,7 +400,10 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
 
     nECU_console_progressBar(bar, sizeof(bar), 60);
     if (logging_enable)
+    {
         printf("\r%s\t%s", text, bar);
+        fflush(stdout);
+    }
 
     if (!nECU_DataProcessing_test_averageSmooth())
     {
@@ -378,7 +414,10 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
 
     nECU_console_progressBar(bar, sizeof(bar), 80);
     if (logging_enable)
+    {
         printf("\r%s\t%s", text, bar);
+        fflush(stdout);
+    }
 
     if (!nECU_DataProcessing_test_compdecompBool())
     {
@@ -389,7 +428,10 @@ bool nECU_DataProcessing_test(bool logging_enable) // Run test
 
     nECU_console_progressBar(bar, sizeof(bar), 100);
     if (logging_enable)
+    {
         printf("\r%s\t%s", text, bar);
+        fflush(stdout);
+    }
 
     return true;
 }

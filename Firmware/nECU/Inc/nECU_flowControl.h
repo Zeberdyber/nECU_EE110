@@ -26,7 +26,7 @@ extern "C"
     void nECU_FC_Start(void); // Initialize 'ProgramBlock' tracking
 
     /* Flow control */
-    static bool nECU_FC_Init_Check(nECU_Module_ID ID);               // check if was structure initialized
+    bool nECU_FC_Init_Check(nECU_Module_ID ID);                      // check if was structure initialized
     static bool nECU_FC_Init_Do(nECU_Module_ID ID, uint8_t timeout); // Initialize structure
 
     bool nECU_FC_Stop_Check(nECU_Module_ID ID); // Check if block has "stop" status

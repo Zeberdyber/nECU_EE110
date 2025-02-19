@@ -126,7 +126,7 @@ void nECU_FC_Start(void) // Initialize 'ProgramBlock' tracking
 
     ProgramBlock cannot be started if it has active ERROR status.
 */
-static bool nECU_FC_Init_Check(nECU_Module_ID ID) // check if was structure initialized
+bool nECU_FC_Init_Check(nECU_Module_ID ID) // check if was structure initialized
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
@@ -240,7 +240,7 @@ bool nECU_FC_Error_Check(nECU_Module_ID ID) // Check if block has "error" status
 {
     if (ID >= D_ID_MAX) // Break if invalid ID
         return false;
-    return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR);
+    return (bool)(Debug_Status_List[ID].Status & D_BLOCK_ERROR_OLD);
 }
 bool nECU_FC_Error_Do(nECU_Module_ID ID) // Write "error" status if possible
 {
@@ -250,7 +250,7 @@ bool nECU_FC_Error_Do(nECU_Module_ID ID) // Write "error" status if possible
     if (nECU_FC_Error_Check(ID))
     {
         /* First time error in this block happened */
-        if (!nECU_FC_Stop_Check(ID))
+        if (nECU_FC_Init_Check(ID))
         {
             /* Block was not initialized */
             printf("Error detected at %s - strucutre was NULL.\n\r", D_ID_Strings[ID]);
@@ -277,6 +277,8 @@ bool nECU_FC_Error_Do(nECU_Module_ID ID) // Write "error" status if possible
 
     if (nECU_FC_Working_Check(D_PC))
         printf("Error detected at %s - general error.\n\r", D_ID_Strings[ID]);
+
+    Debug_Status_List[ID].Status |= D_BLOCK_ERROR_OLD; // Add "ERROR" flag
 
     // Debug_Status_List[ID].Status &= ~D_BLOCK_STOP;   // Clear "STOP" flag
     return nECU_FC_Error_Check(ID);

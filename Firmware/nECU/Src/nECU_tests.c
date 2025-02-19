@@ -49,18 +49,19 @@ void nECU_tests_error_display(void) // on board LEDs display
 bool nECU_systest_run(void) // run tests of type systest
 {
     bool status = false;
-    printf("Systest started: \n\r");
+    printf("Systest started: ");
     if (SYSTEST_DO_FLASH)
     {
         if (!nECU_FLASH_test(true))
         {
-            printf("Test failed on nECU_FLASH_test()\n\r");
+            printf("\n\rTest failed on nECU_FLASH_test()\n\r");
             nECU_systest_error();
             status |= true;
+            return status;
         }
-        else
-            printf("nECU_FLASH_test turned off\n\r");
     }
+    else
+        printf("\tnECU_FLASH_test turned off\t");
     printf("DONE!\n\r");
     return status;
 }
@@ -80,7 +81,7 @@ bool nECU_codetest_run(void) // run tests of type codetest
         nECU_codetest_error();
         status |= true;
     }
-    printf("DONE!\n\r");
+    printf(" DONE!\n\r");
     return status;
 }
 void nECU_codetest_error(void) // function to call when error detected

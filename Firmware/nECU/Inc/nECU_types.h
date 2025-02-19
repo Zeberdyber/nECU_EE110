@@ -60,6 +60,18 @@ typedef struct
     uint32_t value;  // current value
     uint32_t preset; // preset value
 } Counter;
+typedef enum
+{
+    TIM_PWM_BUTTON_ID,
+    TIM_PWM_OX_ID,
+    TIM_IC_BUTTON_ID,
+    TIM_IC_FREQ_ID,
+    TIM_ADC_KNOCK_ID,
+    TIM_FRAME_ID,
+    TIM_PWM_LED1_ID,
+    TIM_PWM_LED2_ID,
+    TIM_ID_MAX
+} nECU_TIM_ID;
 
 typedef enum
 {
@@ -161,6 +173,9 @@ typedef enum
 } nECU_HADC_ID;
 typedef struct
 {
+    ADC_HandleTypeDef *handle; // ADC pointer
+    uint16_t sample_count;     // per channel
+    float smoothing_alpha;
     Buffer_uint16 in_buffer;    // input buffer (from DMA)
     Buffer_uint16 out_buffer;   // output buffer (after processing, like average)
     bool flags[ADC_STATUS_MAX]; // statuses
@@ -368,8 +383,8 @@ typedef struct
 {
     nECU_Delay delay;        // update delay structure
     float smoothingAlpha;    // value for smoothing
-    uint16_t previous_Input; // value from previous run
     Buffer_uint16 buf;       // smoothing buffer
+    uint16_t previous_Input; // value from previous run
 } SensorFiltering;
 typedef struct
 {
@@ -443,22 +458,13 @@ typedef enum
 typedef struct
 {
     Sensor_Handle sensor;
-    nECU_InputCapture *ic; // IC data
+    nECU_TIM_ID timer_ID;      // correlated timer
+    uint32_t ic_channel;       // 0 -> TIM_CHANNEL_1, 1 -> TIM_CHANNEL_2, 2 -> TIM_CHANNEL_3, 3 -> TIM_CHANNEL_4
+    nECU_InputCapture *ic;     // IC data
+    nECU_DigiInput_ID gpio_ID; // correlated GPIO pin
 } nECU_InputFreq;
 
 /* Timer */
-typedef enum
-{
-    TIM_PWM_BUTTON_ID,
-    TIM_PWM_OX_ID,
-    TIM_IC_BUTTON_ID,
-    TIM_IC_FREQ_ID,
-    TIM_ADC_KNOCK_ID,
-    TIM_FRAME_ID,
-    TIM_PWM_LED1_ID,
-    TIM_PWM_LED2_ID,
-    TIM_ID_MAX
-} nECU_TIM_ID;
 typedef struct
 {
     nECU_Timer *tim;          // pointer to watched timer

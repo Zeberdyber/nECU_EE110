@@ -10,6 +10,7 @@
 
 static ButtonMenu Menu = {0};
 static TachoValue Tacho[TACHO_ID_MAX];
+Button_ClickType RedType = CLICK_TYPE_NONE, OrangeType = CLICK_TYPE_NONE, GreenType = CLICK_TYPE_NONE;
 
 /* Menu */
 bool nECU_Menu_Start(void)
@@ -89,7 +90,6 @@ void nECU_Menu_Routine(void)
   // Button_ClickType RedType = nECU_Button_Input_GetType(BUTTON_ID_RED);
   // Button_ClickType OrangeType = nECU_Button_Input_GetType(BUTTON_ID_ORANGE);
   // Button_ClickType GreenType = nECU_Button_Input_GetType(BUTTON_ID_GREEN);
-  Button_ClickType RedType, OrangeType, GreenType;
   if (OrangeType == CLICK_TYPE_HOLD && Menu.MenuLvl < 1) // move up the menu
   {
     Menu.MenuLvl++;

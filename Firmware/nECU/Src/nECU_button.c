@@ -12,6 +12,7 @@ static Button Button_List[BUTTON_ID_MAX] = {0};
 /* All button functions */
 bool nECU_Button_Start(Button_ID ID) // Perform start on single button
 {
+  UNUSED(Button_List);
   if (ID >= BUTTON_ID_MAX) // Break if invalid ID
     return true;
 

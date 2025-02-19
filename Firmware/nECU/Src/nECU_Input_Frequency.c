@@ -7,45 +7,61 @@
 
 #include "nECU_Input_Frequency.h"
 
-static uint16_t VSS_Buffer[10] = {0};
-
-static nECU_InputFreq Sensor_List[FREQ_ID_MAX] = {0};
-static SensorCalibration Sensor_calib_List[FREQ_ID_MAX] = {
+static nECU_InputFreq Sensor_List[FREQ_ID_MAX] = {
     [FREQ_VSS_ID] = {
-        0, 36,   // limits of freq readout
-        0, 5.76, // limits of resulting output
-        0.0, 1.0 // Place holders
+        // Sensor
+        {
+            // Calibration
+            {
+                0, 36,   // limits of freq readout
+                0, 5.76, // limits of resulting output
+                0.0, 1.0 // Place holders
+            },
+            // Filter
+            {
+                {0},        // Delay
+                1.0,        // Smoothing Alpha
+                {NULL, 10}, // buffer (configure 0 to desired buffer len)
+                0.3,        // previous value
+            },
+            NULL, // input data
+            0.0,  // output
+        },
+        TIM_IC_FREQ_ID,   // correlated timer
+        1,                // timer channel (TIM_CHANNEL_2)
+        NULL,             // IC pointer
+        DigiInput_VSS_ID, // correlated GPIO pin
     },
     [FREQ_IGF_ID] = {
-        0, 1,    // limits of freq readout
-        0, 120,  // limits of resulting output
-        0.0, 1.0 // Place holders
+        // Sensor
+        {
+            // Calibration
+            {
+                0, 1,    // limits of freq readout
+                0, 120,  // limits of resulting output
+                0.0, 1.0 // Place holders
+            },
+            // Filter
+            {
+                {0},        // Delay
+                1.0,        // Smoothing Alpha
+                {NULL, 10}, // buffer (configure 0 to desired buffer len)
+                1.0,        // previous value
+            },
+            NULL, // input data
+            0.0,  // output
+        },
+        TIM_IC_FREQ_ID,   // correlated timer
+        0,                // timer channel (TIM_CHANNEL_1)
+        NULL,             // IC pointer
+        DigiInput_IGF_ID, // correlated GPIO pin
     },
-}; // List of default calibration values
+};
+// Adjust below values!!
 static uint32_t Sensor_delay_List[FREQ_ID_MAX] = {
     [FREQ_VSS_ID] = 0,
     [FREQ_IGF_ID] = 0,
 }; // List of delay values between updates in ms
-static Buffer_uint16 Sensor_Buffer_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = {VSS_Buffer, (sizeof(VSS_Buffer) / sizeof(VSS_Buffer[0]))},
-    [FREQ_IGF_ID] = {NULL, 0},
-}; // List of pointers to smoothing buffers and its lenghts
-static float Sensor_Alpha_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = 0.3,
-    [FREQ_IGF_ID] = 1.0,
-}; // List of alphas for smoothing
-static nECU_TIM_ID Timer_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = TIM_IC_FREQ_ID,
-    [FREQ_IGF_ID] = TIM_IC_FREQ_ID,
-}; // List of timers for IC
-static uint32_t Channel_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = 1, // TIM_CHANNEL_2
-    [FREQ_IGF_ID] = 0, // TIM_CHANNEL_1
-}; // Timer channel list
-static nECU_DigiInput_ID DigiInput_List[FREQ_ID_MAX] = {
-    [FREQ_VSS_ID] = DigiInput_VSS_ID,
-    [FREQ_IGF_ID] = DigiInput_IGF_ID,
-}; // List of connected Digital Inputs
 
 bool nECU_FreqInput_Start(nECU_Freq_ID ID)
 {
@@ -57,14 +73,20 @@ bool nECU_FreqInput_Start(nECU_Freq_ID ID)
     if (!nECU_FC_Initialize_Check(D_VSS + ID))
     {
         // Calibration
-        Sensor_List[ID].sensor.calibration = Sensor_calib_List[ID];
         nECU_calculateLinearCalibration(&(Sensor_List[ID].sensor.calibration));
 
-        // Filtering
-        Sensor_List[ID].sensor.filter.smoothingAlpha = Sensor_Alpha_List[ID];
-        Sensor_List[ID].sensor.filter.buf = Sensor_Buffer_List[ID];
+        // Delay
         status |= nECU_Delay_Set(&(Sensor_List[ID].sensor.filter.delay), Sensor_delay_List[ID]);
 
+        // Buffer malloc
+        if (Sensor_List[ID].sensor.filter.buf.len > 0) // Check if buffer is specified
+        {
+            Sensor_List[ID].sensor.filter.buf.Buffer = malloc(Sensor_List[ID].sensor.filter.buf.len * sizeof(uint16_t));
+            if (Sensor_List[ID].sensor.filter.buf.Buffer == NULL)
+                status |= true;
+            else
+                memset(Sensor_List[ID].sensor.filter.buf.Buffer, 0, Sensor_List[ID].sensor.filter.buf.len * sizeof(uint16_t));
+        }
         // Default value
         Sensor_List[ID].sensor.output = 0.0;
 
@@ -73,12 +95,12 @@ bool nECU_FreqInput_Start(nECU_Freq_ID ID)
     }
     if (!nECU_FC_Working_Check(D_VSS + ID) && status == false)
     {
-        status |= nECU_TIM_IC_Start(Timer_List[ID], Channel_List[ID], DigiInput_List[ID]);
+        status |= nECU_TIM_IC_Start(Sensor_List[ID].timer_ID, Sensor_List[ID].ic_channel, Sensor_List[ID].gpio_ID);
         status |= nECU_Delay_Start(&(Sensor_List[ID].sensor.filter.delay));
 
         // Pointers
-        if (nECU_TIM_IC_getPointer(Timer_List[ID], Channel_List[ID]))
-            Sensor_List[ID].ic = nECU_TIM_IC_getPointer(Timer_List[ID], Channel_List[ID]);
+        if (nECU_TIM_IC_getPointer(Sensor_List[ID].timer_ID, Sensor_List[ID].ic_channel))
+            Sensor_List[ID].ic = nECU_TIM_IC_getPointer(Sensor_List[ID].timer_ID, Sensor_List[ID].ic_channel);
         else
             status |= true;
 
@@ -102,7 +124,8 @@ bool nECU_FreqInput_Stop(nECU_Freq_ID ID)
     if (nECU_FC_Working_Check(D_VSS + ID) && status == false)
     {
         status |= nECU_Delay_Stop(&(Sensor_List[ID].sensor.filter.delay));
-        status |= nECU_TIM_IC_Stop(Timer_List[ID], Channel_List[ID]);
+        status |= nECU_TIM_IC_Stop(Sensor_List[ID].timer_ID, Sensor_List[ID].ic_channel);
+        free(Sensor_List[ID].sensor.filter.buf.Buffer);
 
         if (!status)
             status |= !nECU_FC_Stop_Do(D_VSS + ID);

@@ -19,6 +19,7 @@ extern "C"
 #include "adc.h"
 #include "nECU_UART.h"
 #include "nECU_Knock.h"
+#include "stdlib.h"
 
 /* HOW TO GET ADC FULL CONVERSION TIME
 ---------------------------------------------------------------
@@ -38,7 +39,7 @@ Time ADC1 {/8, 12bit, 8 channels, 480 cycles each}
 
   bool nECU_ADC_START(nECU_ADC_Sensor_ID ID);
   bool nECU_ADC_STOP(nECU_ADC_Sensor_ID ID);
-  void nECU_ADC_Routine(nECU_ADC_Sensor_ID ID);
+  bool nECU_ADC_Routine(nECU_ADC_Sensor_ID ID);
 
   static nECU_HADC_ID nECU_ADC_Identify_SensorID(nECU_ADC_Sensor_ID ID); // returns correcr hadc id based on given sensor
   static nECU_HADC_ID nECU_ADC_Identify_hadc(ADC_HandleTypeDef *hadc);   // returns ID of given hadc structure pointer

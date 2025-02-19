@@ -27,7 +27,7 @@ extern "C"
 
     bool nECU_InputAnalog_Start(nECU_ADC_Sensor_ID ID);
     bool nECU_InputAnalog_Stop(nECU_ADC_Sensor_ID ID);
-    void nECU_InputAnalog_Routine(nECU_ADC_Sensor_ID ID);
+    bool nECU_InputAnalog_Routine(nECU_ADC_Sensor_ID ID);
     float nECU_InputAnalog_getValue(nECU_ADC_Sensor_ID ID); // returns output value
 
 #ifdef __cplusplus

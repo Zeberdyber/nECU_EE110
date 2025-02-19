@@ -12,6 +12,10 @@
     [ ] tim PWM out rewrite + OX
     [ ] LED animations unification
     [ ] dynamic buffers (malloc)
+        [X] ADCs
+            [X] Memory release at _STOP()
+        [X] Input_Analog
+        [X] Input_Frequency
 
 [ ] Code overhaul tests:
     [ ] Analog inputs

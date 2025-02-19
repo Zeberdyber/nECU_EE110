@@ -37,7 +37,7 @@ extern "C"
     uint16_t VoltsToADC(float Voltage);
 
     /* ADC buffer operations */
-    void nECU_ADC_AverageDMA(ADC_HandleTypeDef *hadc, uint16_t *inData, uint16_t inLength, uint16_t *outData, float smoothAlpha); // average out dma buffer
+    void nECU_ADC_AverageDMA(nECU_ADC *pADC, uint16_t offset); // average out dma buffer
 
     /* Smoothing functions */
     uint16_t nECU_expSmooth(uint16_t *in, uint16_t *in_previous, float alpha);                                           // exponential smoothing algorithm
