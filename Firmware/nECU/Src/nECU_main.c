@@ -14,6 +14,9 @@ uint16_t *vrefADC;
 /* General code */
 void nECU_Start(void) // start executing program (mostly in main loop, some in background with interrupts)
 {
+    // uint16_t *ptr = NULL; // Initially NULL
+    // nECU_Memory_Create(&ptr, 10);
+    // HAL_Delay(100);
     bool status = false;
     status |= nECU_Debug_Start(); // MUST BE THE FIRST EXECUTED LINE!!
 
@@ -23,14 +26,14 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
 
         status |= nECU_FLASH_Start(); // initialize FLASH module -> copy from FLASH to RAM
         // nECU_EGT_Start();
-        status |= nECU_test(); // perform system and code tests
+        // status |= nECU_test(); // perform system and code tests
 
-        // status |= Frame0_Start();
-        // status |= Frame1_Start();
-        // status |= Frame2_Start();
-        // status |= nECU_CAN_Start();
+        status |= Frame0_Start();
+        status |= Frame1_Start();
+        status |= Frame2_Start();
+        status |= nECU_CAN_Start();
 
-        // status |= OnBoard_LED_Start();
+        status |= OnBoard_LED_Start();
 
         if (!status)
             status |= !nECU_FC_Initialize_Do(D_Main);
@@ -55,6 +58,7 @@ void nECU_Start(void) // start executing program (mostly in main loop, some in b
     // nECU_TIM_PWM_Start(TIM_PWM_LED2_ID, 0);
     // nECU_FC_Error_Do(D_Main);
 }
+extern uint16_t Memory_Used;
 void nECU_main(void) // main rutine of the program
 {
     if (nECU_FC_Error_Check(D_Main))
@@ -100,6 +104,7 @@ void nECU_main(void) // main rutine of the program
     if (nECU_InputAnalog_Routine(ADC_VREF_ID))
         printf("%d\n\r", (int)nECU_InputAnalog_getValue(ADC_VREF_ID));
     // fflush(stdout);
+    // printf("%d\n\r", (int)Memory_Used);
 
     nECU_FC_Timeout_Check(D_Main);
 

@@ -26,7 +26,7 @@ extern "C"
 #define FLASH_MINIMUM_RUN_TIME 1000                                                                  // to allow debugger to work
 #define FLASH_DATA_START_ADDR_SPEED (FLASH_DATA_START_ADDRESS)                                       // start address for Speed Calibration data
 #define FLASH_DATA_START_ADDR_USER (FLASH_DATA_START_ADDR_SPEED + sizeof(nECU_SpeedCalibrationData)) // start address for User Settings data
-#define FLASH_DATA_START_ADDR_DEBUGQUE (FLASH_DATA_START_ADDR_USER + sizeof(nECU_UserSettings))      // start address of Debug Que data
+#define FLASH_DATA_START_ADDR_DEBUGQUE (FLASH_DATA_START_ADDR_USER + sizeof(nECU_UserSettings))      // start address of Debug Que data (has to be the last one; size may vary)
 
     /* Function Prototypes */
     /* Speed calibration data functions (flash function interface) */
@@ -38,8 +38,8 @@ extern "C"
     bool nECU_Flash_UserSettings_read(bool *pAntiLag, bool *pTractionOFF);
 
     /* Debug que (flash function interface) */
-    bool nECU_Flash_DebugQue_save(nECU_Debug_error_que *que);
-    bool nECU_Flash_DebugQue_read(nECU_Debug_error_que *que);
+    bool nECU_Flash_DebugQue_save(nECU_Debug_error_que que);
+    bool nECU_Flash_DebugQue_read(nECU_Debug_error_que que);
 
     /* Flash functions */
     static HAL_StatusTypeDef nECU_FLASH_cleanFlashSector(void);       // clean flash sector

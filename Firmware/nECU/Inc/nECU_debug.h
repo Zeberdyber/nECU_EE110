@@ -23,6 +23,7 @@ extern "C"
 #define DEVICE_TEMPERATURE_MIN -20 // in deg C
 #define TC_TEMPERATURE_MAX 1000    // in deg C
 #define BENCH_MODE true            // set true if not connected to car harness
+#define DEBUG_QUE_LEN 50           // number of debug messages that will be stored in memory
 
     /* Debug main functions */
     bool nECU_Debug_Start(void);              // starts up debugging functions

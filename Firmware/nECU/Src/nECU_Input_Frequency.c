@@ -19,10 +19,10 @@ static nECU_InputFreq Sensor_List[FREQ_ID_MAX] = {
             },
             // Filter
             {
-                {0},        // Delay
-                1.0,        // Smoothing Alpha
-                {NULL, 10}, // buffer (configure 0 to desired buffer len)
-                0.3,        // previous value
+                {0},                             // Delay
+                1.0,                             // Smoothing Alpha
+                {{NULL}, 10 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+                0.3,                             // previous value
             },
             NULL, // input data
             0.0,  // output
@@ -43,10 +43,10 @@ static nECU_InputFreq Sensor_List[FREQ_ID_MAX] = {
             },
             // Filter
             {
-                {0},        // Delay
-                1.0,        // Smoothing Alpha
-                {NULL, 10}, // buffer (configure 0 to desired buffer len)
-                1.0,        // previous value
+                {0},                             // Delay
+                1.0,                             // Smoothing Alpha
+                {{NULL}, 10 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+                1.0,                             // previous value
             },
             NULL, // input data
             0.0,  // output
@@ -81,11 +81,7 @@ bool nECU_FreqInput_Start(nECU_Freq_ID ID)
         // Buffer malloc
         if (Sensor_List[ID].sensor.filter.buf.len > 0) // Check if buffer is specified
         {
-            Sensor_List[ID].sensor.filter.buf.Buffer = malloc(Sensor_List[ID].sensor.filter.buf.len * sizeof(uint16_t));
-            if (Sensor_List[ID].sensor.filter.buf.Buffer == NULL)
-                status |= true;
-            else
-                memset(Sensor_List[ID].sensor.filter.buf.Buffer, 0, Sensor_List[ID].sensor.filter.buf.len * sizeof(uint16_t));
+            status |= !nECU_Memory_Create(&Sensor_List[ID].sensor.filter.buf);
         }
         // Default value
         Sensor_List[ID].sensor.output = 0.0;
@@ -125,7 +121,7 @@ bool nECU_FreqInput_Stop(nECU_Freq_ID ID)
     {
         status |= nECU_Delay_Stop(&(Sensor_List[ID].sensor.filter.delay));
         status |= nECU_TIM_IC_Stop(Sensor_List[ID].timer_ID, Sensor_List[ID].ic_channel);
-        free(Sensor_List[ID].sensor.filter.buf.Buffer);
+        status |= !nECU_Memory_Destroy(&Sensor_List[ID].sensor.filter.buf);
 
         if (!status)
             status |= !nECU_FC_Stop_Do(D_VSS + ID);

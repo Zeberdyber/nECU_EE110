@@ -39,7 +39,7 @@ extern "C"
 
     /* Function Prototypes */
     /* Knock ADC data transmission */
-    void nECU_UART_SendKnock(uint16_t *input_buffer, nECU_UART *knock_uart);                                                           // send knock data over
+    void nECU_UART_SendKnock(nECU_Buffer *ADC_buf, nECU_UART *knock_uart);                                                             // send knock data over
     uint8_t nECU_UART_KnockSuperFrame(uint16_t *input_buffer, uint8_t *output_buffer, uint16_t input_length, uint8_t delta_bit_count); // compose Super frame (diferential frame), returns resulting frame length
     /* UART interface */
     bool nECU_UART_Init(nECU_UART *obj, UART_HandleTypeDef *huart, uint8_t *buffer); // initializes structure

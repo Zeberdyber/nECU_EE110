@@ -23,9 +23,7 @@ bool nECU_Debug_Start(void) // starts up debugging functions
         status |= nECU_Debug_Init_Que();
         status |= nECU_InputAnalog_Start(ADC_MCUTemp_ID);
         if (!status)
-        {
             status |= !nECU_FC_Initialize_Do(D_Debug);
-        }
     }
     if (!nECU_FC_Working_Check(D_Debug) && status == false)
     {
@@ -221,27 +219,28 @@ static bool nECU_Debug_Init_Que(void) // initializes que
 
     if (!nECU_FC_Initialize_Check(D_Debug_Que))
     {
-        dbg_data.error_que.counter.preset = sizeof(dbg_data.error_que.messages) / sizeof(nECU_Debug_error_mesage); // calculate length of que
+        dbg_data.error_que.counter.preset = DEBUG_QUE_LEN; // length of que
         dbg_data.error_que.counter.value = 0;
         dbg_data.error_que.message_count = 0;
-        for (uint16_t que_index = 0; que_index < dbg_data.error_que.counter.preset; que_index++)
-        {
-            nECU_Debug_Message_Init(&(dbg_data.error_que.messages[que_index])); // clear each
-        }
-        status |= nECU_Flash_DebugQue_read(&(dbg_data.error_que));
+
+        // Memory allocation
+        dbg_data.error_que.messages.len = dbg_data.error_que.counter.preset * sizeof(nECU_Debug_error_mesage);
+        status |= !nECU_Memory_Create(&dbg_data.error_que.messages);
+
         if (!status)
         {
-            status |= !nECU_FC_Initialize_Do(D_Debug_Que);
+            for (uint16_t que_index = 0; que_index < dbg_data.error_que.counter.preset; que_index++)
+                nECU_Debug_Message_Init(&(dbg_data.error_que.messages.Buffer.err_msg[que_index])); // clear each
         }
+
+        status |= nECU_Flash_DebugQue_read(dbg_data.error_que);
+        if (!status)
+            status |= !nECU_FC_Initialize_Do(D_Debug_Que);
     }
     if (!nECU_FC_Working_Check(D_Debug_Que) && status == false)
-    {
         status |= !nECU_FlowControl_Working_Do(D_Debug_Que);
-    }
     if (status)
-    {
         nECU_FC_Error_Do(D_Debug_Que);
-    }
 
     return status;
 }
@@ -260,7 +259,7 @@ static void nECU_Debug_Que_Write(nECU_Debug_error_mesage *message) // add messag
     {
         dbg_data.error_que.message_count = dbg_data.error_que.counter.preset;
     }
-    memcpy(&(dbg_data.error_que.messages[dbg_data.error_que.counter.value]), message, sizeof(nECU_Debug_error_mesage)); // copy to que
+    memcpy(&(dbg_data.error_que.messages.Buffer.err_msg[dbg_data.error_que.counter.value]), message, sizeof(nECU_Debug_error_mesage)); // copy to que
     dbg_data.error_que.counter.value++;
     dbg_data.error_que.message_count++;
 }
@@ -276,9 +275,9 @@ void nECU_Debug_Que_Read(nECU_Debug_error_mesage *message) // read newest messag
         return;
     }
 
-    memcpy(message, &(dbg_data.error_que.messages[dbg_data.error_que.counter.value]), sizeof(nECU_Debug_error_mesage)); // read last message
+    memcpy(message, &(dbg_data.error_que.messages.Buffer.err_msg[dbg_data.error_que.counter.value]), sizeof(nECU_Debug_error_mesage)); // read last message
 
-    nECU_Debug_Message_Init(&(dbg_data.error_que.messages[dbg_data.error_que.counter.value])); // clear que position
+    nECU_Debug_Message_Init(&(dbg_data.error_que.messages.Buffer.err_msg[dbg_data.error_que.counter.value])); // clear que position
 
     dbg_data.error_que.counter.value--;
     dbg_data.error_que.message_count--;

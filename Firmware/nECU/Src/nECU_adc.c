@@ -12,10 +12,14 @@ static nECU_ADC data_List[HADC_ID_MAX] = {
     [HADC2_ID] = {&hadc2, 80, 1.0},            // 80 samples, no smoothing
     [HADC3_ID] = {&hadc3, KNOCK_DMA_LEN, 1.0}, // 512 samples, no smoothing
 };
+void *ptr = NULL;
 
 /* Interrupt functions */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
+  if (hadc == NULL) // Check if pointer exist
+    return;         // Break
+
   nECU_HADC_ID hadc_id = nECU_ADC_Identify_hadc(hadc);
   if (hadc_id >= HADC_ID_MAX)
     return;
@@ -28,6 +32,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 }
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
+  if (hadc == NULL) // Check if pointer exist
+    return;         // Break
+
   nECU_HADC_ID hadc_id = nECU_ADC_Identify_hadc(hadc);
   if (hadc_id >= HADC_ID_MAX)
     return;
@@ -51,22 +58,15 @@ bool nECU_ADC_START(nECU_ADC_Sensor_ID ID)
   { /* Clear status flags */
     for (nECU_ADC_Status current = 0; current < ADC_STATUS_MAX; current++)
       data_List[hadc].flags[current] = false;
-
     // input buffer memory allocation
-    data_List[hadc].in_buffer.len = data_List[hadc].handle->Init.NbrOfConversion * data_List[hadc].sample_count;
-    data_List[hadc].in_buffer.Buffer = malloc(data_List[hadc].in_buffer.len * sizeof(uint16_t));
-    if (data_List[hadc].in_buffer.Buffer == NULL) // no buffer
-      status |= true;
-    else
-      memset(data_List[hadc].in_buffer.Buffer, 0, (data_List[hadc].in_buffer.len * sizeof(uint16_t)));
+    data_List[hadc].in_buffer.len = data_List[hadc].handle->Init.NbrOfConversion * data_List[hadc].sample_count * sizeof(uint16_t);
+    // status |= !nECU_Memory_Create(&data_List[hadc].in_buffer);
+    data_List[hadc].in_buffer.Buffer.u16 = nECU_Memory_Create2(data_List[hadc].in_buffer.len);
 
     // output buffer memory allocation
-    data_List[hadc].out_buffer.len = data_List[hadc].handle->Init.NbrOfConversion;
-    data_List[hadc].out_buffer.Buffer = malloc(data_List[hadc].out_buffer.len * sizeof(uint16_t));
-    if (data_List[hadc].out_buffer.Buffer == NULL) // no buffer
-      status |= true;
-    else
-      memset(data_List[hadc].out_buffer.Buffer, 0, (data_List[hadc].out_buffer.len * sizeof(uint16_t)));
+    data_List[hadc].out_buffer.len = data_List[hadc].handle->Init.NbrOfConversion * sizeof(uint16_t);
+    // status |= !nECU_Memory_Create(&data_List[hadc].out_buffer);
+    data_List[hadc].out_buffer.Buffer.u16 = nECU_Memory_Create2(data_List[hadc].out_buffer.len);
 
     if (hadc == HADC3_ID)
       status |= nECU_TIM_Init(TIM_ADC_KNOCK_ID);
@@ -79,7 +79,7 @@ bool nECU_ADC_START(nECU_ADC_Sensor_ID ID)
     if (hadc == HADC3_ID)
       status |= nECU_TIM_Base_Start(TIM_ADC_KNOCK_ID);
 
-    status |= (HAL_OK != HAL_ADC_Start_DMA((data_List[hadc].handle), (uint32_t *)data_List[hadc].in_buffer.Buffer, data_List[hadc].in_buffer.len));
+    status |= (HAL_OK != HAL_ADC_Start_DMA((data_List[hadc].handle), data_List[hadc].in_buffer.Buffer.u32, data_List[hadc].in_buffer.len / sizeof(uint32_t)));
     if (!status)
       status |= !nECU_FlowControl_Working_Do(D_ADC1 + hadc);
   }
@@ -110,8 +110,8 @@ bool nECU_ADC_STOP(nECU_ADC_Sensor_ID ID)
     if (nECU_FC_Stop_Check(D_ADC1 + hadc))
     {
       // Release memory; done only when STOP was done
-      free(data_List[hadc].in_buffer.Buffer);
-      free(data_List[hadc].out_buffer.Buffer);
+      status |= !nECU_Memory_Destroy(&data_List[hadc].in_buffer);
+      status |= !nECU_Memory_Destroy(&data_List[hadc].out_buffer);
     }
   }
   if (status)
@@ -148,15 +148,15 @@ bool nECU_ADC_Routine(nECU_ADC_Sensor_ID ID)
   else if (data_List[hadc].flags[ADC_STATUS_HALF])
   {
     data_List[hadc].flags[ADC_STATUS_HALF] = false; // clear flag
-    start_index = (data_List[hadc].in_buffer.len / 2);
+    start_index = (data_List[hadc].in_buffer.len / (sizeof(uint16_t) * 2));
   }
   else
     return false; // drop if no new data
 
   if (hadc != HADC3_ID)
-    nECU_ADC_AverageDMA(&data_List[hadc], start_index);
+    nECU_ADC_AverageDMA(data_List[hadc], start_index);
   else
-    nECU_Knock_ADC_Callback(data_List[hadc].in_buffer.Buffer);
+    nECU_Knock_ADC_Callback(&data_List[hadc].in_buffer);
 
   nECU_FC_Timeout_Check(D_ADC1 + hadc);
   return true;
@@ -179,6 +179,9 @@ static nECU_HADC_ID nECU_ADC_Identify_SensorID(nECU_ADC_Sensor_ID ID) // returns
 }
 static nECU_HADC_ID nECU_ADC_Identify_hadc(ADC_HandleTypeDef *hadc) // returns ID of given hadc structure pointer
 {
+  if (hadc == NULL)     // Check if pointer exist
+    return HADC_ID_MAX; // Break
+
   for (nECU_HADC_ID currentID = HADC1_ID; currentID < HADC_ID_MAX; currentID++)
   {
     if (hadc == data_List[currentID].handle)
@@ -196,10 +199,10 @@ uint16_t *nECU_ADC_getPointer(nECU_ADC_Sensor_ID ID)
   {
     if (ID < (data_List[currentID].handle->Init.NbrOfConversion))
     {
-      if (data_List[currentID].out_buffer.Buffer == NULL)
+      if (data_List[currentID].out_buffer.Buffer.v == NULL)
         return NULL; // Break if no buffer is assigned
-
-      return &data_List[currentID].out_buffer.Buffer[ID]; // found
+      uint16_t *dat = &data_List[currentID].out_buffer.Buffer.u16[ID];
+      return dat; // found
     }
 
     ID -= (data_List[currentID].handle->Init.NbrOfConversion); // subtract number of configured channels

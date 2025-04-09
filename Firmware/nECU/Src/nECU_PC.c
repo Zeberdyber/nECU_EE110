@@ -45,8 +45,14 @@ bool nECU_PC_Start(void) // initializes structures for PC communication over UAR
     bool status = false;
     if (!nECU_FC_Initialize_Check(D_PC))
     {
-        status |= nECU_UART_Init(&(PC.input), &PC_UART, (PC.in_buf));
-        status |= nECU_UART_Init(&(PC.output), &PC_UART, (PC.out_buf));
+        // Buffer memory alocation
+        PC.in.len = PC_UART_BUF_LEN * sizeof(uint8_t);
+        status |= !nECU_Memory_Create(&PC.in);
+        PC.out.len = PC_UART_BUF_LEN * sizeof(uint8_t);
+        status |= !nECU_Memory_Create(&PC.out);
+
+        status |= nECU_UART_Init(&(PC.RX), &PC_UART, (PC.in.Buffer.u8));
+        status |= nECU_UART_Init(&(PC.TX), &PC_UART, (PC.out.Buffer.u8));
         status |= OnBoard_LED_Start();
         if (!status)
             status |= !nECU_FC_Initialize_Do(D_PC);
@@ -69,6 +75,10 @@ bool nECU_PC_Stop(void) // call to stop transmission
 
     if (nECU_FC_Working_Check(D_PC) && status == false)
     {
+        // Release memory
+        status |= !nECU_Memory_Destroy(&PC.in);
+        status |= !nECU_Memory_Destroy(&PC.out);
+
         OnBoard_LED_L_Remove_Animation(&(PC.Tx_LED));
         OnBoard_LED_L_Remove_Animation(&(PC.Rx_LED));
         if (!status)
@@ -95,14 +105,27 @@ int _write(int fd, char *ptr, int len) // For printf implementation
 {
     UNUSED(fd); // copiler happy :DDD
 
+    //    errno = EBADF; // bad file descriptor
+
+    if (ptr == NULL)
+    {
+        errno = EINVAL; // buffer is NULL
+        return -1;
+    }
+    if (len > PC.out.len || len > PC.out.len) // check if message can fit into buffer
+    {
+        errno = ENOSPC; // not enough space
+        return -1;
+    }
+
     static uint8_t i = 0;
     while (PC_UART.gState != HAL_UART_STATE_READY)
     {
         i++; // wait until UART is ready
     }
 
-    memcpy(&(PC.out_buf), ptr, len);
-    PC.output.length = len;
+    memcpy(PC.out.Buffer.u8, ptr, len);
+    PC.TX.message.len = len;
     nECU_PC_Transmit();
     return len;
 }
@@ -140,9 +163,9 @@ static void nECU_PC_Transmit(void) // call to send a frame
         return; // Break
     }
 
-    PC.output.pending = true;
+    PC.TX.pending = true;
     nECU_PC_Tx_Start_Callback();
-    nECU_UART_Tx(&(PC.output));
+    nECU_UART_Tx(&(PC.TX));
 
     nECU_FC_Timeout_Check(D_PC);
 }
@@ -155,7 +178,7 @@ static void nECU_PC_Recieve(void) // call to start listening for frames
     }
 
     nECU_PC_Rx_Start_Callback();
-    nECU_UART_Rx(&(PC.input));
+    nECU_UART_Rx(&(PC.RX));
 
     nECU_FC_Timeout_Check(D_PC);
 }

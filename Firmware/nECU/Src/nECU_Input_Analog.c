@@ -17,10 +17,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         {
             // Filter
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0,         // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0,                              // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -34,10 +34,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0,         // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0,                              // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -51,10 +51,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0,         // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0,                              // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -68,10 +68,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0,         // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0,                              // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -85,10 +85,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0,         // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0,                              // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -102,10 +102,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0,         // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0,                              // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -119,10 +119,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0,         // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0,                              // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -136,10 +136,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0,         // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0,                              // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -153,10 +153,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0.04,      // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0.04,                           // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -170,10 +170,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0.04,      // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0.04,                           // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -187,10 +187,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0.04,      // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0.04,                           // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -204,10 +204,10 @@ static Sensor_Handle ADC_List[ADC_ID_MAX] = {
         },
         // Filter
         {
-            {0},       // Delay
-            1.0,       // Smoothing Alpha
-            {NULL, 0}, // buffer (configure 0 to desired buffer len)
-            0.04,      // previous value
+            {0},                            // Delay
+            1.0,                            // Smoothing Alpha
+            {{NULL}, 0 * sizeof(uint16_t)}, // buffer (configure 0 to desired buffer len)
+            0.04,                           // previous value
         },
         NULL, // input data
         0.0,  // output
@@ -269,11 +269,7 @@ bool nECU_InputAnalog_Start(nECU_ADC_Sensor_ID ID)
         // Buffer malloc
         if (ADC_List[ID].filter.buf.len > 0) // Check if buffer is specified
         {
-            ADC_List[ID].filter.buf.Buffer = malloc(ADC_List[ID].filter.buf.len * sizeof(uint16_t));
-            if (ADC_List[ID].filter.buf.Buffer == NULL)
-                status |= true;
-            else
-                memset(ADC_List[ID].filter.buf.Buffer, 0, ADC_List[ID].filter.buf.len * sizeof(uint16_t));
+            status |= !nECU_Memory_Create(&ADC_List[ID].filter.buf);
         }
 
         // Default value
@@ -302,7 +298,7 @@ bool nECU_InputAnalog_Stop(nECU_ADC_Sensor_ID ID)
     if (nECU_FC_Working_Check(D_ANALOG_MAP + ID) && status == false)
     {
         status |= nECU_Delay_Stop(&(ADC_List[ID].filter.delay));
-        free(ADC_List[ID].filter.buf.Buffer);
+        status |= !nECU_Memory_Destroy(&ADC_List[ID].filter.buf);
         if (!status)
             status |= !nECU_FC_Stop_Do(D_ANALOG_MAP + ID);
 

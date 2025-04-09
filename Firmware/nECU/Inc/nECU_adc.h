@@ -32,6 +32,7 @@ Time ADC1 {/8, 12bit, 8 channels, 480 cycles each}
 /* Definitions */
 #define GENERAL_SMOOTH_ALPHA (float)0.5 // strength for smoothing the data
 #define SPEED_SMOOTH_ALPHA (float)0.8   // strength for smoothing the data
+#define KNOCK_DMA_LEN 512
 
   /* Interrupt functions */
   void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);

@@ -16,12 +16,6 @@
 
 #define FFT_THRESH_TABLE_LEN 5 // length of table
 
-#define FFT_LENGTH 2048 // length of data passed to FFT code and result precision
-
-#define PC_UART_BUF_LEN 128 // length of buffer for UART transmission to PC
-#define KNOCK_DMA_LEN 512
-
-#define DEBUG_QUE_LEN 50                // number of debug messages that will be stored in memory
 #define ONBOARD_LED_ANIMATION_QUE_LEN 5 // number of animation access points
 
 union FloatToBytes
@@ -45,16 +39,82 @@ typedef struct
     float Table[FFT_THRESH_TABLE_LEN + 2][3];
     uint32_t size;
 } Knock_Interpol_Table;
+typedef enum
+{
+    // internal temperature out of spec
+    nECU_ERROR_DEVICE_TEMP_MCU_ID = 1,
+    nECU_ERROR_DEVICE_TEMP_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
+    nECU_ERROR_DEVICE_TEMP_EGT2_ID,
+    nECU_ERROR_DEVICE_TEMP_EGT3_ID,
+    nECU_ERROR_DEVICE_TEMP_EGT4_ID,
+
+    // thermocouple over temperature (over defined threshold)
+    nECU_ERROR_EGT_OVERTEMP_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
+    nECU_ERROR_EGT_OVERTEMP_EGT2_ID,
+    nECU_ERROR_EGT_OVERTEMP_EGT3_ID,
+    nECU_ERROR_EGT_OVERTEMP_EGT4_ID,
+
+    // thermocouple spi communication
+    nECU_ERROR_EGT_SPI_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
+    nECU_ERROR_EGT_SPI_EGT2_ID,
+    nECU_ERROR_EGT_SPI_EGT3_ID,
+    nECU_ERROR_EGT_SPI_EGT4_ID,
+
+    // thermocouple connection (TC sensor not connected, shorted etc)
+    nECU_ERROR_EGT_TC_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
+    nECU_ERROR_EGT_TC_EGT2_ID,
+    nECU_ERROR_EGT_TC_EGT3_ID,
+    nECU_ERROR_EGT_TC_EGT4_ID,
+
+    // flash interaction
+    nECU_ERROR_FLASH_SPEED_SAVE_ID,
+    nECU_ERROR_FLASH_SPEED_READ_ID,
+    nECU_ERROR_FLASH_USER_SAVE_ID,
+    nECU_ERROR_FLASH_USER_READ_ID,
+    nECU_ERROR_FLASH_DEBUG_QUE_SAVE_ID,
+    nECU_ERROR_FLASH_DEBUG_QUE_READ_ID,
+    nECU_ERROR_FLASH_ERASE_ID,
+
+    // communication
+    nECU_ERROR_CAN_ID,
+    nECU_ERROR_SPI_ID,
+
+    // VSS
+    nECU_ERROR_VSS_MAX,
+
+    // ProgramBlock
+    nECU_ERROR_PROGRAMBLOCK,
+
+    nECU_ERROR_NONE
+} nECU_Error_ID;
 typedef struct
 {
-    uint16_t *Buffer; // pointer to buffer
-    uint16_t len;     // lenght of the buffer
-} Buffer_uint16;
+    bool error_flag;     // flag indicating error ocurring
+    float value_at_flag; // value that coused flag
+    nECU_Error_ID ID;    // ID of error
+} nECU_Debug_error_mesage;
+
+typedef union
+{
+    uint8_t *u8;
+    uint16_t *u16;
+    uint32_t *u32;
+    float *fl;
+    void *v;
+    nECU_Debug_error_mesage *err_msg;
+} pointerUnion;
 typedef struct
 {
-    uint8_t *Buffer; // pointer to buffer
-    uint16_t len;    // lenght of the buffer
-} Buffer_uint8;
+    pointerUnion Buffer;
+    uint16_t len; // lenght of the buffer in bytes
+} nECU_Buffer;
+
+typedef struct
+{
+    void *memory_pointer;
+    uint16_t size;
+} nECU_Memory_cell;
+
 typedef struct
 {
     uint32_t value;  // current value
@@ -87,8 +147,7 @@ typedef enum
 typedef struct
 {
     UART_HandleTypeDef *huart;
-    uint8_t *message;
-    uint8_t length;
+    nECU_Buffer message;
     bool pending;
 } nECU_UART;
 
@@ -176,8 +235,8 @@ typedef struct
     ADC_HandleTypeDef *handle; // ADC pointer
     uint16_t sample_count;     // per channel
     float smoothing_alpha;
-    Buffer_uint16 in_buffer;    // input buffer (from DMA)
-    Buffer_uint16 out_buffer;   // output buffer (after processing, like average)
+    nECU_Buffer in_buffer;      // input buffer (from DMA)
+    nECU_Buffer out_buffer;     // output buffer (after processing, like average)
     bool flags[ADC_STATUS_MAX]; // statuses
 } nECU_ADC;
 
@@ -327,7 +386,7 @@ typedef struct
 {
     nECU_CAN_TxFrame can_data; // peripheral data
     nECU_Delay frame_delay;    // timing between frames
-    Buffer_uint8 buf;
+    nECU_Buffer buf;
 } nECU_CAN_Tx_Data;
 typedef struct
 {
@@ -383,7 +442,7 @@ typedef struct
 {
     nECU_Delay delay;        // update delay structure
     float smoothingAlpha;    // value for smoothing
-    Buffer_uint16 buf;       // smoothing buffer
+    nECU_Buffer buf;         // smoothing buffer
     uint16_t previous_Input; // value from previous run
 } SensorFiltering;
 typedef struct
@@ -398,8 +457,8 @@ typedef struct
 typedef struct
 {
     arm_rfft_fast_instance_f32 Handler;
-    float BufIn[FFT_LENGTH];
-    float BufOut[FFT_LENGTH];
+    nECU_Buffer In;
+    nECU_Buffer Out;
     bool flag;
     uint16_t Index;
     uint16_t KnockIndex;
@@ -422,7 +481,7 @@ typedef struct
     // UART communication
     bool UART_Transmission;
     nECU_UART uart;
-    uint8_t UART_data_buffer[KNOCK_DMA_LEN];
+    nECU_Buffer UART_data_buffer;
 
     // Delay
     nECU_Delay delay; // Minimum time between each knock retard action (time to check if knock is gone after retard)
@@ -477,66 +536,12 @@ typedef struct
 /* Debug */
 typedef enum
 {
-    // internal temperature out of spec
-    nECU_ERROR_DEVICE_TEMP_MCU_ID = 1,
-    nECU_ERROR_DEVICE_TEMP_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
-    nECU_ERROR_DEVICE_TEMP_EGT2_ID,
-    nECU_ERROR_DEVICE_TEMP_EGT3_ID,
-    nECU_ERROR_DEVICE_TEMP_EGT4_ID,
-
-    // thermocouple over temperature (over defined threshold)
-    nECU_ERROR_EGT_OVERTEMP_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
-    nECU_ERROR_EGT_OVERTEMP_EGT2_ID,
-    nECU_ERROR_EGT_OVERTEMP_EGT3_ID,
-    nECU_ERROR_EGT_OVERTEMP_EGT4_ID,
-
-    // thermocouple spi communication
-    nECU_ERROR_EGT_SPI_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
-    nECU_ERROR_EGT_SPI_EGT2_ID,
-    nECU_ERROR_EGT_SPI_EGT3_ID,
-    nECU_ERROR_EGT_SPI_EGT4_ID,
-
-    // thermocouple connection (TC sensor not connected, shorted etc)
-    nECU_ERROR_EGT_TC_EGT1_ID, // !Have to be in the same order as 'EGT_Sensor_ID'!
-    nECU_ERROR_EGT_TC_EGT2_ID,
-    nECU_ERROR_EGT_TC_EGT3_ID,
-    nECU_ERROR_EGT_TC_EGT4_ID,
-
-    // flash interaction
-    nECU_ERROR_FLASH_SPEED_SAVE_ID,
-    nECU_ERROR_FLASH_SPEED_READ_ID,
-    nECU_ERROR_FLASH_USER_SAVE_ID,
-    nECU_ERROR_FLASH_USER_READ_ID,
-    nECU_ERROR_FLASH_DEBUG_QUE_SAVE_ID,
-    nECU_ERROR_FLASH_DEBUG_QUE_READ_ID,
-    nECU_ERROR_FLASH_ERASE_ID,
-
-    // communication
-    nECU_ERROR_CAN_ID,
-    nECU_ERROR_SPI_ID,
-
-    // VSS
-    nECU_ERROR_VSS_MAX,
-
-    // ProgramBlock
-    nECU_ERROR_PROGRAMBLOCK,
-
-    nECU_ERROR_NONE
-} nECU_Error_ID;
-typedef enum
-{
     nECU_FLASH_ERROR_SPEED = 2,
     nECU_FLASH_ERROR_USER = 4,
     nECU_FLASH_ERROR_DBGQUE = 6,
     nECU_FLASH_ERROR_ERASE = 7,
     nECU_FLASH_ERROR_NONE
 } nECU_Flash_Error_ID;
-typedef struct
-{
-    bool error_flag;     // flag indicating error ocurring
-    float value_at_flag; // value that coused flag
-    nECU_Error_ID ID;    // ID of error
-} nECU_Debug_error_mesage;
 typedef struct
 {
     int16_t MCU;        // internal temperature of MCU
@@ -552,9 +557,9 @@ typedef struct
 } nECU_Debug_EGT_Temp;   // error due to over temperature of thermocouple
 typedef struct
 {
-    nECU_Debug_error_mesage messages[DEBUG_QUE_LEN]; // que
-    Counter counter;                                 // counter to track position of newest message
-    uint16_t message_count;                          // count of messages in the que
+    Counter counter;        // counter to track position of newest message
+    uint16_t message_count; // count of messages in the que
+    nECU_Buffer messages;   // que
 } nECU_Debug_error_que;
 typedef struct
 {
@@ -585,12 +590,6 @@ typedef struct
     OnBoardLED_Animate *Que[ONBOARD_LED_ANIMATION_QUE_LEN]; // que for animations (if multiple want to access)
     uint8_t Que_len;                                        // number of animations in que
 } OnBoardLED;
-typedef struct
-{
-    nECU_TickTrack tracker;
-    uint32_t time;    // time of whole loop [ms]
-    uint32_t counter; // loop counter
-} nECU_LoopCounter;
 typedef enum
 {
     D_BLOCK_NULL = 0,        // Block was not initialized
@@ -707,16 +706,16 @@ typedef struct
 {
     nECU_SpeedCalibrationData speedData;
     nECU_UserSettings userData;
-    nECU_Debug_error_que *DebugQueData;
+    nECU_Debug_error_que DebugQueData;
 } nECU_FlashContent;
 
 /* PC */
 typedef struct
 {
-    nECU_UART output;
-    nECU_UART input;
-    uint8_t out_buf[PC_UART_BUF_LEN];
-    uint8_t in_buf[PC_UART_BUF_LEN];
+    nECU_UART TX;
+    nECU_UART RX;
+    nECU_Buffer out;
+    nECU_Buffer in;
     OnBoardLED_Animate Tx_LED;
     OnBoardLED_Animate Rx_LED;
 } nECU_PC;

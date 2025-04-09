@@ -24,15 +24,16 @@ extern "C"
 #define KNOCK_LEVEL 5        // multiplier how much will steps will be taken for severe knock
 #define KNOCK_STEP 5         // in % how much should be retarded in one step
 #define KNOCK_FREQUENCY 8000 // in Hz
+#define FFT_LENGTH 2048      // length of data passed to FFT code and result precision
 
     /* Knock detection */
-    bool nECU_Knock_Start(void);                          // initialize and start
-    void nECU_Knock_ADC_Callback(uint16_t *input_buffer); // periodic callback
-    void nECU_Knock_UpdatePeriodic(void);                 // function to calculate current retard value
-    static void nECU_Knock_DetectMagn(void);              // function to detect knock based on ADC input
-    static void nECU_Knock_Evaluate(float *magnitude);    // check if magnitude is of knock range
-    bool nECU_Knock_Stop(void);                           // stop
-    uint8_t *nECU_Knock_GetPointer(void);                 // returns pointer to knock retard percentage
+    bool nECU_Knock_Start(void);                        // initialize and start
+    void nECU_Knock_ADC_Callback(nECU_Buffer *ADC_buf); // periodic callback
+    void nECU_Knock_UpdatePeriodic(void);               // function to calculate current retard value
+    static void nECU_Knock_DetectMagn(void);            // function to detect knock based on ADC input
+    static void nECU_Knock_Evaluate(float *magnitude);  // check if magnitude is of knock range
+    bool nECU_Knock_Stop(void);                         // stop
+    uint8_t *nECU_Knock_GetPointer(void);               // returns pointer to knock retard percentage
 
 #ifdef __cplusplus
 }

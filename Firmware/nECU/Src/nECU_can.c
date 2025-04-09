@@ -95,7 +95,7 @@ void nECU_CAN_WriteToBuffer(nECU_CAN_TX_Frame_ID frameID, uint8_t size) // copy 
 
   Tx_frame_List[frameID].can_data.Header.DLC = size;
   memcpy(Tx_frame_List[frameID].can_data.Buffer,
-         Tx_frame_List[frameID].buf.Buffer,
+         Tx_frame_List[frameID].buf.Buffer.v,
          Tx_frame_List[frameID].can_data.Header.DLC); // copy data to can buffer
 }
 bool nECU_CAN_Stop(void) // stop all CAN code, with timing
@@ -163,7 +163,7 @@ static bool nECU_CAN_TX_Init(nECU_CAN_TX_Frame_ID currentID)
   memset(Tx_frame_List[currentID].can_data.Buffer, 0, sizeof(Tx_frame_List[currentID].can_data.Buffer)); // clear buffer
   // data pointer
   if (nECU_Frame_getPointer(currentID))
-    Tx_frame_List[currentID].buf.Buffer = nECU_Frame_getPointer(currentID);
+    Tx_frame_List[currentID].buf.Buffer.u8 = nECU_Frame_getPointer(currentID);
   else
     status |= true;
 
@@ -217,6 +217,9 @@ static bool nECU_CAN_RX_Init(nECU_CAN_RX_Frame_ID currentID)
 }
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) // interrupt callback when new Rx frame in FIFO0
 {
+  if (hcan == NULL) // Check if pointer exist
+    return;         // Break
+
   if (!nECU_FC_Working_Check(D_CAN_RX))
     return; // break
   static CAN_RxHeaderTypeDef RX_Header;
@@ -229,6 +232,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) // interrupt cal
 }
 static nECU_CAN_RX_Frame_ID nECU_CAN_RX_Identify(CAN_RxHeaderTypeDef *pHeader)
 {
+  if (pHeader == NULL)    // Check if pointer exist
+    return CAN_RX_ID_MAX; // Break
+
   for (nECU_CAN_RX_Frame_ID currentID = 0; currentID < CAN_RX_ID_MAX; currentID++)
     if (RX_Msg_ID_List[currentID] == (pHeader->StdId))
       return currentID;
@@ -237,6 +243,9 @@ static nECU_CAN_RX_Frame_ID nECU_CAN_RX_Identify(CAN_RxHeaderTypeDef *pHeader)
 }
 static void nECU_CAN_RX_Update(nECU_CAN_RX_Frame_ID currentID, uint8_t *buf) // update value
 {
+  if (buf == NULL) // Check if pointer exist
+    return;        // Break
+
   if (currentID >= CAN_RX_ID_MAX) // Break if invalid ID
     return;                       // Break
 

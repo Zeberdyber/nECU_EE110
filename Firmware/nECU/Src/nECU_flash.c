@@ -65,6 +65,9 @@ bool nECU_Flash_SpeedCalibration_read(float *Sensor1, float *Sensor2, float *Sen
 /* User settings data functions (flash function interface) */
 bool nECU_Flash_UserSettings_save(bool *pAntiLag, bool *pTractionOFF)
 {
+    if (pAntiLag == NULL || pTractionOFF == NULL)
+        return true;
+
     bool status = false;
 
     // check if data was initialized
@@ -93,6 +96,9 @@ bool nECU_Flash_UserSettings_save(bool *pAntiLag, bool *pTractionOFF)
 }
 bool nECU_Flash_UserSettings_read(bool *pAntiLag, bool *pTractionOFF)
 {
+    if (pAntiLag == NULL || pTractionOFF == NULL)
+        return true;
+
     bool status = false;
 
     // check if data was initialized
@@ -114,8 +120,13 @@ bool nECU_Flash_UserSettings_read(bool *pAntiLag, bool *pTractionOFF)
     return status;
 }
 
-/* Debug que (flash function interface) */
-bool nECU_Flash_DebugQue_save(nECU_Debug_error_que *que)
+/* Debug que (flash function interface)
+    Debug que has variable message count.
+    !This means that data copy should check if data fits!
+    There is no point in storing all messages in RAM so only header will be stored
+*/
+
+bool nECU_Flash_DebugQue_save(nECU_Debug_error_que que)
 {
     bool status = false;
 
@@ -134,15 +145,43 @@ bool nECU_Flash_DebugQue_save(nECU_Debug_error_que *que)
 
     return status;
 }
-bool nECU_Flash_DebugQue_read(nECU_Debug_error_que *que)
+bool nECU_Flash_DebugQue_read(nECU_Debug_error_que que)
 {
     // This block does not require whole flash module to have status "Working"
     bool status = false;
-    Flash.DebugQueData = que;
+    Flash.DebugQueData.messages.Buffer.v = NULL; // make sure pointer is NULL to prevent data usage
 
-    memcpy(Flash.DebugQueData, (const void *)FLASH_DATA_START_ADDR_DEBUGQUE, sizeof(nECU_Debug_error_que)); // user settings to RAM
+    // first copy counter data to see how long saved data is (if its shorter)
+    uint8_t header_len = sizeof(nECU_Debug_error_que) - sizeof(Flash.DebugQueData.messages);
+    memcpy(&(Flash.DebugQueData), (const void *)FLASH_DATA_START_ADDR_DEBUGQUE, header_len);
 
-    if (memcmp(Flash.DebugQueData, (const void *)FLASH_DATA_START_ADDR_DEBUGQUE, sizeof(nECU_Debug_error_que))) // check if reading was successful
+    if (memcmp(&(Flash.DebugQueData), (uint8_t *)0xFF, header_len)) // check if data was not erased
+    {
+        // nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, false);
+        //  return true;
+        return false;
+    }
+
+    // copy main data to output
+    memcpy(&que, &Flash.DebugQueData, header_len);
+
+    uint32_t start_addr = FLASH_DATA_START_ADDR_DEBUGQUE + header_len; // start adress for messages
+
+    uint8_t msg_len = que.messages.len;
+    // if it is shorter copy only data that was saved. if not copy msg_count number of messages
+    if (Flash.DebugQueData.messages.len < msg_len)
+        msg_len = Flash.DebugQueData.messages.len;
+
+    if (start_addr + msg_len > FLASH_DATA_END_ADDRESS) // check if flash memory limit is not exceeded
+    {
+        nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, false);
+        return true;
+    }
+
+    // copy message data to output
+    memcpy(que.messages.Buffer.err_msg, (const void *)start_addr, msg_len);
+
+    if (memcmp(que.messages.Buffer.err_msg, (const void *)start_addr, msg_len) || memcmp(&que, &Flash.DebugQueData, header_len)) // check if reading was successful
     {
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, false);
         status |= true;
@@ -210,26 +249,36 @@ static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, th
     status |= nECU_FLASH_cleanFlashSector();                                             // prepare memory for a save
     uint16_t byte_count = sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings); // define buffer length
 
-    if (nECU_FC_Initialize_Check(D_Debug_Que))
+    if (nECU_FC_Initialize_Check(D_Debug_Que)) // add debug error que if it was initialized
     {
-        byte_count += sizeof(nECU_Debug_error_que); // add debug error que if it was initialized
+        byte_count += sizeof(nECU_Debug_error_que) - sizeof(Flash.DebugQueData.messages);  // header
+        byte_count += Flash.DebugQueData.counter.preset * sizeof(nECU_Debug_error_mesage); // messages
     }
+    if (FLASH_DATA_START_ADDRESS + byte_count > FLASH_DATA_END_ADDRESS) // check if data will fit into FLASH
+        return HAL_ERROR;
 
-    uint8_t data[byte_count]; // create buffer (it has to be devidable by 4 so be carefull)
+    if (byte_count % 4 != 0) // check if devidable by 4 (due to how data is saved to flash)
+        return HAL_ERROR;
+
+    nECU_Buffer data; // create buffer
+    data.len = byte_count;
+    if (!nECU_Memory_Create(&data)) // check if allocated properly
+        return HAL_ERROR;
 
     /* copy data to the buffer */
-    memcpy(&data[0], &(Flash.speedData), sizeof(nECU_SpeedCalibrationData));                        // copy speed data
-    memcpy(&data[sizeof(nECU_SpeedCalibrationData)], &(Flash.userData), sizeof(nECU_UserSettings)); // copy user settings data
-    if (nECU_FC_Initialize_Check(D_Debug_Que))                                                      // copy debug que if it was initialized
+    memcpy((data.Buffer.u8), &(Flash.speedData), sizeof(nECU_SpeedCalibrationData));                            // copy speed data
+    memcpy(&(data.Buffer.u8[sizeof(nECU_SpeedCalibrationData)]), &(Flash.userData), sizeof(nECU_UserSettings)); // copy user settings data
+    if (nECU_FC_Initialize_Check(D_Debug_Que))                                                                  // copy debug que if it was initialized
     {
-        memcpy(&data[sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings)], Flash.DebugQueData, sizeof(nECU_Debug_error_que));
+        memcpy(&data.Buffer.u8[sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings)], &Flash.DebugQueData, sizeof(nECU_Debug_error_que) - sizeof(Flash.DebugQueData.messages));                                                    // header
+        memcpy(&data.Buffer.u8[sizeof(nECU_SpeedCalibrationData) + sizeof(nECU_UserSettings) + sizeof(nECU_Debug_error_que) - sizeof(Flash.DebugQueData.messages)], Flash.DebugQueData.messages.Buffer.v, Flash.DebugQueData.messages.len); // messages
     }
 
     /* Write the data to flash memory */
     status |= HAL_FLASH_Unlock();
     for (int i = 0; i < byte_count; i += 4)
     {
-        status |= HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + i, *(uint32_t *)((uint8_t *)data + i));
+        status |= HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, FLASH_DATA_START_ADDRESS + i, *(uint32_t *)(data.Buffer.u8 + i));
     }
     status |= HAL_FLASH_Lock();
 
@@ -242,13 +291,13 @@ static HAL_StatusTypeDef nECU_FLASH_saveFlashSector(void) // save everything, th
 
     status |= nECU_FLASH_getAllMemory(); // update RAM
 
-    if (memcmp(&data[0], (const void *)FLASH_DATA_START_ADDRESS, byte_count) != 0) // check if save was successful
+    if (memcmp(data.Buffer.v, (const void *)FLASH_DATA_START_ADDRESS, byte_count) != 0) // check if save was successful
     {
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_SPEED, true);
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_USER, true);
         nECU_Debug_FLASH_error(nECU_FLASH_ERROR_DBGQUE, true);
     }
-
+    status |= !nECU_Memory_Destroy(&data); // remove buffer
     nECU_FC_Timeout_Check(D_Flash);
 
     return status;

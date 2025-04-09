@@ -16,8 +16,15 @@ bool nECU_Knock_Start(void) // initialize and start
 
     if (!nECU_FC_Initialize_Check(D_Knock))
     {
+        // Memory allocation
+        Knock.fft.In.len = FFT_LENGTH * sizeof(float);
+        status |= !nECU_Memory_Create(&Knock.fft.In);
+        Knock.fft.Out.len = FFT_LENGTH * sizeof(float);
+        status |= !nECU_Memory_Create(&Knock.fft.Out);
+        Knock.UART_data_buffer.len = 256 * sizeof(uint8_t);
+        status |= !nECU_Memory_Create(&Knock.UART_data_buffer);
         // UART
-        status |= nECU_UART_Init(&Knock.uart, &PC_UART, Knock.UART_data_buffer);
+        status |= nECU_UART_Init(&Knock.uart, &PC_UART, Knock.UART_data_buffer.Buffer.u8);
 
         Knock.RetardPerc = 0; // initial value
         Knock.LevelWaiting = false;
@@ -36,8 +43,8 @@ bool nECU_Knock_Start(void) // initialize and start
         Knock.fft.flag = false;
         TIM_HandleTypeDef tim = *nECU_TIM_getPointer(TIM_ADC_KNOCK_ID);
         float SamplingFreq = TIM_CLOCK / ((tim.Init.Prescaler + 1) * (tim.Init.Period + 1));
-        Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * FFT_LENGTH) / (SamplingFreq)) * 2) - 1;
-        status |= (arm_rfft_fast_init_f32(&(Knock.fft.Handler), FFT_LENGTH) != ARM_MATH_SUCCESS);
+        Knock.fft.KnockIndex = (round((KNOCK_FREQUENCY * Knock.fft.In.len / sizeof(float)) / (SamplingFreq)) * 2) - 1;
+        status |= (arm_rfft_fast_init_f32(&(Knock.fft.Handler), Knock.fft.In.len / sizeof(float)) != ARM_MATH_SUCCESS);
 
         if (!status)
             status |= !nECU_FC_Initialize_Do(D_Knock);
@@ -54,7 +61,7 @@ bool nECU_Knock_Start(void) // initialize and start
 
     return status;
 }
-void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
+void nECU_Knock_ADC_Callback(nECU_Buffer *ADC_buf) // periodic callback
 {
     if (!nECU_FC_Working_Check(D_Knock)) // Check if currently working
     {
@@ -64,16 +71,17 @@ void nECU_Knock_ADC_Callback(uint16_t *input_buffer) // periodic callback
 
     if (Knock.UART_Transmission == true)
     {
-        nECU_UART_SendKnock(input_buffer, &Knock.uart);
+        nECU_UART_SendKnock(ADC_buf, &Knock.uart);
     }
 
-    for (uint16_t i = 0; i < (KNOCK_DMA_LEN / 2); i++)
+    for (uint16_t i = 0; i < ((ADC_buf->len / sizeof(uint16_t)) / 2); i++)
     {
-        Knock.fft.BufIn[Knock.fft.Index] = (float)input_buffer[i];
+        Knock.fft.In.Buffer.u16[1] = 0;
+        Knock.fft.In.Buffer.fl[Knock.fft.Index] = (float)(ADC_buf->Buffer.u16[i]);
         Knock.fft.Index++;
-        if (Knock.fft.Index == FFT_LENGTH) // if buffer full perform FFT
+        if (Knock.fft.Index == (Knock.fft.In.len / sizeof(float))) // if buffer full perform FFT
         {
-            arm_rfft_fast_f32(&(Knock.fft.Handler), Knock.fft.BufIn, Knock.fft.BufOut, 0);
+            arm_rfft_fast_f32(&(Knock.fft.Handler), Knock.fft.In.Buffer.fl, Knock.fft.Out.Buffer.fl, 0);
             Knock.fft.flag = true;
             Knock.fft.Index = 0;
         }
@@ -127,7 +135,7 @@ void nECU_Knock_UpdatePeriodic(void) // function to calculate current retard val
 static void nECU_Knock_DetectMagn(void) // function to detect knock based on ADC input
 {
     float knockMagn = 0;
-    knockMagn = sqrtf((Knock.fft.BufOut[Knock.fft.KnockIndex] * Knock.fft.BufOut[Knock.fft.KnockIndex]) + (Knock.fft.BufOut[Knock.fft.KnockIndex + 1] * Knock.fft.BufOut[Knock.fft.KnockIndex + 1]));
+    knockMagn = sqrtf((Knock.fft.Out.Buffer.fl[Knock.fft.KnockIndex] * Knock.fft.Out.Buffer.fl[Knock.fft.KnockIndex]) + (Knock.fft.Out.Buffer.fl[Knock.fft.KnockIndex + 1] * Knock.fft.Out.Buffer.fl[Knock.fft.KnockIndex + 1]));
     nECU_Knock_Evaluate(&knockMagn);
 }
 static void nECU_Knock_Evaluate(float *magnitude) // check if magnitude is of knock range

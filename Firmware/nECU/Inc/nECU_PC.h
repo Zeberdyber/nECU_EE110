@@ -15,12 +15,14 @@ extern "C"
     /* Includes */
 #include "main.h"
 #include "stdio.h"
+#include "errno.h"
 #include "stdbool.h"
 #include "nECU_types.h"
 #include "nECU_UART.h"
 
 /* Definitions */
 #define PC_INDICATOR_SPEED 5 // how fast will LED blink in Hz
+#define PC_UART_BUF_LEN 128  // length of buffer for UART transmission to PC
 
 // Console colors
 #define Console_Color_Off "\[\033[0m\]" // Text Format Reset

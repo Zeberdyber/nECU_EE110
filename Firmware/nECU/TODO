@@ -11,11 +11,17 @@
         [ ] fix EGT communication
     [ ] tim PWM out rewrite + OX
     [ ] LED animations unification
-    [ ] dynamic buffers (malloc)
+    [X] dynamic buffers (malloc)
         [X] ADCs
             [X] Memory release at _STOP()
         [X] Input_Analog
         [X] Input_Frequency
+        [X] Knock
+        [X] Debug que (FLASH included)
+        [X] UART
+    [ ] function should check pointers if they exist {pfoo!=NULL}
+    [ ] Flexible tables
+    [ ] buffer unification
 
 [ ] Code overhaul tests:
     [ ] Analog inputs
@@ -24,7 +30,7 @@
         [ ] OX
         [ ] AI1-3
         [ ] MCU temperature
-        [ ] VREF
+        [X] VREF
         [ ] Speed Sensors
     [ ] Frequency inputs
         [X] VSS

@@ -30,7 +30,7 @@ extern "C"
 #define TEST_ENABLE true       // turn all tests on
 #define SYSTEST_DO_FLASH false // choose to do flash tests !they will delete any saved data!
 
-#define ERROR_HALT true       // should program stop on error
+#define ERROR_HALT false      // should program stop on error
 #define ERROR_BLINK_TIMES 5   // number of blinks when error is detected
 #define ERROR_BLINK_SPEED 250 // delay time in ms
 

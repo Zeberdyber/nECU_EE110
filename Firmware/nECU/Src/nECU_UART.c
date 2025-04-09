@@ -54,10 +54,10 @@ void Send_Triangle_UART(void) // function to send triangle wave over UART
 #endif
 
 /* Knock ADC data transmission */
-void nECU_UART_SendKnock(uint16_t *input_buffer, nECU_UART *knock_uart) // send knock data over
+void nECU_UART_SendKnock(nECU_Buffer *ADC_buf, nECU_UART *knock_uart) // send knock data over
 {
-    knock_uart->length = nECU_UART_KnockSuperFrame(input_buffer, knock_uart->message, UART_ADC_COUNT, DELTA_PREC); // prepare buffer
-    nECU_UART_Tx(knock_uart);                                                                                      // send frame
+    knock_uart->message.len = nECU_UART_KnockSuperFrame(ADC_buf->Buffer.u16, knock_uart->message.Buffer.u8, (ADC_buf->len / sizeof(uint16_t)) / 2, DELTA_PREC); // prepare buffer; /2 for two callbacks per DMA buffer
+    nECU_UART_Tx(knock_uart);                                                                                                                                   // send frame
 }
 uint8_t nECU_UART_KnockSuperFrame(uint16_t *input_buffer, uint8_t *output_buffer, uint16_t input_length, uint8_t delta_bit_count) // compose Super frame (diferential frame), returns resulting frame length
 {
@@ -119,11 +119,14 @@ uint8_t nECU_UART_KnockSuperFrame(uint16_t *input_buffer, uint8_t *output_buffer
 /* UART interface */
 bool nECU_UART_Init(nECU_UART *obj, UART_HandleTypeDef *huart, uint8_t *buffer) // initializes structure
 {
+    if (huart == NULL || buffer == NULL) // check pointers
+        return true;
+
     bool status = false;
 
     obj->huart = huart;
-    obj->message = buffer;
-    obj->length = 0;
+    obj->message.Buffer.u8 = buffer;
+    obj->message.len = 0;
     obj->pending = false;
     if (huart == &PC_UART)
     {
@@ -152,12 +155,12 @@ HAL_StatusTypeDef nECU_UART_Tx(nECU_UART *obj) // sends the packet if possible
         return HAL_BUSY; // breaks function if not possible to send
     }
 
-    if (obj->length == 0) // checks if any data was written to the buffer
+    if (obj->message.len == 0) // checks if any data was written to the buffer
     {
         return HAL_ERROR;
     }
 
-    HAL_StatusTypeDef Tx_status = HAL_UART_Transmit_IT((obj->huart), (obj->message), (obj->length)); // sends the data
+    HAL_StatusTypeDef Tx_status = HAL_UART_Transmit_IT((obj->huart), (obj->message.Buffer.u8), (obj->message.len)); // sends the data
 
     if (Tx_status != HAL_OK)
     {
@@ -181,25 +184,25 @@ HAL_StatusTypeDef nECU_UART_Rx(nECU_UART *obj) // starts the recive on UART
         return HAL_BUSY; // breaks function if not possible to send
     }
 
-    if (obj->length == 0) // checks if length was specified
+    if (obj->message.len == 0) // checks if length was specified
     {
         return HAL_ERROR;
     }
 
-    HAL_StatusTypeDef Rx_status = HAL_UART_Receive_IT((obj->huart), (obj->message), (obj->length));
+    HAL_StatusTypeDef Rx_status = HAL_UART_Receive_IT((obj->huart), (obj->message.Buffer.u8), (obj->message.len));
 
     return Rx_status;
 }
 HAL_StatusTypeDef nECU_UART_Tx_Abort(nECU_UART *obj) // stops Tx transmission
 {
     obj->pending = false;
-    obj->length = 0;
+    obj->message.len = 0;
     return HAL_UART_AbortTransmit_IT((obj->huart));
 }
 HAL_StatusTypeDef nECU_UART_Rx_Abort(nECU_UART *obj) // stops Rx transmission
 {
     obj->pending = false;
-    obj->length = 0;
+    obj->message.len = 0;
     return HAL_UART_AbortReceive_IT((obj->huart));
 }
 bool *nECU_UART_Pending_Flag(nECU_UART *obj) // returns pending flag pointer

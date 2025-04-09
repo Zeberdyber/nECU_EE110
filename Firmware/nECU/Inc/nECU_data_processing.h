@@ -37,7 +37,7 @@ extern "C"
     uint16_t VoltsToADC(float Voltage);
 
     /* ADC buffer operations */
-    void nECU_ADC_AverageDMA(nECU_ADC *pADC, uint16_t offset); // average out dma buffer
+    void nECU_ADC_AverageDMA(nECU_ADC pADC, uint16_t offset); // average out dma buffer
 
     /* Smoothing functions */
     uint16_t nECU_expSmooth(uint16_t *in, uint16_t *in_previous, float alpha);                                           // exponential smoothing algorithm
@@ -50,6 +50,12 @@ extern "C"
 
     /* Sensors */
     void nECU_Sensor_Routine(Sensor_Handle *sensor);
+
+    /* Memory */
+    void *nECU_Memory_Create2(uint16_t size);
+
+    bool nECU_Memory_Create(nECU_Buffer *pbuf);  // Dynamic allocation
+    bool nECU_Memory_Destroy(nECU_Buffer *pbuf); // Free dynamic memory
 
     /* Tests */
     bool nECU_DataProcessing_test(bool logging_enable); // Run test
